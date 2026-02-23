@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   label: {
     fontSize: 14,
