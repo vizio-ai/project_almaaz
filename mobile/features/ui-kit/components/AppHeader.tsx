@@ -17,7 +17,7 @@ export function AppHeader({ right, variant = 'dark' }: AppHeaderProps) {
   const bg = isLight ? '#FFFFFF' : headerBg;
 
   return (
-    <View style={[styles.header, { backgroundColor: bg, paddingTop: top + 12 }]}>
+    <View style={[styles.header, { backgroundColor: bg, paddingTop: top + 18 }]}>
       <AppLogo size="md" onDark={!isLight} onLight={isLight} />
       {right != null && <View style={styles.right}>{right}</View>}
     </View>
@@ -27,7 +27,7 @@ export function AppHeader({ right, variant = 'dark' }: AppHeaderProps) {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

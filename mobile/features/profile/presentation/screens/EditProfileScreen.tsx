@@ -143,12 +143,12 @@ export function EditProfileScreen({
     (name[0] ?? '').toUpperCase() + (surname[0] ?? '').toUpperCase() || '?';
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['bottom']}>
       <AppHeader
         variant="light"
         right={
-          <TouchableOpacity activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={24} color="#18181B" />
+          <TouchableOpacity activeOpacity={0.8} style={styles.notifBtn}>
+            <Ionicons name="notifications-outline" size={20} color="#18181B" />
           </TouchableOpacity>
         }
       />
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   errorBannerWrap: { paddingHorizontal: 24, marginBottom: 8 },
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingBottom: 40 },
-  avatarSection: { alignItems: 'center', paddingVertical: 24 },
+  avatarSection: { alignItems: 'center', paddingTop: 16, paddingBottom: 24 },
   avatarWrap: {
     width: 96,
     height: 96,
@@ -316,12 +316,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   form: { marginBottom: 24 },
-  row: { flexDirection: 'row', marginBottom: 16 },
+  row: { flexDirection: 'row', marginBottom: 24 },
   halfInput: { flex: 1 },
   gap: { width: 12 },
   personaSection: {
-    paddingTop: 20,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   personaTitle: { fontSize: 16, fontWeight: '700', marginBottom: 16 },
   actions: {
@@ -340,4 +339,13 @@ const styles = StyleSheet.create({
   cancelText: { color: '#18181B', fontSize: 14, fontWeight: '500' },
   saveBtn: { flex: 1, height: 40, paddingVertical: 0, paddingHorizontal: 0, alignItems: 'center', justifyContent: 'center' },
   saveText: { color: '#FAFAFA', fontSize: 14, fontWeight: '500' },
+  notifBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

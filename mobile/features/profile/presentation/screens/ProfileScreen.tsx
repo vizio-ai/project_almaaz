@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader, AppText, useThemeColor } from '@shared/ui-kit';
 import { Profile } from '../../domain/entities/Profile';
+import { ProfileActionButtons } from '../components/ProfileActionButtons';
 
 const PERSONA_LABELS: Record<string, Record<string, string>> = {
   pace: {
@@ -113,17 +114,17 @@ export function ProfileScreen({
   onLogout,
 }: ProfileScreenProps) {
   const bg = useThemeColor('background');
-  const text = useThemeColor('text');
+  const text = useThemeColor('labelText');
+  const subText = useThemeColor('subText');
   const secondary = useThemeColor('textSecondary');
   const border = useThemeColor('border');
   const accent = useThemeColor('accent');
   const surfaceAlt = useThemeColor('surfaceAlt');
-  const surface = useThemeColor('surface');
 
   if (isLoading && !profile) {
     return (
-      <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
-        <AppHeader variant="light" right={<Ionicons name="notifications-outline" size={24} color="#18181B" />} />
+      <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
+        <AppHeader variant="light" right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={accent} />
         </View>
@@ -133,8 +134,8 @@ export function ProfileScreen({
 
   if (!profile) {
     return (
-      <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
-        <AppHeader variant="light" right={<Ionicons name="notifications-outline" size={24} color="#18181B" />} />
+      <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
+        <AppHeader variant="light" right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
         <View style={styles.loadingContainer}>
           <AppText style={[styles.emptyText, { color: secondary }]}>Profile not found</AppText>
         </View>
@@ -162,12 +163,12 @@ export function ProfileScreen({
   }
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
       <AppHeader
         variant="light"
         right={
-          <TouchableOpacity activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={24} color="#18181B" />
+          <TouchableOpacity activeOpacity={0.8} style={styles.notifBtn}>
+            <Ionicons name="notifications-outline" size={20} color="#18181B" />
           </TouchableOpacity>
         }
       />
@@ -204,22 +205,7 @@ export function ProfileScreen({
 
         {/* Edit Profile + Share Profile buttons */}
         {isOwnProfile && (
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: surface }]}
-              onPress={onEditPress}
-              activeOpacity={0.8}
-            >
-              <AppText style={[styles.actionBtnText, { color: text }]}>Edit Profile</AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: surface }]}
-              onPress={onSharePress}
-              activeOpacity={0.8}
-            >
-              <AppText style={[styles.actionBtnText, { color: text }]}>Share Profile</AppText>
-            </TouchableOpacity>
-          </View>
+          <ProfileActionButtons onEditPress={onEditPress} onSharePress={onSharePress} />
         )}
 
         {/* Travel Style */}
@@ -238,7 +224,7 @@ export function ProfileScreen({
         <View style={styles.doraSummaryWrap}>
           <AppText style={[styles.doraSummaryTitle, { color: text }]}>Summary by dora.</AppText>
           <View style={styles.doraSummaryContent}>
-            <AppText style={[styles.doraSummaryBody, { color: text }]}>{doraSummary}</AppText>
+            <AppText style={[styles.doraSummaryBody, { color: subText }]}>{doraSummary}</AppText>
           </View>
         </View>
 
@@ -280,7 +266,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 24,
+    paddingTop: 8,
     paddingBottom: 20,
   },
   avatar: {
@@ -297,20 +283,8 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1 },
   displayName: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
   statsRow: { fontSize: 14 },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionBtn: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  actionBtnText: { fontSize: 15, fontWeight: '600' },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '500', marginBottom: 16 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   tag: {
     flexDirection: 'row',
@@ -332,9 +306,9 @@ const styles = StyleSheet.create({
   doraSummaryWrap: {
     marginBottom: 24,
   },
-  doraSummaryTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
+  doraSummaryTitle: { fontSize: 16, fontWeight: '500', marginBottom: 16 },
   doraSummaryContent: {},
-  doraSummaryBody: { fontSize: 14, lineHeight: 22 },
+  doraSummaryBody: { fontSize: 14, fontWeight: '400', color: '#737373', lineHeight: 22 },
   mapPlaceholder: {
     borderWidth: 1,
     borderRadius: 14,
@@ -347,4 +321,13 @@ const styles = StyleSheet.create({
   mapPlaceholderBody: { fontSize: 13, lineHeight: 20, textAlign: 'center' },
   signOutWrap: { alignItems: 'center', paddingVertical: 16 },
   signOutText: { fontSize: 14 },
+  notifBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
