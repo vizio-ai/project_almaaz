@@ -1,7 +1,7 @@
 import React, { type ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Animated, useWindowDimensions } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-
+import * as SplashScreen from 'expo-splash-screen';
 import {
   AuthProvider,
   AuthSessionProvider,
@@ -14,6 +14,8 @@ import { createAuthRemoteDataSource } from '@/infrastructure/auth';
 import { createProfileRemoteDataSource } from '@/infrastructure/profile';
 import { createTripRemoteDataSource } from '@/infrastructure/trips';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
+
+SplashScreen.preventAutoHideAsync();
 
 // ─── Infrastructure singletons ───────────────────────────────────────────────
 
@@ -75,13 +77,13 @@ const splashStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 68,
   },
   logo: {
-    fontSize: 40,
-    fontWeight: '700',
+    fontSize: 64,
+    fontWeight: '600',
     color: '#FFFFFF',
-    letterSpacing: -0.5,
+    letterSpacing: -0.32,
   },
   dot: {
     color: '#44FFFF',
@@ -92,26 +94,96 @@ const splashStyles = StyleSheet.create({
 
 function AppContent() {
   const { isLoading } = useSession();
+  const [pastLoading, setPastLoading] = React.useState(false);
+  const whiteCircleScale = React.useRef(new Animated.Value(0)).current;
+  const cyanCircleScale = React.useRef(new Animated.Value(0)).current;
+  const { width, height } = useWindowDimensions();
+  const R = Math.ceil(Math.sqrt(width * width + height * height));
 
-  if (isLoading) return <SplashView />;
+  React.useEffect(() => {
+    SplashScreen.hideAsync();
+  }, []);
+
+  React.useEffect(() => {
+    if (!isLoading && !pastLoading) {
+      Animated.sequence([
+        // Beyaz daire ekran ortasından açılır (400ms)
+        Animated.timing(whiteCircleScale, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        // Beyaz 1 saniye görünür
+        Animated.delay(1000),
+        // Cyan daire orta üstten gelip ekranı kaplar (500ms)
+        Animated.timing(cyanCircleScale, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setPastLoading(true);
+        // Navigation settle olsun, sonra overlay'leri kaldır
+        setTimeout(() => {
+          whiteCircleScale.setValue(0);
+          cyanCircleScale.setValue(0);
+        }, 350);
+      });
+    }
+  }, [isLoading]);
 
   return (
-    <ProfileProvider dependencies={profileExternalDeps}>
-      <TripProvider dependencies={tripExternalDeps}>
-        <AuthGuard>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#000000' },
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </AuthGuard>
-      </TripProvider>
-    </ProfileProvider>
+    <>
+      {pastLoading ? (
+        <ProfileProvider dependencies={profileExternalDeps}>
+          <TripProvider dependencies={tripExternalDeps}>
+            <AuthGuard>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#000000' },
+                }}
+              >
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="auth" />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            </AuthGuard>
+          </TripProvider>
+        </ProfileProvider>
+      ) : (
+        <SplashView />
+      )}
+      {/* Beyaz daire: ekran ortasından açılır */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          backgroundColor: '#FFFFFF',
+          width: R * 2,
+          height: R * 2,
+          borderRadius: R,
+          left: width / 2 - R,
+          top: height / 2 - R,
+          transform: [{ scale: whiteCircleScale }],
+        }}
+      />
+      {/* Cyan daire: orta üstten gelir */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          backgroundColor: '#44FFFF',
+          width: R * 2,
+          height: R * 2,
+          borderRadius: R,
+          left: width / 2 - R,
+          top: height / 2 - R,
+          opacity: 0.8,
+          transform: [{ scale: cyanCircleScale }],
+        }}
+      />
+    </>
   );
 }
 

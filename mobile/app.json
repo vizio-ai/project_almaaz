@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "vizioGeneral",
+    "name": "dora",
     "slug": "vizioGeneral",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,8 +9,6 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "ios": {
@@ -31,7 +29,8 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-image-picker", { "photosPermission": "Allow access to your photo library to set a profile picture." }]
+      ["expo-image-picker", { "photosPermission": "Allow access to your photo library to set a profile picture." }],
+      ["expo-splash-screen", { "backgroundColor": "#000000" }]
     ],
     "experiments": {
       "typedRoutes": true

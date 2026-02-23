@@ -2,7 +2,6 @@ import React from 'react';
 import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLogo, AppText, useThemeColor } from '@shared/ui-kit';
-import { RevealOverlay } from '../components/welcome/RevealOverlay';
 import { BottomBar } from '../components/welcome/BottomBar';
 import { FeaturedCard } from '../components/welcome/FeaturedCard';
 import { TripCard, type WelcomeTripCardData } from '../components/welcome/TripCard';
@@ -77,7 +76,6 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
       </ScrollView>
 
       <BottomBar onTabPress={onLoginPress} />
-      <RevealOverlay />
     </View>
   );
 }
