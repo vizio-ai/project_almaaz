@@ -1,0 +1,82 @@
+# ─── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+*.pem
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+
+# Claude Code local permissions (not for public repo)
+.claude/
+mobile/.claude/
+
+# ─── Private / Internal Documents ────────────────────────────────────────────
+
+# PRD and design documents
+*.pdf
+
+# Figma files and screenshots
+*.fig
+*.figma
+figma/
+
+# Internal technical documentation
+TECHNICAL_DOCS.md
+TECHNICAL_DOCS*
+
+# Architecture guide (internal dev reference, not for public repo)
+mobile/GUIDE.md
+
+# ─── Supabase ─────────────────────────────────────────────────────────────────
+
+# Supabase CLI temporary files (project ref, version info)
+supabase/.temp/
+
+# Manual storage schema creation script (not for production)
+supabase/storage_schema_manual.sql
+
+# ─── Root ─────────────────────────────────────────────────────────────────────
+
+# Empty root package-lock (mobile/package-lock.json is the real one)
+/package-lock.json
+
+# ─── Mobile ───────────────────────────────────────────────────────────────────
+
+# Secret environment variables (.env.example is shareable, .env is not)
+mobile/.env
+mobile/.env.local
+mobile/.env*.local
+mobile/.env.example
+
+# Dependencies
+mobile/node_modules/
+
+# Expo
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/expo-env.d.ts
+
+# Native build folders
+mobile/ios/
+mobile/android/
+
+# Native certificates
+mobile/*.jks
+mobile/*.p8
+mobile/*.p12
+mobile/*.key
+mobile/*.mobileprovision
+mobile/*.orig.*
+
+# Kotlin
+mobile/.kotlin/
+
+# Metro
+mobile/.metro-health-check*
+
+# Debug
+mobile/npm-debug.*
+mobile/yarn-debug.*
+mobile/yarn-error.*
+
+# TypeScript
+mobile/*.tsbuildinfo
