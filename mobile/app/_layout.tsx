@@ -10,9 +10,11 @@ import {
 } from '@shared/auth';
 import { ProfileProvider, type ProfileExternalDependencies } from '@shared/profile';
 import { TripProvider, type TripExternalDependencies } from '@shared/trips';
+import { ItineraryProvider, type ItineraryExternalDependencies } from '@shared/itinerary';
 import { createAuthRemoteDataSource } from '@/infrastructure/auth';
 import { createProfileRemoteDataSource } from '@/infrastructure/profile';
 import { createTripRemoteDataSource } from '@/infrastructure/trips';
+import { createDoraRemoteDataSource } from '@/infrastructure/itinerary';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
 
 SplashScreen.preventAutoHideAsync();
@@ -34,6 +36,11 @@ const tripExternalDeps: TripExternalDependencies = {
   tripRemoteDataSource: _tripDataSource,
 };
 
+const _doraDataSource = createDoraRemoteDataSource();
+const itineraryExternalDeps: ItineraryExternalDependencies = {
+  doraRemoteDataSource: _doraDataSource,
+};
+
 // ─── Auth guard ──────────────────────────────────────────────────────────────
 
 function AuthGuard({ children }: { children: ReactNode }) {
@@ -53,7 +60,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
     } else if (!session.user.isOnboarded) {
       if (!inOnboarding) router.replace('/auth/onboarding/personal');
     } else {
-      if (inAuth) router.replace('/(tabs)');
+      if (inAuth) router.replace(inOnboarding ? '/(tabs)/create' : '/(tabs)');
     }
   }, [session, isLoading, segments]);
 
@@ -137,6 +144,7 @@ function AppContent() {
       {pastLoading ? (
         <ProfileProvider dependencies={profileExternalDeps}>
           <TripProvider dependencies={tripExternalDeps}>
+            <ItineraryProvider dependencies={itineraryExternalDeps}>
             <AuthGuard>
               <Stack
                 screenOptions={{
@@ -149,6 +157,7 @@ function AppContent() {
                 <Stack.Screen name="+not-found" />
               </Stack>
             </AuthGuard>
+            </ItineraryProvider>
           </TripProvider>
         </ProfileProvider>
       ) : (

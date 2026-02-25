@@ -5,10 +5,11 @@ import { useOnboarding } from './_layout';
 import { OnboardingStep, useSession } from '@shared/auth';
 import { useProfileDependencies } from '@shared/profile';
 
+
 const OPTIONS = [
-  { label: 'Storyteller', icon: 'book-outline' as const },
-  { label: 'Minimalist', icon: 'ellipse-outline' as const },
-  { label: 'Photographer', icon: 'camera-outline' as const },
+  { label: 'Visual Memory', iconSource: require('../../../assets/images/visualmemory.svg').default },
+  { label: 'Storyteller', iconSource: require('../../../assets/images/storyteller_icon.svg').default },
+  { label: 'Just the moment', iconSource: require('../../../assets/images/justmoment.svg').default },
 ];
 
 export default function JournalingScreen() {

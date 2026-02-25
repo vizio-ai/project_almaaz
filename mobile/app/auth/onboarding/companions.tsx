@@ -6,10 +6,10 @@ import { OnboardingStep, useSession } from '@shared/auth';
 import { useProfileDependencies } from '@shared/profile';
 
 const OPTIONS = [
-  { label: 'Solo', icon: 'person-outline' as const },
-  { label: 'Friends', icon: 'people-outline' as const },
-  { label: 'Family', icon: 'home-outline' as const },
-  { label: 'Partner', icon: 'heart-outline' as const },
+  { label: 'Solo' },
+  { label: 'Partner' },
+  { label: 'Friends' },
+  { label: 'Family' },
 ];
 
 export default function CompanionsScreen() {
@@ -19,9 +19,26 @@ export default function CompanionsScreen() {
   const { updateOnboardingProfileUseCase } = useProfileDependencies();
   const [selected, setSelected] = useState(data.companionship);
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (!session?.user.id) return;
     update({ companionship: selected });
-    router.push('/auth/onboarding/dora-intro');
+    const finalData = { ...data, companionship: selected };
+    const result = await updateOnboardingProfileUseCase.execute({
+      userId: session.user.id,
+      name: finalData.name,
+      surname: finalData.surname,
+      email: finalData.email,
+      pace: finalData.pace,
+      interests: finalData.interests,
+      journaling: finalData.journaling,
+      companionship: finalData.companionship,
+    });
+    if (result.success) {
+      markOnboarded();
+    } else {
+      const errMsg = (result.error?.cause as Error)?.message ?? result.error?.message ?? 'Something went wrong. Please try again.';
+      Alert.alert('Error', errMsg);
+    }
   };
 
   const handleFinishLater = async () => {
@@ -41,7 +58,8 @@ export default function CompanionsScreen() {
     if (result.success) {
       markOnboarded();
     } else {
-      Alert.alert('Error', result.error?.message ?? 'Something went wrong. Please try again.');
+      const errMsg = (result.error?.cause as Error)?.message ?? result.error?.message ?? 'Something went wrong. Please try again.';
+      Alert.alert('Error', errMsg);
     }
   };
 

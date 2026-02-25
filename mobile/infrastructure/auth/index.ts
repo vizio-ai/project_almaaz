@@ -78,10 +78,15 @@ export function createAuthRemoteDataSource(): AuthRemoteDataSource {
 
       // PGRST116 = 0 rows (no profile yet), trigger may not have fired — create a minimal profile
       if (profileError?.code === 'PGRST116' || (profile == null && !profileError)) {
-        await supabase.from('profiles').upsert(
+        const { error: upsertError } = await supabase.from('profiles').upsert(
           { id: userId, is_onboarded: false },
           { onConflict: 'id' },
         );
+        // FK violation = user deleted from auth.users (stale session); sign out cleanly
+        if (upsertError) {
+          await supabase.auth.signOut();
+          return null;
+        }
       }
 
       return buildSessionDto(

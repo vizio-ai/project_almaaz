@@ -18,7 +18,7 @@ export function AppLogo({ size = 'md', onDark, onLight }: AppLogoProps) {
   const logoColor = onDark ? '#FFFFFF' : onLight ? '#18181B' : textColor;
 
   return (
-    <AppText style={[styles.logo, { fontSize: 36, color: logoColor }]}>
+    <AppText style={[styles.logo, { color: logoColor }]}>
       dora<AppText style={{ color: accentColor }}>.</AppText>
     </AppText>
   );
@@ -26,6 +26,7 @@ export function AppLogo({ size = 'md', onDark, onLight }: AppLogoProps) {
 
 const styles = StyleSheet.create({
   logo: {
+    fontSize: 36,
     fontWeight: '600',
   },
 });
