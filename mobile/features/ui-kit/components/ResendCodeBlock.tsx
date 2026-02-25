@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, spacing } from '../theme';
 
 interface ResendCodeBlockProps {
   label: string;
@@ -60,9 +61,9 @@ export function ResendCodeBlock({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginTop: 20,
-    gap: 4,
+    marginTop: spacing.xl,
+    gap: spacing.xs,
   },
-  label: { fontSize: 14 },
-  action: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
+  label: { ...typography.sm },
+  action: { ...typography.sm, fontWeight: typography.weights.semibold, textDecorationLine: 'underline' },
 });

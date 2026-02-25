@@ -4,6 +4,7 @@ import { AppText } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, radii, spacing } from '../theme';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 
@@ -30,7 +31,7 @@ export function AppInput({ label, optional, leftIcon, style, hasError = false, .
         <View style={styles.labelRow}>
           <AppText style={[styles.label, { color: labelColor }]}>{label}</AppText>
           {optional && (
-            <AppText style={styles.optionalText}>(Optional)</AppText>
+            <AppText style={[styles.optionalText, { color: placeholderColor }]}>(Optional)</AppText>
           )}
         </View>
       ) : null}
@@ -52,23 +53,22 @@ const styles = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...typography.sm,
+    fontWeight: typography.weights.medium,
   },
   optionalText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#71717A',
-    marginLeft: 8,
+    ...typography.sm,
+    fontWeight: typography.weights.regular,
+    marginLeft: spacing.sm,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     paddingHorizontal: 14,
     height: 36,
   },
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 0,
     paddingHorizontal: 0,
-    fontSize: 14,
-    fontWeight: '400',
+    ...typography.sm,
+    fontWeight: typography.weights.regular,
   },
 });

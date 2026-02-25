@@ -7,6 +7,7 @@ import {
   type TextInputKeyPressEventData,
 } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, spacing, radii } from '../theme';
 
 interface OTPInputProps {
   length?: number;
@@ -76,13 +77,13 @@ export function OTPInput({ length = 6, onComplete }: OTPInputProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 12 },
+  row: { flexDirection: 'row', gap: spacing.md },
   box: {
     flex: 1,
     aspectRatio: 1,
     borderWidth: 1.5,
-    borderRadius: 10,
-    fontSize: 24,
-    fontWeight: '700',
+    borderRadius: radii.rounded,
+    ...typography['2xl'],
+    fontWeight: typography.weights.bold,
   },
 });

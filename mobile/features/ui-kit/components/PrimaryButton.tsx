@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, radii, spacing } from '../theme';
 
 interface PrimaryButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   label: string;
@@ -63,15 +64,15 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 999,
+    borderRadius: radii.full,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...typography.sm,
+    fontWeight: typography.weights.medium,
     lineHeight: 20,
     includeFontPadding: false,
   },

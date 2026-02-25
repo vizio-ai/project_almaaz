@@ -146,6 +146,7 @@ export function EditProfileScreen({
     <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['bottom']}>
       <AppHeader
         variant="light"
+        showAdminLabel={profile.role === 'admin'}
         right={
           <TouchableOpacity activeOpacity={0.8} style={styles.notifBtn}>
             <Ionicons name="notifications-outline" size={20} color="#18181B" />

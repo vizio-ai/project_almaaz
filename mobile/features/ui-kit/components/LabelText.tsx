@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, type TextStyle } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography } from '../theme';
 
 interface LabelTextProps {
   children: React.ReactNode;
@@ -22,8 +23,8 @@ export function LabelText({ children, style }: LabelTextProps) {
 
 const styles = StyleSheet.create({
   label: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...typography.sm,
+    fontWeight: typography.weights.medium,
     marginBottom: 6,
   },
 });

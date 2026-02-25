@@ -8,13 +8,15 @@ import {
   useSession,
   type AuthExternalDependencies,
 } from '@shared/auth';
-import { ProfileProvider, type ProfileExternalDependencies } from '@shared/profile';
+import { ProfileProvider, useProfile, type ProfileExternalDependencies } from '@shared/profile';
 import { TripProvider, type TripExternalDependencies } from '@shared/trips';
 import { ItineraryProvider, type ItineraryExternalDependencies } from '@shared/itinerary';
+import { AdminProvider, type AdminExternalDependencies } from '@shared/admin';
 import { createAuthRemoteDataSource } from '@/infrastructure/auth';
 import { createProfileRemoteDataSource } from '@/infrastructure/profile';
 import { createTripRemoteDataSource } from '@/infrastructure/trips';
 import { createDoraRemoteDataSource } from '@/infrastructure/itinerary';
+import { createAdminRemoteDataSource } from '@/infrastructure/admin';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
 
 SplashScreen.preventAutoHideAsync();
@@ -41,10 +43,16 @@ const itineraryExternalDeps: ItineraryExternalDependencies = {
   doraRemoteDataSource: _doraDataSource,
 };
 
+const _adminDataSource = createAdminRemoteDataSource();
+const adminExternalDeps: AdminExternalDependencies = {
+  adminRemoteDataSource: _adminDataSource,
+};
+
 // ─── Auth guard ──────────────────────────────────────────────────────────────
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { session, isLoading } = useSession();
+  const { profile, isLoading: profileLoading } = useProfile(session?.user.id);
   const segments = useSegments();
   const router = useRouter();
 
@@ -54,15 +62,33 @@ function AuthGuard({ children }: { children: ReactNode }) {
     const seg = segments as string[];
     const inAuth = seg[0] === 'auth';
     const inOnboarding = inAuth && seg[1] === 'onboarding';
+    const inDeactivated = seg[0] === 'deactivated';
 
     if (!session) {
       if (!inAuth) router.replace('/auth');
-    } else if (!session.user.isOnboarded) {
-      if (!inOnboarding) router.replace('/auth/onboarding/personal');
-    } else {
-      if (inAuth) router.replace(inOnboarding ? '/(tabs)/create' : '/(tabs)');
+      return;
     }
-  }, [session, isLoading, segments]);
+
+    if (!session.user.isOnboarded) {
+      if (!inOnboarding) router.replace('/auth/onboarding/personal');
+      return;
+    }
+
+    // Wait for profile before checking is_active
+    if (profileLoading || profile === null) return;
+
+    if (!profile.isActive) {
+      if (!inDeactivated) router.replace('/deactivated');
+      return;
+    }
+
+    if (inDeactivated) {
+      router.replace('/(tabs)');
+      return;
+    }
+
+    if (inAuth) router.replace('/(tabs)');
+  }, [session, isLoading, profile, profileLoading, segments]);
 
   return <>{children}</>;
 }
@@ -145,6 +171,7 @@ function AppContent() {
         <ProfileProvider dependencies={profileExternalDeps}>
           <TripProvider dependencies={tripExternalDeps}>
             <ItineraryProvider dependencies={itineraryExternalDeps}>
+            <AdminProvider dependencies={adminExternalDeps}>
             <AuthGuard>
               <Stack
                 screenOptions={{
@@ -153,10 +180,13 @@ function AppContent() {
                 }}
               >
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="admin" />
                 <Stack.Screen name="auth" />
+                <Stack.Screen name="deactivated" />
                 <Stack.Screen name="+not-found" />
               </Stack>
             </AuthGuard>
+            </AdminProvider>
             </ItineraryProvider>
           </TripProvider>
         </ProfileProvider>

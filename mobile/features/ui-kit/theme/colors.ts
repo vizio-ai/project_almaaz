@@ -26,6 +26,10 @@ export const colors = {
     selectedBg: '#F0FAFA',
     borderColor: '#44FFFF',
     headerBg: '#0A0A0A',
+    danger: '#DC2626',
+    borderMuted: '#E4E4E7',
+    warningBg: '#FFF1F2',
+    shadowColor: '#9CA3AF',
   },
   dark: {
     text: '#FFFFFF',
@@ -54,6 +58,10 @@ export const colors = {
     selectedBg: '#0A2020',
     borderColor: '#44FFFF',
     headerBg: '#0A0A0A',
+    danger: '#FF4444',
+    borderMuted: '#3A3A3A',
+    warningBg: '#2D1010',
+    shadowColor: '#000000',
   },
 } as const;
 

@@ -18,6 +18,8 @@ export interface ProfileRowDto {
   avatar_url: string | null;
   bio: string | null;
   phone: string | null;
+  role?: 'normal' | 'admin';
+  is_active?: boolean;
   is_onboarded: boolean;
   pace: string | null;
   interests: string[];

@@ -102,6 +102,8 @@ interface ProfileScreenProps {
   onEditPress: () => void;
   onSharePress?: () => void;
   onLogout: () => void;
+  /** Shown only when isOwnProfile && profile.role === 'admin'. */
+  onAdminDashboardPress?: () => void;
 }
 
 export function ProfileScreen({
@@ -112,6 +114,7 @@ export function ProfileScreen({
   onEditPress,
   onSharePress,
   onLogout,
+  onAdminDashboardPress,
 }: ProfileScreenProps) {
   const bg = useThemeColor('background');
   const text = useThemeColor('labelText');
@@ -124,7 +127,7 @@ export function ProfileScreen({
   if (isLoading && !profile) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
-        <AppHeader variant="light" right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
+        <AppHeader variant="light" showAdminLabel={false} right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={accent} />
         </View>
@@ -135,7 +138,7 @@ export function ProfileScreen({
   if (!profile) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
-        <AppHeader variant="light" right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
+        <AppHeader variant="light" showAdminLabel={false} right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
         <View style={styles.loadingContainer}>
           <AppText style={[styles.emptyText, { color: secondary }]}>Profile not found</AppText>
         </View>
@@ -166,6 +169,7 @@ export function ProfileScreen({
     <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
       <AppHeader
         variant="light"
+        showAdminLabel={profile.role === 'admin'}
         right={
           <TouchableOpacity activeOpacity={0.8} style={styles.notifBtn}>
             <Ionicons name="notifications-outline" size={20} color="#18181B" />
@@ -206,6 +210,19 @@ export function ProfileScreen({
         {/* Edit Profile + Share Profile buttons */}
         {isOwnProfile && (
           <ProfileActionButtons onEditPress={onEditPress} onSharePress={onSharePress} />
+        )}
+
+        {/* Admin Dashboard — only for own profile and admin role */}
+        {isOwnProfile && profile.role === 'admin' && onAdminDashboardPress && (
+          <TouchableOpacity
+            onPress={onAdminDashboardPress}
+            activeOpacity={0.8}
+            style={[styles.adminDashboardRow, { backgroundColor: surfaceAlt, borderColor: border }]}
+          >
+            <Ionicons name="grid-outline" size={20} color={accent} />
+            <AppText style={[styles.adminDashboardLabel, { color: text }]}>Admin Dashboard</AppText>
+            <Ionicons name="chevron-forward" size={18} color={secondary} />
+          </TouchableOpacity>
         )}
 
         {/* Travel Style */}
@@ -321,6 +338,16 @@ const styles = StyleSheet.create({
   mapPlaceholderBody: { fontSize: 13, lineHeight: 20, textAlign: 'center' },
   signOutWrap: { alignItems: 'center', paddingVertical: 16 },
   signOutText: { fontSize: 14 },
+  adminDashboardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  adminDashboardLabel: { fontSize: 15, fontWeight: '500', marginLeft: 12, flex: 1 },
   notifBtn: {
     width: 36,
     height: 36,

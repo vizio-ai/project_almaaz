@@ -33,6 +33,7 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor={headerBg} />
 
       <AppHeader
+        showAdminLabel={profile?.role === 'admin'}
         right={
           isGuest ? (
             <TouchableOpacity

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, radii, colors } from '../theme';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 
@@ -27,7 +28,7 @@ interface PersonaOptionProps {
 
 const OPTION_HEIGHT = 40;
 const BORDER_COLOR = '#E4E4E7';
-const TEXT_COLOR = '#18181B';
+const TEXT_COLOR = colors.light.labelText;
 
 const ICON_SIZE = 18;
 
@@ -84,11 +85,11 @@ const styles = StyleSheet.create({
     minHeight: OPTION_HEIGHT,
     height: OPTION_HEIGHT,
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     paddingHorizontal: 14,
   },
   icon: {
     marginRight: 10,
   },
-  label: { fontSize: 14, fontWeight: '400', flex: 1 },
+  label: { ...typography.sm, fontWeight: typography.weights.regular, flex: 1 },
 });

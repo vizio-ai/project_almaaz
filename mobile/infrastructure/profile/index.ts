@@ -70,7 +70,7 @@ function toInterestsValues(labels: string[]): string[] {
 
 const PROFILE_COLUMNS = [
   'id', 'name', 'surname', 'email', 'username', 'avatar_url', 'bio',
-  'phone', 'is_onboarded', 'pace', 'interests', 'journaling',
+  'phone', 'role', 'is_active', 'is_onboarded', 'pace', 'interests', 'journaling',
   'companionship', 'following_count', 'followers_count', 'trip_count',
   'created_at', 'updated_at',
 ].join(', ');

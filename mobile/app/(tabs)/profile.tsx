@@ -59,6 +59,7 @@ export default function ProfileTab() {
       onEditPress={() => setIsEditing(true)}
       onSharePress={handleShareProfile}
       onLogout={handleLogout}
+      onAdminDashboardPress={profile?.role === 'admin' ? () => router.push('/admin/dashboard') : undefined}
     />
   );
 }

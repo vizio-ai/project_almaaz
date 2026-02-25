@@ -1,5 +1,5 @@
 // Theme
-export { colors } from './theme';
+export { colors, typography, radii, spacing } from './theme';
 export type { ColorScheme, ColorToken } from './theme';
 
 // Hooks

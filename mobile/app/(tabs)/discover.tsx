@@ -1,14 +1,18 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useSession } from '@shared/auth';
+import { useProfile } from '@shared/profile';
 import { AppHeader, AppText, useThemeColor } from '@shared/ui-kit';
 
 export default function DiscoverScreen() {
+  const { session } = useSession();
+  const { profile } = useProfile(session?.user.id);
   const bg = useThemeColor('background');
   const secondary = useThemeColor('textSecondary');
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <AppHeader />
+      <AppHeader showAdminLabel={profile?.role === 'admin'} />
       <View style={styles.body}>
         <AppText style={[styles.placeholder, { color: secondary }]}>Discover — Coming soon</AppText>
       </View>

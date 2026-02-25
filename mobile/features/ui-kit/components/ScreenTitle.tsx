@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
 import { AppText } from './AppText';
+import { typography, spacing } from '../theme';
 
 interface ScreenTitleProps {
   text: string;
@@ -14,8 +15,8 @@ export function ScreenTitle({ text }: ScreenTitleProps) {
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 8,
+    ...typography['2xl'],
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.sm,
   },
 });

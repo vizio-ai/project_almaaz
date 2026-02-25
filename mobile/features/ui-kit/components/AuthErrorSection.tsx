@@ -4,6 +4,7 @@ import { AppText } from './AppText';
 import { ErrorBanner } from './ErrorBanner';
 import { WarningBanner } from './WarningBanner';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, spacing } from '../theme';
 
 interface AuthErrorSectionProps {
   error?: string | null;
@@ -47,14 +48,14 @@ export function AuthErrorSection({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   doraLabel: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...typography.featured,
+    fontWeight: typography.weights.bold,
     letterSpacing: -0.5,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography } from '../theme';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -26,7 +27,7 @@ export function AppLogo({ size = 'md', onDark, onLight }: AppLogoProps) {
 
 const styles = StyleSheet.create({
   logo: {
-    fontSize: 36,
-    fontWeight: '600',
+    ...typography['4xl'],
+    fontWeight: typography.weights.semibold,
   },
 });

@@ -1,7 +1,7 @@
 import React, { Component, type ReactNode, type ErrorInfo } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
-import { colors } from '../theme';
+import { colors, typography, radii, spacing } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -68,24 +68,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing['3xl'],
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
+    ...typography.xl,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   message: {
-    fontSize: 14,
+    ...typography.sm,
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: spacing['3xl'],
   },
   button: {
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    borderRadius: radii.md,
+    paddingVertical: spacing.smd,
+    paddingHorizontal: spacing['3xl'],
   },
-  buttonText: { fontSize: 16, fontWeight: '600' },
+  buttonText: { ...typography.base, fontWeight: typography.weights.semibold },
 });

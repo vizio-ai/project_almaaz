@@ -13,8 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppLogo, AppText } from '@shared/ui-kit';
 import { DoraMessage, TypingIndicator } from '../components/DoraMessage';
 import { DoraInput } from '../components/DoraInput';
-import { useItineraryDependencies } from '@shared/itinerary';
-import type { DoraMessage as DoraMsg, DoraPersona } from '@shared/itinerary';
+import { useItineraryDependencies } from '../../di/useItineraryDependencies';
+import type { DoraMessage as DoraMsg, DoraPersona } from '../../domain/entities/DoraMessage';
 
 interface DoraConversationScreenProps {
   userName?: string | null;

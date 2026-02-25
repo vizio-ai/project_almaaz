@@ -55,6 +55,19 @@ From Supabase Dashboard → **Settings** → **API**:
 | `00005_storage.sql` | M3+ | Storage buckets and policies |
 | `00006_views.sql` | M3+ | `itineraries_with_author`, `popular_itineraries`, `following_feed` |
 | `00007_storage_avatars_update.sql` | M2+ | UPDATE policy for avatar upsert |
+| `00008_profiles_role.sql` | — | `profiles.role`: `normal` (default) \| `admin`; only Dashboard/admin can change |
+
+---
+
+## Profiles — Admin role
+
+- **Role column:** `profiles.role` is `'normal'` by default; you can set specific users to `'admin'` from Supabase.
+- **No self-selection:** The app does not show or send `role`; users cannot change their own role.
+- **How to make someone admin:**  
+  **Dashboard** → **Table Editor** → **profiles** → open the row → set **role** to `admin` → Save.  
+  Or run in **SQL Editor** (service role):  
+  `UPDATE public.profiles SET role = 'admin' WHERE id = 'user-uuid-here';`
+- **Who can change role:** Only the Supabase Dashboard (service role) or an existing admin. Normal users cannot elevate themselves (enforced by trigger).
 
 ---
 

@@ -1,6 +1,7 @@
 import { TextProps, StyleSheet } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
 import { AppText } from './AppText';
+import { typography } from '../theme';
 
 export type ThemedTextVariant = 'default' | 'title' | 'subtitle' | 'caption' | 'link';
 
@@ -24,25 +25,25 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
-    fontSize: 16,
+    ...typography.base,
     lineHeight: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...typography['3xl'],
+    fontWeight: typography.weights.bold,
     lineHeight: 34,
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...typography.xl,
+    fontWeight: typography.weights.semibold,
     lineHeight: 28,
   },
   caption: {
-    fontSize: 13,
+    ...typography.caption,
     lineHeight: 18,
   },
   link: {
-    fontSize: 16,
+    ...typography.base,
     lineHeight: 24,
     textDecorationLine: 'underline',
   },

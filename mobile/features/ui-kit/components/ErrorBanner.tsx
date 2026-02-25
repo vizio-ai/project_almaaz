@@ -2,6 +2,9 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, spacing } from '../theme';
+
+const TEXT_ON_ERROR = '#FFFFFF';
 
 interface ErrorBannerProps {
   message: string;
@@ -13,7 +16,7 @@ export function ErrorBanner({ message, onDismiss, horizontalInset = 24 }: ErrorB
   const errorColor = useThemeColor('error');
 
   const content = (
-    <AppText style={styles.text}>{message}</AppText>
+    <AppText style={[styles.text, { color: TEXT_ON_ERROR }]}>{message}</AppText>
   );
 
   const bannerStyle = [
@@ -34,13 +37,12 @@ export function ErrorBanner({ message, onDismiss, horizontalInset = 24 }: ErrorB
 
 const styles = StyleSheet.create({
   banner: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
   },
   text: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    ...typography.sm,
     lineHeight: 20,
   },
 });

@@ -7,12 +7,14 @@ import {
   Platform,
 } from 'react-native';
 import { AppText } from './AppText';
+import { radii, colors, typography } from '../theme';
 
 const BOX_HEIGHT = 64;
-const CONTAINER_RADIUS = 6;
-const BORDER_INACTIVE = '#E4E4E7';
+const BORDER_INACTIVE = colors.light.borderMuted;
 const BORDER_FOCUS = '#0A0A0A';
-const BORDER_ERROR = '#DC2626';
+const BORDER_ERROR = colors.light.danger;
+
+const digitColor = colors.light.text;
 
 export interface OtpCodeInputRef {
   reset: () => void;
@@ -38,8 +40,6 @@ export const OtpCodeInput = forwardRef<OtpCodeInputRef, OtpCodeInputProps>(
     const [code, setCode] = useState('');
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
     const inputRef = useRef<TextInput>(null);
-
-    const digitColor = '#000000';
 
     useImperativeHandle(ref, () => ({
       reset: () => {
@@ -93,7 +93,7 @@ export const OtpCodeInput = forwardRef<OtpCodeInputRef, OtpCodeInputProps>(
           {
             borderWidth: 1,
             borderColor: hasError ? BORDER_ERROR : BORDER_INACTIVE,
-            borderRadius: CONTAINER_RADIUS,
+            borderRadius: radii.sm,
           },
         ]}
         onPress={handleBoxPress}
@@ -141,13 +141,13 @@ export const OtpCodeInput = forwardRef<OtpCodeInputRef, OtpCodeInputProps>(
                 style={[
                   styles.box,
                   {
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.light.background,
                     borderWidth: isFocused ? 1 : 0,
                     borderColor: boxBorderColor,
-                    borderTopLeftRadius: isFirst ? CONTAINER_RADIUS : 0,
-                    borderBottomLeftRadius: isFirst ? CONTAINER_RADIUS : 0,
-                    borderTopRightRadius: isLast ? CONTAINER_RADIUS : 0,
-                    borderBottomRightRadius: isLast ? CONTAINER_RADIUS : 0,
+                    borderTopLeftRadius: isFirst ? radii.sm : 0,
+                    borderBottomLeftRadius: isFirst ? radii.sm : 0,
+                    borderTopRightRadius: isLast ? radii.sm : 0,
+                    borderBottomRightRadius: isLast ? radii.sm : 0,
                   },
                 ]}
                 pointerEvents="none"
@@ -169,13 +169,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 28,
-    borderRadius: CONTAINER_RADIUS,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.sm,
+    backgroundColor: colors.light.background,
     minHeight: BOX_HEIGHT,
     overflow: 'hidden',
   },
   shadow: {
-    shadowColor: '#9CA3AF',
+    shadowColor: colors.light.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   digit: {
-    fontSize: 18,
-    fontWeight: '400',
+    ...typography.lg,
+    fontWeight: typography.weights.regular,
   },
 });

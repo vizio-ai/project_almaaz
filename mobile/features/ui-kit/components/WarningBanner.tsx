@@ -2,9 +2,10 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
+import { typography, radii, spacing, colors } from '../theme';
 
-const WARNING_BORDER = '#DC2626';
-const WARNING_BG = '#FFF1F2';
+const WARNING_BORDER = colors.light.danger;
+const WARNING_BG = colors.light.warningBg;
 
 interface WarningBannerProps {
   message: string;
@@ -33,10 +34,10 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    borderRadius: 8,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.sm,
+    borderRadius: radii.md,
     borderWidth: 1,
   },
   icon: {
@@ -44,8 +45,8 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '400',
+    ...typography.sm,
+    fontWeight: typography.weights.regular,
     lineHeight: 20,
   },
 });

@@ -7,6 +7,8 @@ export interface TravelPersona {
   companionship: string | null;
 }
 
+export type ProfileRole = 'normal' | 'admin';
+
 export interface Profile {
   id: ID;
   name: string | null;
@@ -16,7 +18,9 @@ export interface Profile {
   avatarUrl: string | null;
   bio: string | null;
   phone: string | null;
+  role: ProfileRole;
   isOnboarded: boolean;
+  isActive: boolean;
   persona: TravelPersona;
   followingCount: number;
   followersCount: number;

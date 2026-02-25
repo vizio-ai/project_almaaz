@@ -25,7 +25,9 @@ export class ProfileMapper implements Mapper<ProfileRowDto, Profile> {
       avatarUrl: dto.avatar_url,
       bio: dto.bio,
       phone: dto.phone,
+      role: dto.role === 'admin' ? 'admin' : 'normal',
       isOnboarded: dto.is_onboarded,
+      isActive: dto.is_active ?? true,
       persona: {
         pace: dto.pace ?? null,
         interests,

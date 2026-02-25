@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { typography, spacing } from '../theme';
 
 interface ScreenSubtitleProps {
   text: string;
@@ -14,8 +15,8 @@ export function ScreenSubtitle({ text }: ScreenSubtitleProps) {
 
 const styles = StyleSheet.create({
   subtitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    marginBottom: 20,
+    ...typography.sm,
+    fontWeight: typography.weights.regular,
+    marginBottom: spacing.xl,
   },
 });
