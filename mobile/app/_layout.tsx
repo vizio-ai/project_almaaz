@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { View, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Animated, Easing, useWindowDimensions } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -147,18 +147,18 @@ function AppContent() {
   React.useEffect(() => {
     if (!isLoading && !pastLoading) {
       Animated.sequence([
-        // Beyaz daire ekran ortasından açılır (400ms)
+        // White circle: fast 150ms transition
         Animated.timing(whiteCircleScale, {
           toValue: 1,
-          duration: 300,
+          duration: 150,
+          easing: Easing.linear,
           useNativeDriver: true,
         }),
-        // Beyaz 1 saniye görünür
-        Animated.delay(1000),
-        // Cyan daire orta üstten gelip ekranı kaplar (500ms)
+        // Cyan circle: 300ms
         Animated.timing(cyanCircleScale, {
           toValue: 1,
           duration: 300,
+          easing: Easing.linear,
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -200,7 +200,7 @@ function AppContent() {
       ) : (
         <SplashView />
       )}
-      {/* Beyaz daire: ekran ortasından açılır */}
+      {/* White circle: transitions from black splash to white */}
       <Animated.View
         pointerEvents="none"
         style={{
@@ -214,7 +214,7 @@ function AppContent() {
           transform: [{ scale: whiteCircleScale }],
         }}
       />
-      {/* Cyan daire: orta üstten gelir */}
+      {/* Cyan circle: expands from center */}
       <Animated.View
         pointerEvents="none"
         style={{

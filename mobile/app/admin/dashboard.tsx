@@ -485,10 +485,6 @@ function AdminDashboardContent({
                 {formatNumber(stats?.weeklyGain ?? 0)}
               </AppText>
             )}
-            <TouchableOpacity style={styles.filterPill} activeOpacity={0.7}>
-              <AppText style={styles.filterPillText}>Weekly</AppText>
-              <Ionicons name="chevron-down" size={14} color={colors.light.subText} />
-            </TouchableOpacity>
           </View>
           {!isLoadingStats && stats?.dailyCounts.length ? (
             <UserLineChart width={cardInnerW} dailyCounts={stats.dailyCounts} />
@@ -640,8 +636,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   pageTitle: {
-    ...typography['3xl'],
-    fontWeight: typography.weights.bold,
+    ...typography['2xl'],
+    fontWeight: typography.weights.semibold,
     color: colors.light.mainText,
   },
 
@@ -651,20 +647,21 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radii.full,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.light.borderMuted,
   },
   filterPillText: {
     ...typography.sm,
-    color: colors.light.subText,
+    fontWeight: typography.weights.medium,
+    color: colors.light.subLabelText,
   },
 
   card: {
     backgroundColor: colors.light.background,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: colors.light.borderMuted,
+    borderColor: colors.light.borderMutedLight,
     padding: spacing.lg,
     shadowColor: colors.light.shadowColor,
     shadowOffset: { width: 0, height: 1 },
@@ -674,7 +671,8 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     ...typography.sm,
-    color: colors.light.subText,
+    color: colors.light.subLabelText,
+    fontWeight: typography.weights.medium,
     marginBottom: spacing.sm,
   },
 
@@ -696,9 +694,9 @@ const styles = StyleSheet.create({
     color: '#16A34A',
   },
   statValue: {
-    ...typography['4xl'],
-    fontWeight: typography.weights.bold,
-    color: colors.light.mainText,
+    ...typography['3xl'],
+    fontWeight: typography.weights.medium,
+    color: colors.light.statText,
   },
 
   chartHeader: {
@@ -709,8 +707,8 @@ const styles = StyleSheet.create({
   },
   chartValue: {
     ...typography['2xl'],
-    fontWeight: typography.weights.bold,
-    color: colors.light.mainText,
+    fontWeight: typography.weights.medium,
+    color: colors.light.headerBg,
   },
 
   userRow: {
@@ -728,12 +726,13 @@ const styles = StyleSheet.create({
   },
   userName: {
     ...typography.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.light.mainText,
+    fontWeight: typography.weights.medium,
+    color: colors.light.statText,
   },
   userJoined: {
     ...typography.xs,
-    color: colors.light.subText,
+    color: colors.light.userJoinedText,
+    fontWeight: typography.weights.regular,
   },
   userToggleCol: {
     alignItems: 'center',
