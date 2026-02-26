@@ -15,4 +15,5 @@ export { AdminProvider } from './di/AdminProvider';
 export { useAdminDependencies } from './di/useAdminDependencies';
 
 // Presentation
-export { useAdminDashboard } from './presentation/hooks/useAdminDashboard';
+export { useAdminDashboard, formatRangeLabel } from './presentation/hooks/useAdminDashboard';
+export type { DateRange } from './presentation/hooks/useAdminDashboard';

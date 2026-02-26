@@ -16,9 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Polyline, Line, Text as SvgText } from 'react-native-svg';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
-import { useAdminDashboard } from '@shared/admin';
+import { useAdminDashboard, formatRangeLabel } from '@shared/admin';
 import { AppHeader, AppText, colors, spacing, typography, radii } from '@shared/ui-kit';
-import type { DailyCount, AdminUser } from '@shared/admin';
+import type { DailyCount, AdminUser, DateRange } from '@shared/admin';
+import { Calendar } from 'react-native-calendars';
 
 // ── Line chart ────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,11 @@ function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
 
 function formatNumber(n: number): string {
   return n.toLocaleString('en-US');
+}
+
+function formatDisplayDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
 }
 
 // ── Confirm dialog ────────────────────────────────────────────────────────────
@@ -258,11 +264,16 @@ function AdminDashboardContent({
     currentPage,
     isLoadingStats,
     isLoadingUsers,
+    dateRange,
+    setDateRange,
     goToPage,
     toggleUserActive,
   } = useAdminDashboard();
 
   const [pendingUser, setPendingUser] = useState<AdminUser | null>(null);
+  const [showRangePicker, setShowRangePicker] = useState(false);
+  const [draftStart, setDraftStart] = useState<string | null>(null);
+  const [draftEnd, setDraftEnd] = useState<string | null>(null);
 
   const cardInnerW = screenWidth - spacing['2xl'] * 2 - spacing.lg * 2;
 
@@ -272,6 +283,59 @@ function AdminDashboardContent({
       : null;
 
   const visiblePages = Array.from({ length: Math.min(pageCount, 2) }, (_, i) => i + 1);
+
+  // Build markedDates for react-native-calendars period marking
+  const markedDates: Record<string, any> = React.useMemo(() => {
+    const start = draftStart ?? dateRange.startDate;
+    const end = draftEnd ?? (draftStart ? null : dateRange.endDate);
+    if (!start) return {};
+    const marks: Record<string, any> = {};
+    marks[start] = { startingDay: true, color: colors.light.mainText, textColor: colors.light.background };
+    if (end && end >= start) {
+      // Fill days in between
+      const cur = new Date(start);
+      const last = new Date(end);
+      cur.setDate(cur.getDate() + 1);
+      while (cur < last) {
+        const key = cur.toISOString().slice(0, 10);
+        marks[key] = { color: colors.light.borderMuted, textColor: colors.light.mainText };
+        cur.setDate(cur.getDate() + 1);
+      }
+      marks[end] = { endingDay: true, color: colors.light.mainText, textColor: colors.light.background };
+    }
+    return marks;
+  }, [draftStart, draftEnd, dateRange]);
+
+  function handleDayPress(day: { dateString: string }) {
+    const picked = day.dateString;
+    if (!draftStart || (draftStart && draftEnd)) {
+      // Start fresh selection
+      setDraftStart(picked);
+      setDraftEnd(null);
+    } else {
+      // Have start, picking end
+      if (picked >= draftStart) {
+        setDraftEnd(picked);
+      } else {
+        // Picked date is before start → reset with new start
+        setDraftStart(picked);
+        setDraftEnd(null);
+      }
+    }
+  }
+
+  function openPicker() {
+    setDraftStart(dateRange.startDate);
+    setDraftEnd(dateRange.endDate);
+    setShowRangePicker(true);
+  }
+
+  function applyRange() {
+    if (draftStart && draftEnd) {
+      setDateRange({ startDate: draftStart, endDate: draftEnd });
+    }
+    setShowRangePicker(false);
+  }
 
   return (
     <View style={styles.root}>
@@ -299,11 +363,91 @@ function AdminDashboardContent({
         {/* Title row */}
         <View style={styles.titleRow}>
           <AppText style={styles.pageTitle}>Dashboard</AppText>
-          <TouchableOpacity style={styles.filterPill} activeOpacity={0.7}>
-            <AppText style={styles.filterPillText}>Last 30 Days</AppText>
+          <TouchableOpacity
+            style={styles.filterPill}
+            activeOpacity={0.7}
+            onPress={openPicker}
+          >
+            <AppText style={styles.filterPillText}>{formatRangeLabel(dateRange)}</AppText>
             <Ionicons name="chevron-down" size={14} color={colors.light.subText} />
           </TouchableOpacity>
         </View>
+
+        {/* Calendar date range picker modal */}
+        <Modal
+          transparent
+          animationType="slide"
+          visible={showRangePicker}
+          onRequestClose={() => setShowRangePicker(false)}
+        >
+          <Pressable style={calendarStyles.overlay} onPress={() => setShowRangePicker(false)}>
+            <Pressable style={calendarStyles.sheet} onPress={() => {}}>
+              <View style={calendarStyles.handle} />
+
+              {/* Header */}
+              <View style={calendarStyles.header}>
+                <AppText style={calendarStyles.title}>Select Date Range</AppText>
+                <TouchableOpacity onPress={() => setShowRangePicker(false)} activeOpacity={0.7}>
+                  <Ionicons name="close" size={22} color={colors.light.mainText} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Selected range preview */}
+              <View style={calendarStyles.preview}>
+                <View style={calendarStyles.previewItem}>
+                  <AppText style={calendarStyles.previewLabel}>Start</AppText>
+                  <AppText style={calendarStyles.previewDate}>
+                    {draftStart ? formatDisplayDate(draftStart) : '—'}
+                  </AppText>
+                </View>
+                <View style={calendarStyles.previewDash}>
+                  <Ionicons name="arrow-forward" size={16} color={colors.light.subText} />
+                </View>
+                <View style={calendarStyles.previewItem}>
+                  <AppText style={calendarStyles.previewLabel}>End</AppText>
+                  <AppText style={calendarStyles.previewDate}>
+                    {draftEnd ? formatDisplayDate(draftEnd) : '—'}
+                  </AppText>
+                </View>
+              </View>
+
+              {/* Hint */}
+              <AppText style={calendarStyles.hint}>
+                {!draftStart || draftEnd ? 'Tap a start date' : 'Tap an end date'}
+              </AppText>
+
+              {/* Calendar */}
+              <Calendar
+                markingType="period"
+                markedDates={markedDates}
+                onDayPress={handleDayPress}
+                maxDate={new Date().toISOString().slice(0, 10)}
+                theme={{
+                  todayTextColor: colors.light.mainText,
+                  selectedDayBackgroundColor: colors.light.mainText,
+                  arrowColor: colors.light.mainText,
+                  textDayFontSize: 14,
+                  textMonthFontSize: 14,
+                  textDayHeaderFontSize: 12,
+                  calendarBackground: colors.light.background,
+                  dayTextColor: colors.light.mainText,
+                  textDisabledColor: colors.light.borderMuted,
+                  monthTextColor: colors.light.mainText,
+                }}
+              />
+
+              {/* Apply button */}
+              <TouchableOpacity
+                style={[calendarStyles.applyBtn, !(draftStart && draftEnd) && calendarStyles.applyBtnDisabled]}
+                activeOpacity={0.8}
+                onPress={applyRange}
+                disabled={!draftStart || !draftEnd}
+              >
+                <AppText style={calendarStyles.applyBtnText}>Apply</AppText>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* Number of Users */}
         <View style={styles.card}>
@@ -637,5 +781,80 @@ const styles = StyleSheet.create({
     ...typography.sm,
     color: colors.light.subText,
     letterSpacing: 1,
+  },
+});
+
+const calendarStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.light.background,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    paddingBottom: spacing['3xl'],
+    paddingHorizontal: spacing['2xl'],
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.light.borderMuted,
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  title: {
+    ...typography.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.light.mainText,
+  },
+  preview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  previewItem: { alignItems: 'center' },
+  previewLabel: {
+    ...typography.xs,
+    color: colors.light.subText,
+    marginBottom: 2,
+  },
+  previewDate: {
+    ...typography.base,
+    fontWeight: typography.weights.semibold,
+    color: colors.light.mainText,
+  },
+  previewDash: { paddingTop: spacing.sm },
+  hint: {
+    ...typography.xs,
+    color: colors.light.subText,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  applyBtn: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.light.mainText,
+    borderRadius: radii.full,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  applyBtnDisabled: {
+    opacity: 0.4,
+  },
+  applyBtnText: {
+    ...typography.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.light.background,
   },
 });

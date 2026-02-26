@@ -1,11 +1,11 @@
 import { UseCase, Result } from '@shared/kernel';
-import { AdminRepository } from '../repositories/AdminRepository';
+import { AdminRepository, GetAdminStatsParams } from '../repositories/AdminRepository';
 import { AdminStats } from '../entities/AdminStats';
 
-export class GetAdminStatsUseCase implements UseCase<void, AdminStats> {
+export class GetAdminStatsUseCase implements UseCase<GetAdminStatsParams, AdminStats> {
   constructor(private readonly repository: AdminRepository) {}
 
-  execute(): Promise<Result<AdminStats>> {
-    return this.repository.getStats();
+  execute(params: GetAdminStatsParams): Promise<Result<AdminStats>> {
+    return this.repository.getStats(params);
   }
 }

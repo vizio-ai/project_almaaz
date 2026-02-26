@@ -1,12 +1,10 @@
 import { Result, ok, fail, networkError } from '@shared/kernel';
-import { AdminRepository, GetAdminUsersParams } from '../../domain/repositories/AdminRepository';
+import { AdminRepository, GetAdminStatsParams, GetAdminUsersParams } from '../../domain/repositories/AdminRepository';
 import { AdminStats } from '../../domain/entities/AdminStats';
 import { AdminUsersPage } from '../../domain/entities/AdminUsersPage';
 import { AdminUser } from '../../domain/entities/AdminUser';
 import { AdminRemoteDataSource } from '../datasources/AdminRemoteDataSource';
 import { AdminUserRowDto } from '../dto/AdminDto';
-
-const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
 function formatJoined(isoDate: string): string {
   const d = new Date(isoDate);
@@ -31,9 +29,9 @@ function toAdminUser(dto: AdminUserRowDto): AdminUser {
 export class AdminRepositoryImpl implements AdminRepository {
   constructor(private readonly remote: AdminRemoteDataSource) {}
 
-  async getStats(): Promise<Result<AdminStats>> {
+  async getStats(params: GetAdminStatsParams): Promise<Result<AdminStats>> {
     try {
-      const dto = await this.remote.getStats();
+      const dto = await this.remote.getStats(params.startDate, params.endDate);
       return ok({
         totalUsers: Number(dto.total_users),
         weeklyGain: Number(dto.weekly_gain),

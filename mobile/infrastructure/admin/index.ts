@@ -7,8 +7,11 @@ import { supabase } from '../supabase';
 
 export function createAdminRemoteDataSource(): AdminRemoteDataSource {
   return {
-    async getStats(): Promise<AdminStatsDto> {
-      const { data, error } = await supabase.rpc('get_admin_stats');
+    async getStats(startDate: string, endDate: string): Promise<AdminStatsDto> {
+      const { data, error } = await supabase.rpc('get_admin_stats', {
+        p_start_date: startDate,
+        p_end_date: endDate,
+      });
       if (error) throw new Error(error.message);
       return data as AdminStatsDto;
     },

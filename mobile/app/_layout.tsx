@@ -12,11 +12,13 @@ import { ProfileProvider, useProfile, type ProfileExternalDependencies } from '@
 import { TripProvider, type TripExternalDependencies } from '@shared/trips';
 import { ItineraryProvider, type ItineraryExternalDependencies } from '@shared/itinerary';
 import { AdminProvider, type AdminExternalDependencies } from '@shared/admin';
+import { FollowProvider, type FollowExternalDependencies } from '@shared/follow';
 import { createAuthRemoteDataSource } from '@/infrastructure/auth';
 import { createProfileRemoteDataSource } from '@/infrastructure/profile';
 import { createTripRemoteDataSource } from '@/infrastructure/trips';
 import { createDoraRemoteDataSource } from '@/infrastructure/itinerary';
 import { createAdminRemoteDataSource } from '@/infrastructure/admin';
+import { createFollowRemoteDataSource } from '@/infrastructure/follow';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
 
 SplashScreen.preventAutoHideAsync();
@@ -46,6 +48,11 @@ const itineraryExternalDeps: ItineraryExternalDependencies = {
 const _adminDataSource = createAdminRemoteDataSource();
 const adminExternalDeps: AdminExternalDependencies = {
   adminRemoteDataSource: _adminDataSource,
+};
+
+const _followDataSource = createFollowRemoteDataSource();
+const followExternalDeps: FollowExternalDependencies = {
+  followRemoteDataSource: _followDataSource,
 };
 
 // ─── Auth guard ──────────────────────────────────────────────────────────────
@@ -172,6 +179,7 @@ function AppContent() {
           <TripProvider dependencies={tripExternalDeps}>
             <ItineraryProvider dependencies={itineraryExternalDeps}>
             <AdminProvider dependencies={adminExternalDeps}>
+            <FollowProvider dependencies={followExternalDeps}>
             <AuthGuard>
               <Stack
                 screenOptions={{
@@ -182,10 +190,12 @@ function AppContent() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="admin" />
                 <Stack.Screen name="auth" />
+                <Stack.Screen name="profile" />
                 <Stack.Screen name="deactivated" />
                 <Stack.Screen name="+not-found" />
               </Stack>
             </AuthGuard>
+            </FollowProvider>
             </AdminProvider>
             </ItineraryProvider>
           </TripProvider>

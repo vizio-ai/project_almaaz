@@ -60,6 +60,8 @@ export default function ProfileTab() {
       onSharePress={handleShareProfile}
       onLogout={handleLogout}
       onAdminDashboardPress={profile?.role === 'admin' ? () => router.push('/admin/dashboard') : undefined}
+      onFollowersPress={() => router.push('/profile/followers')}
+      onFollowingPress={() => router.push('/profile/following')}
     />
   );
 }

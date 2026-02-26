@@ -104,6 +104,14 @@ interface ProfileScreenProps {
   onLogout: () => void;
   /** Shown only when isOwnProfile && profile.role === 'admin'. */
   onAdminDashboardPress?: () => void;
+  /** Own profile: navigate to followers list. */
+  onFollowersPress?: () => void;
+  /** Own profile: navigate to following list. */
+  onFollowingPress?: () => void;
+  /** Other user profile: current follow state. */
+  isFollowing?: boolean;
+  isFollowLoading?: boolean;
+  onFollowToggle?: () => void;
 }
 
 export function ProfileScreen({
@@ -115,6 +123,11 @@ export function ProfileScreen({
   onSharePress,
   onLogout,
   onAdminDashboardPress,
+  onFollowersPress,
+  onFollowingPress,
+  isFollowing,
+  isFollowLoading,
+  onFollowToggle,
 }: ProfileScreenProps) {
   const bg = useThemeColor('background');
   const text = useThemeColor('labelText');
@@ -201,11 +214,41 @@ export function ProfileScreen({
           </View>
           <View style={styles.profileInfo}>
             <AppText style={[styles.displayName, { color: text }]}>{displayName}</AppText>
-            <AppText style={[styles.statsRow, { color: secondary }]}>
-              {profile.followingCount} Following | {profile.followersCount} Followers
-            </AppText>
+            {isOwnProfile ? (
+              <View style={styles.statsRowWrap}>
+                <TouchableOpacity activeOpacity={0.7} onPress={onFollowingPress}>
+                  <AppText style={[styles.statsRow, { color: secondary }]}>
+                    {profile.followingCount} Following
+                  </AppText>
+                </TouchableOpacity>
+                <AppText style={[styles.statsRow, { color: secondary }]}> | </AppText>
+                <TouchableOpacity activeOpacity={0.7} onPress={onFollowersPress}>
+                  <AppText style={[styles.statsRow, { color: secondary }]}>
+                    {profile.followersCount} Followers
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <AppText style={[styles.statsRow, { color: secondary }]}>
+                {profile.followingCount} Following | {profile.followersCount} Followers
+              </AppText>
+            )}
           </View>
         </View>
+
+        {/* Follow / Unfollow button — other user profiles */}
+        {!isOwnProfile && onFollowToggle && (
+          <TouchableOpacity
+            style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+            activeOpacity={0.7}
+            onPress={onFollowToggle}
+            disabled={isFollowLoading}
+          >
+            <AppText style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+              {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+            </AppText>
+          </TouchableOpacity>
+        )}
 
         {/* Edit Profile + Share Profile buttons */}
         {isOwnProfile && (
@@ -225,8 +268,8 @@ export function ProfileScreen({
           </TouchableOpacity>
         )}
 
-        {/* Travel Style */}
-        {profile.isOnboarded && personaTags.length > 0 && (
+        {/* Travel Style — own profile only */}
+        {isOwnProfile && profile.isOnboarded && personaTags.length > 0 && (
           <View style={styles.section}>
             <AppText style={[styles.sectionTitle, { color: text }]}>Travel Style</AppText>
             <View style={styles.tagRow}>
@@ -237,22 +280,26 @@ export function ProfileScreen({
           </View>
         )}
 
-        {/* Summary by dora */}
-        <View style={styles.doraSummaryWrap}>
-          <AppText style={[styles.doraSummaryTitle, { color: text }]}>Summary by dora.</AppText>
-          <View style={styles.doraSummaryContent}>
-            <AppText style={[styles.doraSummaryBody, { color: subText }]}>{doraSummary}</AppText>
+        {/* Summary by dora — own profile only */}
+        {isOwnProfile && (
+          <View style={styles.doraSummaryWrap}>
+            <AppText style={[styles.doraSummaryTitle, { color: text }]}>Summary by dora.</AppText>
+            <View style={styles.doraSummaryContent}>
+              <AppText style={[styles.doraSummaryBody, { color: subText }]}>{doraSummary}</AppText>
+            </View>
           </View>
-        </View>
+        )}
 
-        {/* My Footprint */}
-        <View style={[styles.mapPlaceholder, { backgroundColor: surfaceAlt, borderColor: border }]}>
-          <AppText style={[styles.mapPlaceholderIcon, { color: accent }]}>🌍</AppText>
-          <AppText style={[styles.mapPlaceholderTitle, { color: text }]}>My Footprint</AppText>
-          <AppText style={[styles.mapPlaceholderBody, { color: secondary }]}>
-            Your visited destinations will appear on the map as you complete trips.
-          </AppText>
-        </View>
+        {/* My Footprint — own profile only */}
+        {isOwnProfile && (
+          <View style={[styles.mapPlaceholder, { backgroundColor: surfaceAlt, borderColor: border }]}>
+            <AppText style={[styles.mapPlaceholderIcon, { color: accent }]}>🌍</AppText>
+            <AppText style={[styles.mapPlaceholderTitle, { color: text }]}>My Footprint</AppText>
+            <AppText style={[styles.mapPlaceholderBody, { color: secondary }]}>
+              Your visited destinations will appear on the map as you complete trips.
+            </AppText>
+          </View>
+        )}
 
         {/* Sign Out */}
         {isOwnProfile && (
@@ -299,7 +346,22 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 26, fontWeight: '700' },
   profileInfo: { flex: 1 },
   displayName: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
+  statsRowWrap: { flexDirection: 'row', alignItems: 'center' },
   statsRow: { fontSize: 14 },
+  followBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#18181B',
+    marginBottom: 20,
+  },
+  followBtnActive: {
+    backgroundColor: '#18181B',
+  },
+  followBtnText: { fontSize: 14, fontWeight: '500', color: '#18181B' },
+  followBtnTextActive: { color: '#FFFFFF' },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: '500', marginBottom: 16 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },

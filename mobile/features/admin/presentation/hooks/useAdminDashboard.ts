@@ -5,6 +5,28 @@ import { useAdminDependencies } from '../../di/useAdminDependencies';
 
 const PAGE_SIZE = 10;
 
+export interface DateRange {
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string;   // 'YYYY-MM-DD'
+}
+
+function defaultRange(): DateRange {
+  const now = new Date();
+  const start = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: now.toISOString().slice(0, 10),
+  };
+}
+
+export function formatRangeLabel(range: DateRange): string {
+  const fmt = (d: string) => {
+    const [y, m, day] = d.split('-');
+    return `${day}.${m}.${y}`;
+  };
+  return `${fmt(range.startDate)} – ${fmt(range.endDate)}`;
+}
+
 interface UseAdminDashboardResult {
   stats: AdminStats | null;
   users: AdminUser[];
@@ -13,6 +35,8 @@ interface UseAdminDashboardResult {
   currentPage: number;
   isLoadingStats: boolean;
   isLoadingUsers: boolean;
+  dateRange: DateRange;
+  setDateRange: (range: DateRange) => void;
   goToPage: (page: number) => void;
   toggleUserActive: (userId: string) => Promise<void>;
 }
@@ -27,17 +51,23 @@ export function useAdminDashboard(): UseAdminDashboardResult {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [dateRange, setDateRangeState] = useState<DateRange>(defaultRange);
 
   useEffect(() => {
     let cancelled = false;
     setIsLoadingStats(true);
-    getAdminStatsUseCase.execute().then(result => {
-      if (cancelled) return;
-      if (result.success) setStats(result.data);
-      setIsLoadingStats(false);
-    });
+    getAdminStatsUseCase
+      .execute({
+        startDate: new Date(dateRange.startDate).toISOString(),
+        endDate: new Date(dateRange.endDate + 'T23:59:59').toISOString(),
+      })
+      .then(result => {
+        if (cancelled) return;
+        if (result.success) setStats(result.data);
+        setIsLoadingStats(false);
+      });
     return () => { cancelled = true; };
-  }, [getAdminStatsUseCase]);
+  }, [getAdminStatsUseCase, dateRange.startDate, dateRange.endDate]);
 
   const fetchUsers = useCallback(
     (page: number) => {
@@ -59,8 +89,11 @@ export function useAdminDashboard(): UseAdminDashboardResult {
     fetchUsers(currentPage);
   }, [currentPage, fetchUsers]);
 
-  const goToPage = useCallback((page: number) => {
-    setCurrentPage(page);
+  const goToPage = useCallback((page: number) => setCurrentPage(page), []);
+
+  const setDateRange = useCallback((range: DateRange) => {
+    setDateRangeState(range);
+    setCurrentPage(1);
   }, []);
 
   const toggleUserActive = useCallback(
@@ -69,17 +102,12 @@ export function useAdminDashboard(): UseAdminDashboardResult {
       if (!user) return;
       const nextActive = !user.isActive;
 
-      // Optimistic update
       setUsers(prev =>
         prev.map(u => (u.id === userId ? { ...u, isActive: nextActive } : u)),
       );
 
-      const result = await setUserActiveUseCase.execute({
-        userId,
-        isActive: nextActive,
-      });
+      const result = await setUserActiveUseCase.execute({ userId, isActive: nextActive });
 
-      // Revert on failure
       if (!result.success) {
         setUsers(prev =>
           prev.map(u => (u.id === userId ? { ...u, isActive: user.isActive } : u)),
@@ -99,6 +127,8 @@ export function useAdminDashboard(): UseAdminDashboardResult {
     currentPage,
     isLoadingStats,
     isLoadingUsers,
+    dateRange,
+    setDateRange,
     goToPage,
     toggleUserActive,
   };
