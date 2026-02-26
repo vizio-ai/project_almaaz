@@ -154,10 +154,10 @@ function AppContent() {
           easing: Easing.linear,
           useNativeDriver: true,
         }),
-        // Cyan circle: 300ms
+        // Cyan circle: 500ms
         Animated.timing(cyanCircleScale, {
           toValue: 1,
-          duration: 300,
+          duration: 500,
           easing: Easing.linear,
           useNativeDriver: true,
         }),
