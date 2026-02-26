@@ -217,14 +217,16 @@ export function ProfileScreen({
             {isOwnProfile ? (
               <View style={styles.statsRowWrap}>
                 <TouchableOpacity activeOpacity={0.7} onPress={onFollowingPress}>
-                  <AppText style={[styles.statsRow, { color: secondary }]}>
-                    {profile.followingCount} Following
+                  <AppText>
+                    <AppText style={styles.statsCount}>{profile.followingCount}</AppText>
+                    <AppText style={styles.statsRow}>{' Following'}</AppText>
                   </AppText>
                 </TouchableOpacity>
-                <AppText style={[styles.statsRow, { color: secondary }]}> | </AppText>
+                <AppText style={styles.statsRow}> | </AppText>
                 <TouchableOpacity activeOpacity={0.7} onPress={onFollowersPress}>
-                  <AppText style={[styles.statsRow, { color: secondary }]}>
-                    {profile.followersCount} Followers
+                  <AppText>
+                    <AppText style={styles.statsCount}>{profile.followersCount}</AppText>
+                    <AppText style={styles.statsRow}>{' Followers'}</AppText>
                   </AppText>
                 </TouchableOpacity>
               </View>
@@ -347,7 +349,8 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1 },
   displayName: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
   statsRowWrap: { flexDirection: 'row', alignItems: 'center' },
-  statsRow: { fontSize: 14 },
+  statsCount: { fontSize: 16, fontWeight: '500', color: '#09090B' },
+  statsRow: { fontSize: 14, fontWeight: '400', color: '#09090B' },
   followBtn: {
     alignSelf: 'flex-start',
     paddingHorizontal: 20,
