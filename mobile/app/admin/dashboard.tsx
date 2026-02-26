@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Polyline, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Polyline, Text as SvgText } from 'react-native-svg';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
 import { useAdminDashboard, formatRangeLabel } from '@shared/admin';
@@ -23,9 +23,11 @@ import { Calendar } from 'react-native-calendars';
 
 // ── Line chart ────────────────────────────────────────────────────────────────
 
-const Y_LABEL_W = 36;
+const Y_LABEL_W = 40;
+const PLOT_LEFT = 12;
+const PLOT_TOP = 10;
 const PLOT_H = 130;
-const CHART_H = PLOT_H + 28;
+const CHART_H = PLOT_TOP + PLOT_H + 44;
 
 const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
@@ -47,13 +49,13 @@ interface UserLineChartProps {
 }
 
 function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
-  const plotW = width - Y_LABEL_W - 4;
+  const plotW = width - Y_LABEL_W - 4 - PLOT_LEFT;
   const counts = dailyCounts.map(d => d.count);
   const yMax = niceMax(Math.max(...counts, 1));
   const ySteps = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0].map(Math.round);
 
-  const getX = (i: number) => Y_LABEL_W + (i / Math.max(counts.length - 1, 1)) * plotW;
-  const getY = (val: number) => (1 - val / yMax) * PLOT_H;
+  const getX = (i: number) => PLOT_LEFT + (i / Math.max(counts.length - 1, 1)) * plotW;
+  const getY = (val: number) => PLOT_TOP + (1 - val / yMax) * PLOT_H;
 
   const points = counts
     .map((v, i) => `${getX(i).toFixed(1)},${getY(v).toFixed(1)}`)
@@ -67,20 +69,13 @@ function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
         const y = getY(step);
         return (
           <React.Fragment key={i}>
-            <Line
-              x1={Y_LABEL_W}
-              y1={y}
-              x2={width - 4}
-              y2={y}
-              stroke={colors.light.borderMuted}
-              strokeWidth={1}
-            />
             <SvgText
-              x={Y_LABEL_W - 4}
+              x={PLOT_LEFT + plotW + 16}
               y={y + 4}
-              textAnchor="end"
-              fontSize={10}
-              fill={colors.light.subText}
+              textAnchor="start"
+              fontSize={12}
+              fontWeight="500"
+              fill="#737373"
             >
               {formatYLabel(step)}
             </SvgText>
@@ -103,7 +98,7 @@ function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
         <SvgText
           key={`${day}-${i}`}
           x={getX(i)}
-          y={PLOT_H + 20}
+          y={PLOT_TOP + PLOT_H + 24}
           textAnchor="middle"
           fontSize={12}
           fill={colors.light.subText}
