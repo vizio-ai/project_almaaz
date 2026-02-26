@@ -29,3 +29,5 @@ export { OtpCodeInput } from './components/OtpCodeInput';
 export type { OtpCodeInputRef } from './components/OtpCodeInput';
 export { ResendCodeBlock } from './components/ResendCodeBlock';
 export { PersonaOption } from './components/PersonaOption';
+export { AppTabBar } from './components/AppTabBar';
+export type { TabKey } from './components/AppTabBar';

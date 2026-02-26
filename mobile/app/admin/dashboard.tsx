@@ -11,13 +11,13 @@ import {
   Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Polyline, Line, Text as SvgText } from 'react-native-svg';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
 import { useAdminDashboard, formatRangeLabel } from '@shared/admin';
-import { AppHeader, AppText, colors, spacing, typography, radii } from '@shared/ui-kit';
+import { AppHeader, AppText, AppTabBar, colors, spacing, typography, radii } from '@shared/ui-kit';
+import type { TabKey } from '@shared/ui-kit';
 import type { DailyCount, AdminUser, DateRange } from '@shared/admin';
 import { Calendar } from 'react-native-calendars';
 
@@ -227,13 +227,20 @@ const dialogStyles = StyleSheet.create({
   },
 });
 
+const TAB_ROUTES: Record<TabKey, string> = {
+  index:      '/(tabs)/',
+  'my-trips': '/(tabs)/my-trips',
+  create:     '/(tabs)/create',
+  discover:   '/(tabs)/discover',
+  profile:    '/(tabs)/profile',
+};
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardScreen() {
   const { session } = useSession();
   const { profile, isLoading } = useProfile(session?.user.id);
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
 
   const isAdmin = profile?.role === 'admin';
@@ -246,17 +253,16 @@ export default function AdminDashboardScreen() {
 
   if (!session || isLoading || profile === null) return null;
 
-  return <AdminDashboardContent screenWidth={screenWidth} insets={insets} />;
+  return <AdminDashboardContent screenWidth={screenWidth} />;
 }
 
 // Split out so useAdminDashboard is only called after the guard passes
 function AdminDashboardContent({
   screenWidth,
-  insets,
 }: {
   screenWidth: number;
-  insets: { bottom: number };
 }) {
+  const router = useRouter();
   const {
     stats,
     users,
@@ -356,7 +362,7 @@ function AdminDashboardContent({
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + spacing['2xl'] },
+          { paddingBottom: spacing['2xl'] },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -598,6 +604,11 @@ function AdminDashboardContent({
           </View>
         </View>
       </ScrollView>
+
+      <AppTabBar
+        activeKey="profile"
+        onPress={(key) => router.replace(TAB_ROUTES[key] as any)}
+      />
 
       <ConfirmDialog
         user={pendingUser}

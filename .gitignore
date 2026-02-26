@@ -44,7 +44,6 @@ supabase/storage_schema_manual.sql
 mobile/.env
 mobile/.env.local
 mobile/.env*.local
-mobile/.env.example
 
 # Dependencies
 mobile/node_modules/
@@ -80,3 +79,6 @@ mobile/yarn-error.*
 
 # TypeScript
 mobile/*.tsbuildinfo
+BACKEND_STRATEGY.md
+CLAUDE_INSTRUCTIONS.md
+PROJECT_CONTEXT.md

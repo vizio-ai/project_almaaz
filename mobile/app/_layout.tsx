@@ -150,7 +150,7 @@ function AppContent() {
         // Beyaz daire ekran ortasından açılır (400ms)
         Animated.timing(whiteCircleScale, {
           toValue: 1,
-          duration: 400,
+          duration: 300,
           useNativeDriver: true,
         }),
         // Beyaz 1 saniye görünür
@@ -158,16 +158,13 @@ function AppContent() {
         // Cyan daire orta üstten gelip ekranı kaplar (500ms)
         Animated.timing(cyanCircleScale, {
           toValue: 1,
-          duration: 500,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start(() => {
+        whiteCircleScale.setValue(0);
+        cyanCircleScale.setValue(0);
         setPastLoading(true);
-        // Navigation settle olsun, sonra overlay'leri kaldır
-        setTimeout(() => {
-          whiteCircleScale.setValue(0);
-          cyanCircleScale.setValue(0);
-        }, 350);
       });
     }
   }, [isLoading]);
