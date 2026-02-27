@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "dora.",
+    "name": "dora",
     "slug": "dora",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -28,7 +28,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "package": "com.vizio.dora"
     },
     "web": {
       "bundler": "metro",
@@ -50,7 +51,9 @@
           "image": "./assets/images/app_icon.png",
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
