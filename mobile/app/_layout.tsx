@@ -117,7 +117,7 @@ const splashStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     alignItems: 'center',
-    paddingTop: 68,
+    justifyContent: 'center',
   },
   logo: {
     fontSize: 64,
@@ -135,7 +135,6 @@ const splashStyles = StyleSheet.create({
 function AppContent() {
   const { isLoading } = useSession();
   const [pastLoading, setPastLoading] = React.useState(false);
-  const whiteCircleScale = React.useRef(new Animated.Value(0)).current;
   const cyanCircleScale = React.useRef(new Animated.Value(0)).current;
   const { width, height } = useWindowDimensions();
   const R = Math.ceil(Math.sqrt(width * width + height * height));
@@ -146,23 +145,12 @@ function AppContent() {
 
   React.useEffect(() => {
     if (!isLoading && !pastLoading) {
-      Animated.sequence([
-        // White circle: fast 150ms transition
-        Animated.timing(whiteCircleScale, {
-          toValue: 1,
-          duration: 150,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        // Cyan circle: 500ms
-        Animated.timing(cyanCircleScale, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        whiteCircleScale.setValue(0);
+      Animated.timing(cyanCircleScale, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start(() => {
         cyanCircleScale.setValue(0);
         setPastLoading(true);
       });
@@ -200,37 +188,21 @@ function AppContent() {
       ) : (
         <SplashView />
       )}
-      {/* Transition circles: only rendered during splash animation */}
+      {/* Transition circle: only rendered during splash animation */}
       {!pastLoading && (
-        <>
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              backgroundColor: '#FFFFFF',
-              width: R * 2,
-              height: R * 2,
-              borderRadius: R,
-              left: width / 2 - R,
-              top: height / 2 - R,
-              transform: [{ scale: whiteCircleScale }],
-            }}
-          />
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              backgroundColor: '#44FFFF',
-              width: R * 2,
-              height: R * 2,
-              borderRadius: R,
-              left: width / 2 - R,
-              top: height / 2 - R,
-              opacity: 0.8,
-              transform: [{ scale: cyanCircleScale }],
-            }}
-          />
-        </>
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            backgroundColor: '#44FFFF',
+            width: R * 2,
+            height: R * 2,
+            borderRadius: R,
+            left: width / 2 - R,
+            top: height / 2 - R,
+            transform: [{ scale: cyanCircleScale }],
+          }}
+        />
       )}
     </>
   );
