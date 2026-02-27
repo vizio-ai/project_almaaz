@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppHeader,
@@ -12,6 +12,7 @@ import {
   useThemeColor,
 } from '@shared/ui-kit';
 import { AuthStrings } from '../constants/strings';
+import { LegalModal, type LegalModalType } from '../components/LegalModal';
 
 const OTP_LENGTH = 6;
 
@@ -34,6 +35,7 @@ export function OtpVerificationScreen({
 }: OtpVerificationScreenProps) {
   const [code, setCode] = useState('');
   const [otpKey, setOtpKey] = useState(0);
+  const [legalModal, setLegalModal] = useState<LegalModalType | null>(null);
 
   const bgColor = useThemeColor('background');
 
@@ -103,9 +105,27 @@ export function OtpVerificationScreen({
             actionText={AuthStrings.otpVerification.resendAction}
             onPress={handleResend}
           />
+
+          <View style={styles.legalRow}>
+            <Text style={styles.legalText}>By submitting the code, you agree to our </Text>
+            <TouchableOpacity onPress={() => setLegalModal('terms')} activeOpacity={0.7}>
+              <Text style={styles.legalLink}>Terms</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalText}> and </Text>
+            <TouchableOpacity onPress={() => setLegalModal('privacy')} activeOpacity={0.7}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalText}>.</Text>
+          </View>
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LegalModal
+        visible={legalModal !== null}
+        type={legalModal ?? 'terms'}
+        onClose={() => setLegalModal(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -115,4 +135,23 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, justifyContent: 'center' },
   content: { flex: 1 },
+  legalRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 8,
+  },
+  legalText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#71717A',
+  },
+  legalLink: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#0A0A0A',
+    textDecorationLine: 'underline',
+  },
 });
