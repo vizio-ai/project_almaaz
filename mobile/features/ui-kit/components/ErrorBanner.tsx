@@ -1,28 +1,31 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
+import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { typography, spacing } from '../theme';
-
-const TEXT_ON_ERROR = '#FFFFFF';
+import { typography, radii, spacing } from '../theme';
 
 interface ErrorBannerProps {
   message: string;
   onDismiss?: () => void;
-  horizontalInset?: number;
+
 }
 
-export function ErrorBanner({ message, onDismiss, horizontalInset = 24 }: ErrorBannerProps) {
+export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
   const errorColor = useThemeColor('error');
-
-  const content = (
-    <AppText style={[styles.text, { color: TEXT_ON_ERROR }]}>{message}</AppText>
-  );
+  const errorBg = useThemeColor('warningBg');
 
   const bannerStyle = [
     styles.banner,
-    { backgroundColor: errorColor, marginHorizontal: -horizontalInset },
+    { backgroundColor: errorBg, borderColor: errorColor },
   ];
+
+  const content = (
+    <>
+      <Ionicons name="alert-circle-outline" size={20} color={errorColor} style={styles.icon} />
+      <AppText style={[styles.text, { color: errorColor }]}>{message}</AppText>
+    </>
+  );
 
   if (onDismiss) {
     return (
@@ -37,12 +40,21 @@ export function ErrorBanner({ message, onDismiss, horizontalInset = 24 }: ErrorB
 
 const styles = StyleSheet.create({
   banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 24,
     marginBottom: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+  },
+  icon: {
+    marginRight: 10,
   },
   text: {
+    flex: 1,
     ...typography.sm,
+    fontWeight: typography.weights.regular,
     lineHeight: 20,
   },
 });

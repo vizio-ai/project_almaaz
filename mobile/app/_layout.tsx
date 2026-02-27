@@ -200,35 +200,38 @@ function AppContent() {
       ) : (
         <SplashView />
       )}
-      {/* White circle: transitions from black splash to white */}
-      <Animated.View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          backgroundColor: '#FFFFFF',
-          width: R * 2,
-          height: R * 2,
-          borderRadius: R,
-          left: width / 2 - R,
-          top: height / 2 - R,
-          transform: [{ scale: whiteCircleScale }],
-        }}
-      />
-      {/* Cyan circle: expands from center */}
-      <Animated.View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          backgroundColor: '#44FFFF',
-          width: R * 2,
-          height: R * 2,
-          borderRadius: R,
-          left: width / 2 - R,
-          top: height / 2 - R,
-          opacity: 0.8,
-          transform: [{ scale: cyanCircleScale }],
-        }}
-      />
+      {/* Transition circles: only rendered during splash animation */}
+      {!pastLoading && (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              backgroundColor: '#FFFFFF',
+              width: R * 2,
+              height: R * 2,
+              borderRadius: R,
+              left: width / 2 - R,
+              top: height / 2 - R,
+              transform: [{ scale: whiteCircleScale }],
+            }}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              backgroundColor: '#44FFFF',
+              width: R * 2,
+              height: R * 2,
+              borderRadius: R,
+              left: width / 2 - R,
+              top: height / 2 - R,
+              opacity: 0.8,
+              transform: [{ scale: cyanCircleScale }],
+            }}
+          />
+        </>
+      )}
     </>
   );
 }

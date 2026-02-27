@@ -63,7 +63,7 @@ export default function PersonalScreen() {
                 leftIcon="person-outline"
                 value={name}
                 onChangeText={(v) => { setName(v); setShowErrors(false); }}
-                placeholder="Alex"
+                placeholder="John"
                 returnKeyType="next"
                 autoFocus
                 hasError={showErrors && !name.trim()}
@@ -76,7 +76,7 @@ export default function PersonalScreen() {
                 leftIcon="person-outline"
                 value={surname}
                 onChangeText={(v) => { setSurname(v); setShowErrors(false); }}
-                placeholder="Jordan"
+                placeholder="Doe"
                 returnKeyType="next"
                 hasError={showErrors && !surname.trim()}
               />
@@ -89,7 +89,7 @@ export default function PersonalScreen() {
             leftIcon="mail-outline"
             value={email}
             onChangeText={setEmail}
-            placeholder="alex@example.com"
+            placeholder="johndoe@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
             returnKeyType="done"

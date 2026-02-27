@@ -1,4 +1,4 @@
-import { Result, ok, fail, networkError } from '@shared/kernel';
+import { Result, ok, fail, networkError, appError } from '@shared/kernel';
 import { AuthRepository, VerifyOtpData } from '../../domain/repositories/AuthRepository';
 import { User } from '../../domain/entities/User';
 import { AuthRemoteDataSource } from '../datasources/AuthRemoteDataSource';
@@ -16,7 +16,10 @@ export class AuthRepositoryImpl implements AuthRepository {
       await this.remoteDataSource.sendOtp({ phone });
       return ok(undefined);
     } catch (error) {
-      return fail(networkError(error));
+      console.error('[AuthRepository] sendOtp error:', error);
+      if (error instanceof TypeError) return fail(networkError(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      return fail(appError('API_ERROR', msg, error));
     }
   }
 
@@ -28,7 +31,10 @@ export class AuthRepositoryImpl implements AuthRepository {
         user: this.userMapper.map(session),
       });
     } catch (error) {
-      return fail(networkError(error));
+      console.error('[AuthRepository] verifyOtp error:', error);
+      if (error instanceof TypeError) return fail(networkError(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      return fail(appError('API_ERROR', msg, error));
     }
   }
 
