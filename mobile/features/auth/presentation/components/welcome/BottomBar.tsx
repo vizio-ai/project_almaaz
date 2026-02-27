@@ -1,37 +1,43 @@
 import React, { useState } from 'react';
 import { View, Pressable, StyleSheet, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useThemeColor } from '@shared/ui-kit';
+
+import HomeSvg from '../../../../../assets/images/home.svg';
+import BookmarkSvg from '../../../../../assets/images/bookmark.svg';
+import CreateSvg from '../../../../../assets/images/create.svg';
+import DiscoverySvg from '../../../../../assets/images/discovery.svg';
+import ProfileSvg from '../../../../../assets/images/profile.svg';
 
 const TAB_BAR_BG = '#0A0A0A';
 const ICON_WHITE = '#FFFFFF';
 
-const TABS = [
-  { icon: 'home' as const, label: 'Home' },
-  { icon: 'bookmark-outline' as const, label: 'Trips' },
-  { icon: 'add' as const, label: '' },
-  { icon: 'compass-outline' as const, label: 'Discover' },
-  { icon: 'person-outline' as const, label: 'Profile' },
+type SvgIcon = React.FC<{ width?: number; height?: number; fill?: string; color?: string }>;
+
+const TABS: { Icon: SvgIcon; label: string }[] = [
+  { Icon: HomeSvg,      label: 'Home'    },
+  { Icon: BookmarkSvg,  label: 'Trips'   },
+  { Icon: CreateSvg,    label: ''        },
+  { Icon: DiscoverySvg, label: 'Discover'},
+  { Icon: ProfileSvg,   label: 'Profile' },
 ];
 
 interface BottomBarProps {
   onTabPress: () => void;
 }
 
+const ACCENT = '#44FFFF';
+
 export function BottomBar({ onTabPress }: BottomBarProps) {
-  const accent = useThemeColor('accent');
   const [pressedIndex, setPressedIndex] = useState<number>(-1);
 
   const getIconColor = (index: number) => {
-    if (pressedIndex === index) return accent;
+    if (pressedIndex === index) return ACCENT;
     if (index === 0 && pressedIndex > 0) return ICON_WHITE;
-    return index === 0 ? accent : ICON_WHITE;
+    return index === 0 ? ACCENT : ICON_WHITE;
   };
 
   return (
     <View style={[styles.tabBar, { paddingBottom: Platform.OS === 'ios' ? 20 : 8 }]}>
       {TABS.map((tab, i) => {
-        const isAdd = tab.icon === 'add';
         return (
           <Pressable
             key={i}
@@ -44,11 +50,7 @@ export function BottomBar({ onTabPress }: BottomBarProps) {
           >
             {() => {
               const iconColor = getIconColor(i);
-              return isAdd ? (
-                <Ionicons name="add" size={24} color={iconColor} />
-              ) : (
-                <Ionicons name={tab.icon} size={22} color={iconColor} />
-              );
+              return <tab.Icon width={20} height={20} color={iconColor} />;
             }}
           </Pressable>
         );
@@ -64,9 +66,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     height: 76,
     backgroundColor: TAB_BAR_BG,
-    borderTopWidth: 0,
     paddingTop: 6,
     paddingHorizontal: 24,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#44FFFF',
   },
   tabItem: {
     alignItems: 'center',

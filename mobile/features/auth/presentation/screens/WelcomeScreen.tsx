@@ -75,7 +75,9 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
         </View>
       </ScrollView>
 
-      <BottomBar onTabPress={onLoginPress} />
+      <View style={{ backgroundColor: '#FFFFFF' }}>
+        <BottomBar onTabPress={onLoginPress} />
+      </View>
     </View>
   );
 }

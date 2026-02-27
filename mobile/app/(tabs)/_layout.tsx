@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { AppTabBar, type TabKey } from '@shared/ui-kit';
 
 export default function TabsLayout() {
@@ -7,10 +8,12 @@ export default function TabsLayout() {
       tabBar={(props) => {
         const activeKey = props.state.routes[props.state.index].name as TabKey;
         return (
-          <AppTabBar
-            activeKey={activeKey}
-            onPress={(key) => props.navigation.navigate(key)}
-          />
+          <View style={{ backgroundColor: '#FFFFFF' }}>
+            <AppTabBar
+              activeKey={activeKey}
+              onPress={(key) => props.navigation.navigate(key)}
+            />
+          </View>
         );
       }}
       screenOptions={{ headerShown: false }}

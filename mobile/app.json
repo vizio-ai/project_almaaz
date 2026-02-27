@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "dora",
+    "name": "dora.",
     "slug": "dora",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app_icon.png",
     "scheme": "dora",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dora.app"
+      "bundleIdentifier": "com.vizio.dora",
+      "infoPlist": {
+        "UILaunchStoryboardName": "SplashScreen",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +25,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -30,11 +37,29 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-image-picker", { "photosPermission": "Allow access to your photo library to set a profile picture." }],
-      ["expo-splash-screen", { "backgroundColor": "#000000" }]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to your photo library to set a profile picture."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "image": "./assets/images/app_icon.png",
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "95d641f2-9bf6-425f-b52b-87d58f63ae92"
+      }
     }
   }
 }

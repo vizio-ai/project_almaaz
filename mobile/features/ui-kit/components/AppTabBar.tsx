@@ -1,22 +1,27 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '../hooks/useThemeColor';
+import HomeSvg from '../../../assets/images/home.svg';
+import BookmarkSvg from '../../../assets/images/bookmark.svg';
+import CreateSvg from '../../../assets/images/create.svg';
+import DiscoverySvg from '../../../assets/images/discovery.svg';
+import ProfileSvg from '../../../assets/images/profile.svg';
 
 export type TabKey = 'index' | 'my-trips' | 'create' | 'discover' | 'profile';
 
+type SvgIcon = React.FC<{ width?: number; height?: number; fill?: string; color?: string }>;
+
 interface TabDefinition {
   key: TabKey;
-  activeIcon: React.ComponentProps<typeof Ionicons>['name'];
-  inactiveIcon: React.ComponentProps<typeof Ionicons>['name'];
+  Icon: SvgIcon;
 }
 
 const TABS: TabDefinition[] = [
-  { key: 'index',    activeIcon: 'home',     inactiveIcon: 'home-outline'     },
-  { key: 'my-trips', activeIcon: 'bookmark', inactiveIcon: 'bookmark-outline' },
-  { key: 'create',   activeIcon: 'add',      inactiveIcon: 'add'              },
-  { key: 'discover', activeIcon: 'compass',  inactiveIcon: 'compass-outline'  },
-  { key: 'profile',  activeIcon: 'person',   inactiveIcon: 'person-outline'   },
+  { key: 'index',    Icon: HomeSvg      },
+  { key: 'my-trips', Icon: BookmarkSvg  },
+  { key: 'create',   Icon: CreateSvg    },
+  { key: 'discover', Icon: DiscoverySvg },
+  { key: 'profile',  Icon: ProfileSvg   },
 ];
 
 interface AppTabBarProps {
@@ -25,7 +30,6 @@ interface AppTabBarProps {
 }
 
 export function AppTabBar({ activeKey, onPress }: AppTabBarProps) {
-  const accent = useThemeColor('accent');
   const inactive = useThemeColor('icon');
 
   return (
@@ -39,11 +43,7 @@ export function AppTabBar({ activeKey, onPress }: AppTabBarProps) {
             activeOpacity={0.7}
             onPress={() => onPress(tab.key)}
           >
-            <Ionicons
-              name={focused ? tab.activeIcon : tab.inactiveIcon}
-              size={24}
-              color={focused ? accent : inactive}
-            />
+            <tab.Icon width={20} height={20} color={focused ? '#44FFFF' : inactive} />
           </TouchableOpacity>
         );
       })}
@@ -59,6 +59,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
     flexDirection: 'row',
     alignItems: 'center',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#44FFFF',
   },
   item: {
     flex: 1,
