@@ -159,7 +159,7 @@ function AppContent() {
 
   return (
     <>
-      {pastLoading ? (
+      {!isLoading ? (
         <ProfileProvider dependencies={profileExternalDeps}>
           <TripProvider dependencies={tripExternalDeps}>
             <ItineraryProvider dependencies={itineraryExternalDeps}>
@@ -174,7 +174,7 @@ function AppContent() {
               >
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="admin" />
-                <Stack.Screen name="auth" />
+                <Stack.Screen name="auth" options={{ animation: 'none' }} />
                 <Stack.Screen name="profile" />
                 <Stack.Screen name="deactivated" />
                 <Stack.Screen name="+not-found" />
