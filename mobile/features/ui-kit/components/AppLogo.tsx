@@ -27,7 +27,7 @@ export function AppLogo({ size = 'md', onDark, onLight }: AppLogoProps) {
 
 const styles = StyleSheet.create({
   logo: {
-    ...typography['4xl'],
+    ...typography['3xl'],
     fontWeight: typography.weights.semibold,
   },
 });

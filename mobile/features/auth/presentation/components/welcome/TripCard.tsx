@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText, useThemeColor } from '@shared/ui-kit';
+import AnonymousUserIcon from '../../../../../assets/images/anonymous_user_icon.svg';
+import BookmarkIcon from '../../../../../assets/images/bookmark_vector.svg';
 
 const FALLBACK_PHOTO = require('../../../../../assets/images/card_photo.png');
 
@@ -26,11 +28,19 @@ export function TripCard({ trip, onPress }: TripCardProps) {
 
   return (
     <TouchableOpacity style={[styles.card, { backgroundColor: surface }]} onPress={onPress} activeOpacity={0.85}>
-      <Image source={imageSource} style={styles.image} resizeMode="cover" />
+      <View style={styles.imageWrapper}>
+        <Image source={imageSource} style={styles.image} resizeMode="cover" />
+        <View style={styles.badge}>
+          <BookmarkIcon width={9.33} height={12} />
+          <AppText style={styles.badgeText}>{trip.savedCount} Saved</AppText>
+        </View>
+      </View>
       <View style={styles.info}>
         <AppText style={[styles.title, { color: text }]} numberOfLines={3}>{trip.title}</AppText>
-        <AppText style={[styles.meta, { color: secondary }]}>Saved by {trip.savedCount} people</AppText>
-        <AppText style={[styles.author, { color: secondary }]}>{trip.creatorName}</AppText>
+        <View style={styles.authorRow}>
+          <AnonymousUserIcon width={12} height={12} />
+          <AppText style={[styles.author, { color: secondary }]}>{trip.creatorName}</AppText>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -38,19 +48,50 @@ export function TripCard({ trip, onPress }: TripCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 240,
-    flexDirection: 'row',
+    width: 183,
+    flexDirection: 'column',
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.10,
+    shadowRadius: 1.5,
+    elevation: 3,
   },
-  image: { width: 90, height: 110, borderTopRightRadius: 12, borderBottomRightRadius: 12 },
+  image: { width: 183, height: 110 },
   info: {
-    flex: 1,
     padding: 10,
-    justifyContent: 'center',
     gap: 4,
   },
-  title: { fontSize: 12, fontWeight: '600', lineHeight: 16 },
+  title: { fontSize: 14, fontWeight: '500', paddingBottom: 4 },
   meta: { fontSize: 10 },
-  author: { fontSize: 10 },
+  imageWrapper: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 95,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#71717A',
+  },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  author: { fontSize: 12, fontWeight: '400' },
 });

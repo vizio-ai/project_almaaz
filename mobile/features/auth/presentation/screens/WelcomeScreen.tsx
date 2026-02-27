@@ -26,8 +26,7 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
   const bg = useThemeColor('background');
   const headerBg = useThemeColor('headerBg');
   const accent = useThemeColor('accent');
-  const text = useThemeColor('text');
-  const secondary = useThemeColor('textSecondary');
+  const mainText = useThemeColor('mainText');
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
@@ -44,16 +43,16 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity onPress={onLoginPress} activeOpacity={0.8}>
-          <AppText style={[styles.subtitle, { color: text }]}>
-            Create an account to meet your travel agent, plan with friends, and discover trips
+          <AppText style={styles.subtitle}>
+            Dora is where your trips live. Create an account to plan, document, and share them with your friends.
           </AppText>
         </TouchableOpacity>
 
-        <AppText style={[styles.sectionTitle, { color: text }]}>Welcome Stranger</AppText>
+        <AppText style={[styles.sectionTitle, { color: mainText }]}>Welcome Stranger</AppText>
 
         <FeaturedCard onPress={onLoginPress} />
 
-        <AppText style={[styles.sectionTitle, { color: text, marginTop: 24 }]}>Popular Trips</AppText>
+        <AppText style={[styles.subSectionTitle, { color: mainText, marginTop: 24 }]}>Popular Trips</AppText>
 
         <ScrollView
           horizontal
@@ -66,8 +65,8 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
         </ScrollView>
 
         <View style={styles.mapSection}>
-          <AppText style={[styles.sectionTitle, { color: text }]}>Start Filling Your Map</AppText>
-          <AppText style={[styles.mapSubtitle, { color: secondary }]}>
+          <AppText style={[styles.subSectionTitle, { color: mainText }]}>Start Filling Your Map</AppText>
+          <AppText style={[styles.mapSubtitle, { color: '#18181B' }]}>
             Don't let your memories fade. Build your digital footprint and keep your travel stories
             alive forever
           </AppText>
@@ -98,16 +97,18 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 16 },
   subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-    backgroundColor: 'rgba(68, 255, 255, 0.15)',
-    paddingHorizontal: 20,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#18181B',
+    backgroundColor: '#44FFFF33',
+    paddingHorizontal: 24,
     paddingVertical: 12,
     marginHorizontal: -20,
     marginBottom: 20,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  tripsRow: { gap: 12, paddingRight: 4, paddingBottom: 4 },
-  mapSection: { marginTop: 8, marginBottom: 8 },
-  mapSubtitle: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 32 },
+  subSectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  tripsRow: { gap: 12, paddingRight: 4 },
+  mapSection: { marginTop: 32, marginBottom: 14 },
+  mapSubtitle: { fontSize: 14, fontWeight: '400', marginBottom: 14 },
 });
