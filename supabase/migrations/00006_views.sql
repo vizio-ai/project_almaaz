@@ -66,6 +66,8 @@ ORDER BY iwa.created_at DESC;
 COMMENT ON VIEW public.following_feed IS
   'Itinerary feed of users the viewer follows. Filter with viewer_id = auth.uid().';
 
+ALTER VIEW public.following_feed SET (security_invoker = true);
+
 -- ─── profile_stats ────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE VIEW public.profile_stats AS
