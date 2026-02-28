@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Share } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@shared/auth';
 import { useProfile, ProfileScreen as ProfileScreenComponent, EditProfileScreen } from '@shared/profile';
 import { useSession } from '@shared/auth';
@@ -12,6 +12,14 @@ export default function ProfileTab() {
   const { profile, isLoading, error, clearError, refresh, updateProfile, uploadAvatar } = useProfile(session?.user.id);
 
   const [isEditing, setIsEditing] = useState(false);
+
+  // Refresh profile counts whenever this screen regains focus
+  // (e.g. returning from followers/following screens)
+  useFocusEffect(
+    useCallback(() => {
+      if (!isEditing) refresh();
+    }, [isEditing, refresh]),
+  );
 
   useEffect(() => {
     if (isEditing) refresh();

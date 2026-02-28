@@ -17,4 +17,13 @@ export class TripRepositoryImpl implements TripRepository {
       return fail(networkError(error));
     }
   }
+
+  async getTripsByUserId(userId: string): Promise<Result<PopularTrip[]>> {
+    try {
+      const dtos = await this.remoteDataSource.getTripsByUserId(userId);
+      return ok(dtos.map((dto) => this.mapper.map(dto)));
+    } catch (error) {
+      return fail(networkError(error));
+    }
+  }
 }

@@ -14,5 +14,17 @@ export function createTripRemoteDataSource(): TripRemoteDataSource {
 
       return (data ?? []) as PopularTripDto[];
     },
+
+    async getTripsByUserId(userId: string): Promise<PopularTripDto[]> {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('id, title, save_count, cover_image_url, creator_name')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      return (data ?? []) as PopularTripDto[];
+    },
   };
 }

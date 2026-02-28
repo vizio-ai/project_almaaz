@@ -32,9 +32,10 @@ interface UserActionButtonProps {
   currentUserId: string;
   targetUserId: string;
   mode: Tab;
+  onMutationSuccess: () => void;
 }
 
-function UserActionButton({ currentUserId, targetUserId, mode }: UserActionButtonProps) {
+function UserActionButton({ currentUserId, targetUserId, mode, onMutationSuccess }: UserActionButtonProps) {
   const { unfollowUserUseCase } = useFollowDependencies();
   const { isFollowing, isLoading: followLoading, toggleFollow } = useFollow(currentUserId, targetUserId);
   const [removeLoading, setRemoveLoading] = useState(false);
@@ -46,9 +47,17 @@ function UserActionButton({ currentUserId, targetUserId, mode }: UserActionButto
       followerId: targetUserId,
       followingId: currentUserId,
     });
-    if (result.success) setRemoved(true);
+    if (result.success) {
+      setRemoved(true);
+      onMutationSuccess();
+    }
     setRemoveLoading(false);
-  }, [targetUserId, currentUserId, unfollowUserUseCase]);
+  }, [targetUserId, currentUserId, unfollowUserUseCase, onMutationSuccess]);
+
+  const handleToggleFollow = useCallback(async () => {
+    await toggleFollow();
+    onMutationSuccess();
+  }, [toggleFollow, onMutationSuccess]);
 
   if (mode === 'followers') {
     if (removed) return null;
@@ -66,7 +75,7 @@ function UserActionButton({ currentUserId, targetUserId, mode }: UserActionButto
 
   return (
     <TouchableOpacity
-      onPress={toggleFollow}
+      onPress={handleToggleFollow}
       disabled={followLoading}
       activeOpacity={0.7}
       style={styles.actionBtn}
@@ -88,8 +97,13 @@ export function FollowConnectionsScreen({
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { users: followers, isLoading: followersLoading } = useFollowList(userId, 'followers');
-  const { users: following, isLoading: followingLoading } = useFollowList(userId, 'following');
+  const { users: followers, isLoading: followersLoading, refresh: refreshFollowers } = useFollowList(userId, 'followers');
+  const { users: following, isLoading: followingLoading, refresh: refreshFollowing } = useFollowList(userId, 'following');
+
+  const handleMutationSuccess = useCallback(() => {
+    if (activeTab === 'followers') refreshFollowers();
+    else refreshFollowing();
+  }, [activeTab, refreshFollowers, refreshFollowing]);
 
   const currentUsers = activeTab === 'followers' ? followers : following;
   const isLoading = activeTab === 'followers' ? followersLoading : followingLoading;
@@ -190,7 +204,7 @@ export function FollowConnectionsScreen({
               <AppText style={styles.name} numberOfLines={1}>
                 {[item.name, item.surname].filter(Boolean).join(' ') || 'Traveler'}
               </AppText>
-              <UserActionButton currentUserId={currentUserId} targetUserId={item.id} mode={activeTab} />
+              <UserActionButton currentUserId={currentUserId} targetUserId={item.id} mode={activeTab} onMutationSuccess={handleMutationSuccess} />
             </TouchableOpacity>
           )}
         />

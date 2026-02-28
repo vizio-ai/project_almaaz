@@ -17,19 +17,22 @@ export interface WelcomeTripCardData {
 interface TripCardProps {
   trip: WelcomeTripCardData;
   onPress?: () => void;
+  width?: number;
 }
 
-export function TripCard({ trip, onPress }: TripCardProps) {
+export function TripCard({ trip, onPress, width }: TripCardProps) {
   const surface = useThemeColor('surfaceAlt');
   const text = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
 
+  const cardWidth = width ?? 183;
+  const imageHeight = Math.round(cardWidth * (110 / 183));
   const imageSource = trip.coverImageUrl ? { uri: trip.coverImageUrl } : FALLBACK_PHOTO;
 
   return (
-    <TouchableOpacity style={[styles.card, { backgroundColor: surface }]} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={[styles.card, { backgroundColor: surface, width: cardWidth }]} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.imageWrapper}>
-        <Image source={imageSource} style={styles.image} resizeMode="cover" />
+        <Image source={imageSource} style={[styles.image, { width: cardWidth, height: imageHeight }]} resizeMode="cover" />
         <View style={styles.badge}>
           <BookmarkIcon width={9.33} height={12} />
           <AppText style={styles.badgeText}>{trip.savedCount} Saved</AppText>
@@ -48,7 +51,6 @@ export function TripCard({ trip, onPress }: TripCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 183,
     flexDirection: 'column',
     borderRadius: 12,
     overflow: 'hidden',
@@ -60,7 +62,7 @@ const styles = StyleSheet.create({
     shadowRadius: 1.5,
     elevation: 3,
   },
-  image: { width: 183, height: 110 },
+  image: {},
   info: {
     padding: 10,
     gap: 4,

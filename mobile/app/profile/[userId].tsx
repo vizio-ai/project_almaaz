@@ -1,16 +1,22 @@
-import React from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useSession } from '@shared/auth';
 import { useProfile, ProfileScreen as ProfileScreenComponent } from '@shared/profile';
 import { useFollow } from '@shared/follow';
+import { useUserTrips } from '@shared/trips';
 
 export default function OtherUserProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { session } = useSession();
-  const router = useRouter();
 
   const { profile, isLoading, refresh } = useProfile(userId);
-  const { isFollowing, isFollowLoading, toggleFollow } = useFollow(session?.user.id, userId ?? '');
+  const { isFollowing, isLoading: isFollowLoading, toggleFollow } = useFollow(session?.user.id, userId ?? '');
+  const { trips, isLoading: isTripsLoading } = useUserTrips(userId);
+
+  const handleFollowToggle = useCallback(async () => {
+    await toggleFollow();
+    refresh();
+  }, [toggleFollow, refresh]);
 
   return (
     <ProfileScreenComponent
@@ -22,7 +28,9 @@ export default function OtherUserProfileScreen() {
       onLogout={() => {}}
       isFollowing={isFollowing}
       isFollowLoading={isFollowLoading}
-      onFollowToggle={toggleFollow}
+      onFollowToggle={handleFollowToggle}
+      userTrips={trips}
+      isTripsLoading={isTripsLoading}
     />
   );
 }

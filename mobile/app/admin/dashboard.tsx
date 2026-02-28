@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Polyline, Text as SvgText } from 'react-native-svg';
+import Svg, { Polyline, Text as SvgText, Line, Circle, Rect, G } from 'react-native-svg';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
 import { useAdminDashboard, formatRangeLabel } from '@shared/admin';
@@ -24,7 +24,7 @@ import { Calendar } from 'react-native-calendars';
 // ── Line chart ────────────────────────────────────────────────────────────────
 
 const Y_LABEL_W = 40;
-const PLOT_LEFT = 12;
+const PLOT_LEFT = 30;
 const PLOT_TOP = 10;
 const PLOT_H = 130;
 const CHART_H = PLOT_TOP + PLOT_H + 44;
@@ -41,38 +41,114 @@ function formatYLabel(n: number): string {
   return String(n);
 }
 
-interface WeeklyCount {
+type Granularity = 'day' | 'week' | 'month' | 'year';
+
+const GRANULARITY_LABELS: Record<Granularity, string> = {
+  day: 'Daily',
+  week: 'Weekly',
+  month: 'Monthly',
+  year: 'Yearly',
+};
+
+const GRANULARITY_MIN_DAYS: Record<Granularity, number> = {
+  day: 0,
+  week: 6,
+  month: 29,
+  year: 364,
+};
+
+function getAvailableGranularities(dateRange: DateRange): Granularity[] {
+  const diffDays =
+    (new Date(dateRange.endDate).getTime() - new Date(dateRange.startDate).getTime()) /
+    (1000 * 60 * 60 * 24);
+  return (['day', 'week', 'month', 'year'] as Granularity[]).filter(
+    g => diffDays >= GRANULARITY_MIN_DAYS[g],
+  );
+}
+
+interface ChartPoint {
   label: string;
   count: number;
 }
 
-function groupByWeek(dailyCounts: DailyCount[]): WeeklyCount[] {
+function groupByDay(dailyCounts: DailyCount[]): ChartPoint[] {
+  return dailyCounts.map(d => {
+    const date = new Date(d.date);
+    return {
+      label: `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })}`,
+      count: d.count,
+    };
+  });
+}
+
+function groupByWeek(dailyCounts: DailyCount[]): ChartPoint[] {
   if (dailyCounts.length === 0) return [];
-  const weeks: WeeklyCount[] = [];
+  const weeks: ChartPoint[] = [];
   let i = 0;
   while (i < dailyCounts.length) {
     const chunk = dailyCounts.slice(i, i + 7);
     const totalCount = chunk.reduce((sum, d) => sum + d.count, 0);
     const startDate = new Date(chunk[0].date);
-    const day = startDate.getDate();
-    const month = startDate.toLocaleString('en-US', { month: 'short' });
-    weeks.push({ label: `${day} ${month}`, count: totalCount });
+    weeks.push({
+      label: `${startDate.getDate()} ${startDate.toLocaleString('en-US', { month: 'short' })}`,
+      count: totalCount,
+    });
     i += 7;
   }
   return weeks;
 }
 
+function groupByMonth(dailyCounts: DailyCount[]): ChartPoint[] {
+  const map = new Map<string, ChartPoint>();
+  for (const d of dailyCounts) {
+    const date = new Date(d.date);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        label: `${date.toLocaleString('en-US', { month: 'short' })} ${String(date.getFullYear()).slice(2)}`,
+        count: 0,
+      });
+    }
+    map.get(key)!.count += d.count;
+  }
+  return Array.from(map.values());
+}
+
+function groupByYear(dailyCounts: DailyCount[]): ChartPoint[] {
+  const map = new Map<number, ChartPoint>();
+  for (const d of dailyCounts) {
+    const year = new Date(d.date).getFullYear();
+    if (!map.has(year)) map.set(year, { label: String(year), count: 0 });
+    map.get(year)!.count += d.count;
+  }
+  return Array.from(map.values());
+}
+
+function groupData(dailyCounts: DailyCount[], granularity: Granularity): ChartPoint[] {
+  switch (granularity) {
+    case 'day':   return groupByDay(dailyCounts);
+    case 'week':  return groupByWeek(dailyCounts);
+    case 'month': return groupByMonth(dailyCounts);
+    case 'year':  return groupByYear(dailyCounts);
+  }
+}
+
 interface UserLineChartProps {
   width: number;
   dailyCounts: DailyCount[];
+  granularity: Granularity;
 }
 
-function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
+const TOOLTIP_W = 76;
+const TOOLTIP_H = 36;
+
+function UserLineChart({ width, dailyCounts, granularity }: UserLineChartProps) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const plotW = width - Y_LABEL_W - 4 - PLOT_LEFT;
 
-  const weeklyData = groupByWeek(dailyCounts);
-  const counts = weeklyData.map(w => w.count);
-  const labels = weeklyData.map(w => w.label);
+  const data = groupData(dailyCounts, granularity);
+  const counts = data.map(w => w.count);
+  const labels = data.map(w => w.label);
 
   const yMax = niceMax(Math.max(...counts, 1));
   const ySteps = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0].map(Math.round);
@@ -84,50 +160,135 @@ function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
     .map((v, i) => `${getX(i).toFixed(1)},${getY(v).toFixed(1)}`)
     .join(' ');
 
+  const showXLabels = !(granularity === 'day' && counts.length > 10);
+
+  function findNearest(touchX: number): number {
+    let nearest = 0;
+    let minDist = Infinity;
+    for (let i = 0; i < counts.length; i++) {
+      const dist = Math.abs(getX(i) - touchX);
+      if (dist < minDist) { minDist = dist; nearest = i; }
+    }
+    return nearest;
+  }
+
+  function handleTouch(e: any) {
+    setActiveIndex(findNearest(e.nativeEvent.locationX));
+  }
+
+  const ax = activeIndex !== null ? getX(activeIndex) : 0;
+  const ay = activeIndex !== null ? getY(counts[activeIndex]) : 0;
+  let ttX = ax - TOOLTIP_W / 2;
+  if (ttX < PLOT_LEFT) ttX = PLOT_LEFT;
+  if (ttX + TOOLTIP_W > PLOT_LEFT + plotW) ttX = PLOT_LEFT + plotW - TOOLTIP_W;
+  const ttY = Math.max(ay - TOOLTIP_H - 10, PLOT_TOP);
+
   return (
-    <Svg width={width} height={CHART_H}>
-      {ySteps.map((step, i) => {
-        const y = getY(step);
-        return (
-          <React.Fragment key={i}>
+    <View
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={handleTouch}
+      onResponderMove={handleTouch}
+      onResponderRelease={() => setActiveIndex(null)}
+      onResponderTerminate={() => setActiveIndex(null)}
+    >
+      <Svg width={width} height={CHART_H}>
+        {/* Horizontal grid lines */}
+        {ySteps.map((step, i) => {
+          const y = getY(step);
+          return (
+            <React.Fragment key={i}>
+              <Line
+                x1={PLOT_LEFT - 8} y1={y}
+                x2={PLOT_LEFT + plotW + 8} y2={y}
+                stroke="#F4F4F5"
+                strokeWidth={1}
+                strokeDasharray="4,4"
+              />
+              <SvgText
+                x={PLOT_LEFT + plotW + 16}
+                y={y + 4}
+                textAnchor="start"
+                fontSize={12}
+                fontWeight="500"
+                fill="#737373"
+              >
+                {formatYLabel(step)}
+              </SvgText>
+            </React.Fragment>
+          );
+        })}
+
+        {/* Vertical grid lines */}
+        {counts.map((_, i) => (
+          <Line
+            key={`vgrid-${i}`}
+            x1={getX(i)} y1={PLOT_TOP - 6}
+            x2={getX(i)} y2={PLOT_TOP + PLOT_H + 10}
+            stroke="#F4F4F5"
+            strokeWidth={1}
+            strokeDasharray="4,4"
+          />
+        ))}
+
+        {counts.length > 1 && (
+          <Polyline
+            points={points}
+            fill="none"
+            stroke={colors.light.mainText}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        )}
+
+        {showXLabels && labels.map((label, i) => (
+          <SvgText
+            key={`${label}-${i}`}
+            x={getX(i)}
+            y={PLOT_TOP + PLOT_H + 24}
+            textAnchor="middle"
+            fontSize={10}
+            fill={colors.light.subText}
+          >
+            {label}
+          </SvgText>
+        ))}
+
+        {activeIndex !== null && (
+          <G>
+            <Line
+              x1={ax} y1={PLOT_TOP}
+              x2={ax} y2={PLOT_TOP + PLOT_H}
+              stroke={colors.light.borderMuted}
+              strokeWidth={1}
+              strokeDasharray="4,3"
+            />
+            <Circle cx={ax} cy={ay} r={4} fill={colors.light.mainText} />
+            <Rect x={ttX} y={ttY} width={TOOLTIP_W} height={TOOLTIP_H} rx={6} ry={6} fill={colors.light.mainText} />
             <SvgText
-              x={PLOT_LEFT + plotW + 16}
-              y={y + 4}
-              textAnchor="start"
-              fontSize={12}
-              fontWeight="500"
-              fill="#737373"
+              x={ttX + TOOLTIP_W / 2}
+              y={ttY + 13}
+              textAnchor="middle"
+              fontSize={10}
+              fill={colors.light.background}
             >
-              {formatYLabel(step)}
+              {labels[activeIndex]}
             </SvgText>
-          </React.Fragment>
-        );
-      })}
-
-      {counts.length > 1 && (
-        <Polyline
-          points={points}
-          fill="none"
-          stroke={colors.light.mainText}
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      )}
-
-      {labels.map((label, i) => (
-        <SvgText
-          key={`${label}-${i}`}
-          x={getX(i)}
-          y={PLOT_TOP + PLOT_H + 24}
-          textAnchor="middle"
-          fontSize={10}
-          fill={colors.light.subText}
-        >
-          {label}
-        </SvgText>
-      ))}
-    </Svg>
+            <SvgText
+              x={ttX + TOOLTIP_W / 2}
+              y={ttY + 27}
+              textAnchor="middle"
+              fontSize={11}
+              fontWeight="600"
+              fill={colors.light.background}
+            >
+              {formatNumber(counts[activeIndex])}
+            </SvgText>
+          </G>
+        )}
+      </Svg>
+    </View>
   );
 }
 
@@ -296,6 +457,19 @@ function AdminDashboardContent({
   const [showRangePicker, setShowRangePicker] = useState(false);
   const [draftStart, setDraftStart] = useState<string | null>(null);
   const [draftEnd, setDraftEnd] = useState<string | null>(null);
+  const [granularity, setGranularity] = useState<Granularity>('week');
+  const [showGranularityPicker, setShowGranularityPicker] = useState(false);
+
+  const availableGranularities = React.useMemo(
+    () => getAvailableGranularities(dateRange),
+    [dateRange],
+  );
+
+  useEffect(() => {
+    if (!availableGranularities.includes(granularity)) {
+      setGranularity(availableGranularities[availableGranularities.length - 1]);
+    }
+  }, [availableGranularities, granularity]);
 
   const cardInnerW = screenWidth - spacing['2xl'] * 2 - spacing.lg * 2;
 
@@ -503,7 +677,20 @@ function AdminDashboardContent({
 
         {/* User Gained chart */}
         <View style={styles.card}>
-          <AppText style={styles.cardLabel}>User Gained This Week</AppText>
+          <View style={styles.chartLabelRow}>
+            <AppText style={styles.cardLabel}>User Gained</AppText>
+            <TouchableOpacity
+              style={styles.granularityPill}
+              activeOpacity={0.7}
+              onPress={() => setShowGranularityPicker(true)}
+            >
+              <AppText style={styles.granularityPillText}>
+                {GRANULARITY_LABELS[granularity]}
+              </AppText>
+              <Ionicons name="chevron-down" size={12} color={colors.light.subText} />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.chartHeader}>
             {isLoadingStats ? (
               <ActivityIndicator size="small" color={colors.light.mainText} />
@@ -514,9 +701,40 @@ function AdminDashboardContent({
             )}
           </View>
           {!isLoadingStats && stats?.dailyCounts.length ? (
-            <UserLineChart width={cardInnerW} dailyCounts={stats.dailyCounts} />
+            <UserLineChart width={cardInnerW} dailyCounts={stats.dailyCounts} granularity={granularity} />
           ) : null}
         </View>
+
+        {/* Granularity picker */}
+        <Modal
+          transparent
+          animationType="fade"
+          visible={showGranularityPicker}
+          onRequestClose={() => setShowGranularityPicker(false)}
+        >
+          <Pressable style={granPickerStyles.overlay} onPress={() => setShowGranularityPicker(false)}>
+            <Pressable style={granPickerStyles.menu} onPress={() => {}}>
+              {availableGranularities.map(g => (
+                <TouchableOpacity
+                  key={g}
+                  style={granPickerStyles.option}
+                  activeOpacity={0.7}
+                  onPress={() => { setGranularity(g); setShowGranularityPicker(false); }}
+                >
+                  <AppText style={[
+                    granPickerStyles.optionText,
+                    g === granularity && granPickerStyles.optionTextActive,
+                  ]}>
+                    {GRANULARITY_LABELS[g]}
+                  </AppText>
+                  {g === granularity && (
+                    <Ionicons name="checkmark" size={14} color={colors.light.mainText} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* List of Users */}
         <View style={styles.card}>
@@ -727,6 +945,28 @@ const styles = StyleSheet.create({
     color: colors.light.statText,
   },
 
+  chartLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  granularityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.light.borderMuted,
+  },
+  granularityPillText: {
+    ...typography.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.light.subLabelText,
+  },
+
   chartHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -894,5 +1134,38 @@ const calendarStyles = StyleSheet.create({
     ...typography.sm,
     fontWeight: typography.weights.semibold,
     color: colors.light.background,
+  },
+});
+
+const granPickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+  },
+  menu: {
+    width: '100%',
+    backgroundColor: colors.light.background,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.light.borderMutedLight,
+    overflow: 'hidden',
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  optionText: {
+    ...typography.sm,
+    color: colors.light.subText,
+  },
+  optionTextActive: {
+    fontWeight: typography.weights.semibold,
+    color: colors.light.mainText,
   },
 });

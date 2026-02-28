@@ -3,4 +3,5 @@ import { PopularTrip } from '../entities/PopularTrip';
 
 export interface TripRepository {
   getPopularTrips(limit: number): Promise<Result<PopularTrip[]>>;
+  getTripsByUserId(userId: string): Promise<Result<PopularTrip[]>>;
 }

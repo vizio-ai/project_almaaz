@@ -7,6 +7,8 @@ export type { TripRepository } from './domain/repositories/TripRepository';
 // Domain — Use Cases
 export { GetPopularTripsUseCase } from './domain/usecases/GetPopularTripsUseCase';
 export type { GetPopularTripsParams } from './domain/usecases/GetPopularTripsUseCase';
+export { GetTripsByUserIdUseCase } from './domain/usecases/GetTripsByUserIdUseCase';
+export type { GetTripsByUserIdParams } from './domain/usecases/GetTripsByUserIdUseCase';
 
 // Data — DTOs (for infrastructure layer)
 export type { PopularTripDto } from './data/dto/TripDto';
@@ -23,5 +25,9 @@ export { createTripDependencies } from './di/TripFactory';
 export { TripProvider } from './di/TripProvider';
 export { useTripDependencies } from './di/useTripDependencies';
 
-// Presentation
+// Presentation — Hooks
 export { usePopularTrips } from './presentation/hooks/usePopularTrips';
+export { useUserTrips } from './presentation/hooks/useUserTrips';
+
+// Presentation — Components
+export { ItinerariesGrid } from './presentation/components/ItinerariesGrid';

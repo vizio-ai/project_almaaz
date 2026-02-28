@@ -6,13 +6,15 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader, AppText, useThemeColor } from '@shared/ui-kit';
 import { Profile } from '../../domain/entities/Profile';
 import { ProfileActionButtons } from '../components/ProfileActionButtons';
+import { ProfileHeader } from '../components/ProfileHeader';
+import { FollowButton } from '../components/FollowButton';
+import { ItinerariesGrid, PopularTrip } from '@shared/trips';
 
 const PERSONA_LABELS: Record<string, Record<string, string>> = {
   pace: {
@@ -112,6 +114,9 @@ interface ProfileScreenProps {
   isFollowing?: boolean;
   isFollowLoading?: boolean;
   onFollowToggle?: () => void;
+  /** Other user profile: their trips. */
+  userTrips?: PopularTrip[];
+  isTripsLoading?: boolean;
 }
 
 export function ProfileScreen({
@@ -128,6 +133,8 @@ export function ProfileScreen({
   isFollowing,
   isFollowLoading,
   onFollowToggle,
+  userTrips = [],
+  isTripsLoading = false,
 }: ProfileScreenProps) {
   const bg = useThemeColor('background');
   const text = useThemeColor('labelText');
@@ -159,8 +166,6 @@ export function ProfileScreen({
     );
   }
 
-  const displayName = [profile.name, profile.surname].filter(Boolean).join(' ') || 'Traveler';
-  const initials = (profile.name?.[0] ?? '').toUpperCase() + (profile.surname?.[0] ?? '').toUpperCase() || '?';
   const doraSummary = buildDoraSummary(profile);
 
   const personaTags: { label: string }[] = [];
@@ -188,60 +193,23 @@ export function ProfileScreen({
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={accent} />
         }
       >
-        {/* Profile header: avatar left, name + stats right */}
-        <View style={styles.profileHeader}>
-          <View style={[styles.avatar, { backgroundColor: text }]}>
-            {profile.avatarUrl ? (
-              <Image
-                source={{
-                  uri:
-                    profile.avatarUrl +
-                    (profile.updatedAt ? `?v=${new Date(profile.updatedAt).getTime()}` : ''),
-                }}
-                style={styles.avatarImg}
-              />
-            ) : (
-              <AppText style={[styles.avatarText, { color: bg }]}>{initials}</AppText>
-            )}
-          </View>
-          <View style={styles.profileInfo}>
-            <AppText style={[styles.displayName, { color: text }]}>{displayName}</AppText>
-            {isOwnProfile ? (
-              <View style={styles.statsRowWrap}>
-                <TouchableOpacity activeOpacity={0.7} onPress={onFollowingPress}>
-                  <AppText>
-                    <AppText style={styles.statsCount}>{profile.followingCount}</AppText>
-                    <AppText style={styles.statsRow}>{' Following'}</AppText>
-                  </AppText>
-                </TouchableOpacity>
-                <AppText style={styles.statsRow}> | </AppText>
-                <TouchableOpacity activeOpacity={0.7} onPress={onFollowersPress}>
-                  <AppText>
-                    <AppText style={styles.statsCount}>{profile.followersCount}</AppText>
-                    <AppText style={styles.statsRow}>{' Followers'}</AppText>
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <AppText style={[styles.statsRow, { color: secondary }]}>
-                {profile.followingCount} Following | {profile.followersCount} Followers
-              </AppText>
-            )}
-          </View>
-        </View>
+        <ProfileHeader
+          profile={profile}
+          isOwnProfile={isOwnProfile}
+          onFollowingPress={onFollowingPress}
+          onFollowersPress={onFollowersPress}
+        />
 
-        {/* Follow / Unfollow button — other user profiles */}
         {!isOwnProfile && onFollowToggle && (
-          <TouchableOpacity
-            style={[styles.followBtn, isFollowing && styles.followBtnActive]}
-            activeOpacity={0.7}
-            onPress={onFollowToggle}
-            disabled={isFollowLoading}
-          >
-            <AppText style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
-              {isFollowLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
-            </AppText>
-          </TouchableOpacity>
+          <FollowButton
+            isFollowing={isFollowing}
+            isFollowLoading={isFollowLoading}
+            onFollowToggle={onFollowToggle}
+          />
+        )}
+
+        {!isOwnProfile && (
+          <ItinerariesGrid trips={userTrips} isLoading={isTripsLoading} />
         )}
 
         {/* Edit Profile + Share Profile buttons */}
@@ -338,25 +306,6 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: 72, height: 72, borderRadius: 36 },
   avatarText: { fontSize: 26, fontWeight: '700' },
-  profileInfo: { flex: 1 },
-  displayName: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
-  statsRowWrap: { flexDirection: 'row', alignItems: 'center' },
-  statsCount: { fontSize: 16, fontWeight: '500', color: '#09090B' },
-  statsRow: { fontSize: 14, fontWeight: '400', color: '#09090B' },
-  followBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#18181B',
-    marginBottom: 20,
-  },
-  followBtnActive: {
-    backgroundColor: '#18181B',
-  },
-  followBtnText: { fontSize: 14, fontWeight: '500', color: '#18181B' },
-  followBtnTextActive: { color: '#FFFFFF' },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: '500', marginBottom: 16 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
