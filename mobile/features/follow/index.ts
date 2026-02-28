@@ -15,4 +15,4 @@ export { useFollowDependencies } from './di/useFollowDependencies';
 // Presentation
 export { useFollow } from './presentation/hooks/useFollow';
 export { useFollowList } from './presentation/hooks/useFollowList';
-export { FollowListScreen } from './presentation/screens/FollowListScreen';
+export { FollowConnectionsScreen } from './presentation/screens/FollowConnectionsScreen';

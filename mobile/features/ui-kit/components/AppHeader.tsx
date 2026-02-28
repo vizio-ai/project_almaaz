@@ -7,6 +7,7 @@ import { AppLogo } from './AppLogo';
 import { AppText } from './AppText';
 
 interface AppHeaderProps {
+  left?: React.ReactNode;
   right?: React.ReactNode;
   /** 'dark' = black bg, white text. 'light' = white bg, black text. */
   variant?: 'dark' | 'light';
@@ -14,7 +15,7 @@ interface AppHeaderProps {
   showAdminLabel?: boolean;
 }
 
-export function AppHeader({ right, variant = 'dark', showAdminLabel }: AppHeaderProps) {
+export function AppHeader({ left, right, variant = 'dark', showAdminLabel }: AppHeaderProps) {
   const headerBg = useThemeColor('headerBg');
   const { top } = useSafeAreaInsets();
   const isLight = variant === 'light';
@@ -23,13 +24,16 @@ export function AppHeader({ right, variant = 'dark', showAdminLabel }: AppHeader
 
   return (
     <View style={[styles.header, { backgroundColor: bg, paddingTop: top + 18 }]}>
-      <View style={styles.logoRow}>
-        <AppLogo size="md" onDark={!isLight} onLight={isLight} />
-        {showAdminLabel && (
-          <AppText style={[styles.adminLabel, { color: adminColor }]}>Admin</AppText>
-        )}
+      <View style={styles.start}>
+        {left != null && <View style={styles.slot}>{left}</View>}
+        <View style={styles.logoRow}>
+          <AppLogo size="md" onDark={!isLight} onLight={isLight} />
+          {showAdminLabel && (
+            <AppText style={[styles.adminLabel, { color: adminColor }]}>Admin</AppText>
+          )}
+        </View>
       </View>
-      {right != null && <View style={styles.right}>{right}</View>}
+      {right != null && <View style={styles.slot}>{right}</View>}
     </View>
   );
 }
@@ -42,7 +46,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  start: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   logoRow: { flexDirection: 'row', alignItems: 'baseline' },
   adminLabel: { ...typography.xs, fontWeight: typography.weights.regular, marginLeft: spacing.sm },
-  right: { flexDirection: 'row', alignItems: 'center' },
+  slot: { flexDirection: 'row', alignItems: 'center' },
 });

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { AppLogo, AppText } from '@shared/ui-kit';
+import { AppHeader, AppText } from '@shared/ui-kit';
 import { DoraMessage, TypingIndicator } from '../components/DoraMessage';
 import { DoraInput } from '../components/DoraInput';
 import { useItineraryDependencies } from '../../di/useItineraryDependencies';
@@ -39,7 +39,6 @@ export function DoraConversationScreen({
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [modalSummary, setModalSummary] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const hasInitialized = useRef(false);
 
@@ -64,7 +63,6 @@ export function DoraConversationScreen({
       setMessages((prev) => [...prev, aiMsg]);
 
       if (result.data.isComplete && isOnboarding) {
-        setModalSummary(result.data.reply);
         setTimeout(() => setShowModal(true), 600);
       }
     } catch {
@@ -110,19 +108,16 @@ export function DoraConversationScreen({
 
   const showGreeting = messages.length === 0 && !isTyping;
 
-  const darkHeader = !isOnboarding;
-
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={[styles.header, darkHeader && styles.headerDark]}>
-        <AppLogo size="md" onDark={darkHeader} onLight={!darkHeader} />
-        <View style={styles.headerRight}>
-          <View style={[styles.notifBtn, darkHeader && styles.notifBtnDark]}>
-            <Ionicons name="notifications-outline" size={20} color={darkHeader ? '#FFFFFF' : '#18181B'} />
+    <SafeAreaView style={styles.root} edges={['bottom']}>
+      <AppHeader
+        variant="dark"
+        right={
+          <View style={styles.notifBtn}>
+            <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
           </View>
-        </View>
-      </View>
+        }
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -195,46 +190,14 @@ export function DoraConversationScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF' },
   flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 36,
-    paddingBottom: 14,
-    backgroundColor: '#FFFFFF',
-  },
-  headerDark: {
-    backgroundColor: '#000000',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  finishLaterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  finishLaterText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#18181B',
-  },
   notifBtn: {
     width: 36,
     height: 36,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
+    borderColor: '#333333',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  notifBtnDark: {
-    borderColor: '#333333',
   },
   greetingWrap: {
     flex: 1,

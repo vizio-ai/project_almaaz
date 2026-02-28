@@ -1,20 +1,20 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 import { useSession } from '@shared/auth';
-import { useFollowList, FollowListScreen } from '@shared/follow';
+import { FollowConnectionsScreen } from '@shared/follow';
 
 export default function FollowersScreen() {
   const { session } = useSession();
   const router = useRouter();
-  const { users, isLoading } = useFollowList(session?.user.id, 'followers');
+  const userId = session?.user.id ?? '';
 
   return (
-    <FollowListScreen
-      title="Followers"
-      users={users}
-      isLoading={isLoading}
+    <FollowConnectionsScreen
+      userId={userId}
+      currentUserId={userId}
+      initialTab="followers"
       onBack={() => router.back()}
-      onUserPress={userId => router.push(`/profile/${userId}`)}
+      onUserPress={id => router.push(`/profile/${id}`)}
     />
   );
 }

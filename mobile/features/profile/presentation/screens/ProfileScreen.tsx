@@ -140,7 +140,7 @@ export function ProfileScreen({
   if (isLoading && !profile) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
-        <AppHeader variant="light" showAdminLabel={false} right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
+        <AppHeader variant="dark" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={accent} />
         </View>
@@ -151,7 +151,7 @@ export function ProfileScreen({
   if (!profile) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
-        <AppHeader variant="light" showAdminLabel={false} right={<View style={styles.notifBtn}><Ionicons name="notifications-outline" size={20} color="#18181B" /></View>} />
+        <AppHeader variant="dark" />
         <View style={styles.loadingContainer}>
           <AppText style={[styles.emptyText, { color: secondary }]}>Profile not found</AppText>
         </View>
@@ -180,15 +180,7 @@ export function ProfileScreen({
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={[]}>
-      <AppHeader
-        variant="light"
-        showAdminLabel={profile.role === 'admin'}
-        right={
-          <TouchableOpacity activeOpacity={0.8} style={styles.notifBtn}>
-            <Ionicons name="notifications-outline" size={20} color="#18181B" />
-          </TouchableOpacity>
-        }
-      />
+        <AppHeader variant="dark" showAdminLabel={profile.role === 'admin'} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -306,7 +298,7 @@ export function ProfileScreen({
         {/* Sign Out */}
         {isOwnProfile && (
           <TouchableOpacity onPress={onLogout} activeOpacity={0.8} style={styles.signOutWrap}>
-            <AppText style={[styles.signOutText, { color: secondary }]}>Sign Out</AppText>
+            <AppText style={[styles.signOutText, { color: '#DC2626' }]}>Logout</AppText>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -367,7 +359,7 @@ const styles = StyleSheet.create({
   followBtnTextActive: { color: '#FFFFFF' },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: '500', marginBottom: 16 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -379,8 +371,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 1,
+    shadowOpacity: 0.10,
+    shadowRadius: 1.5,
     elevation: 2,
   },
   tagIcon: { marginRight: 8 },
@@ -402,7 +394,7 @@ const styles = StyleSheet.create({
   mapPlaceholderTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   mapPlaceholderBody: { fontSize: 13, lineHeight: 20, textAlign: 'center' },
   signOutWrap: { alignItems: 'center', paddingVertical: 16 },
-  signOutText: { fontSize: 14 },
+  signOutText: { fontSize: 14, fontWeight: '500' },
   adminDashboardRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -413,13 +405,4 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   adminDashboardLabel: { fontSize: 15, fontWeight: '500', marginLeft: 12, flex: 1 },
-  notifBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

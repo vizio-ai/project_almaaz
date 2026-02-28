@@ -164,7 +164,7 @@ function AppContent() {
   }, [isLoading]);
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: '#000000' }}>
       {!isLoading ? (
         <ProfileProvider dependencies={profileExternalDeps}>
           <TripProvider dependencies={tripExternalDeps}>
@@ -210,7 +210,7 @@ function AppContent() {
           }}
         />
       )}
-    </>
+    </View>
   );
 }
 
