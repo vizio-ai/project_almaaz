@@ -8,7 +8,8 @@ export default function WelcomeRoute() {
 
   return (
     <WelcomeScreen
-      onLoginPress={() => router.push('/auth/phone')}
+      onLoginPress={() => router.push('/auth/phone?mode=signin')}
+      onSignUpPress={() => router.push('/auth/phone?mode=signup')}
       trips={trips}
     />
   );

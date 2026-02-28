@@ -27,6 +27,8 @@ export class ProfileRepositoryImpl implements ProfileRepository {
         name:          profile.name,
         surname:       profile.surname,
         email:         profile.email,
+        birthday:      profile.birthday,
+        location:      profile.location,
         pace:          profile.pace,
         interests:     profile.interests,
         journaling:    profile.journaling,

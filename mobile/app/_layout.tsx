@@ -81,6 +81,12 @@ function AuthGuard({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Onboarding just completed while still in onboarding screens → go to create tab
+    if (inOnboarding) {
+      router.replace('/(tabs)/create?fromOnboarding=true');
+      return;
+    }
+
     // Wait for profile before checking is_active
     if (profileLoading || profile === null) return;
 

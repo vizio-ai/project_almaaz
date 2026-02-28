@@ -33,6 +33,8 @@ export default function JournalingScreen() {
       name: finalData.name,
       surname: finalData.surname,
       email: finalData.email,
+      birthday: finalData.birthday,
+      location: finalData.location,
       pace: finalData.pace,
       interests: finalData.interests,
       journaling: finalData.journaling,

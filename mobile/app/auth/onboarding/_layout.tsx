@@ -7,6 +7,8 @@ export interface OnboardingData {
   name: string;
   surname: string;
   email: string;
+  birthday: string;
+  location: string;
   pace: string;
   interests: string[];
   journaling: string;
@@ -19,7 +21,7 @@ interface OnboardingContextValue {
 }
 
 const OnboardingContext = createContext<OnboardingContextValue>({
-  data: { name: '', surname: '', email: '', pace: '', interests: [], journaling: '', companionship: '' },
+  data: { name: '', surname: '', email: '', birthday: '', location: '', pace: '', interests: [], journaling: '', companionship: '' },
   update: () => {},
 });
 
@@ -34,6 +36,8 @@ export default function OnboardingLayout() {
     name: '',
     surname: '',
     email: '',
+    birthday: '',
+    location: '',
     pace: '',
     interests: [],
     journaling: '',

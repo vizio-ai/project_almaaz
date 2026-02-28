@@ -16,10 +16,12 @@ const FALLBACK_TRIPS: WelcomeTripCardData[] = [
 
 interface WelcomeScreenProps {
   onLoginPress: () => void;
+  onSignUpPress?: () => void;
   trips?: WelcomeTripCardData[];
 }
 
-export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
+export function WelcomeScreen({ onLoginPress, onSignUpPress, trips }: WelcomeScreenProps) {
+  const handleSignUp = onSignUpPress ?? onLoginPress;
   const { top } = useSafeAreaInsets();
   const displayTrips = trips && trips.length > 0 ? trips : FALLBACK_TRIPS;
 
@@ -42,7 +44,7 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity onPress={onLoginPress} activeOpacity={0.8}>
+        <TouchableOpacity onPress={handleSignUp} activeOpacity={0.8}>
           <AppText style={styles.subtitle}>
             Dora is where your trips live. Create an account to plan, document, and share them with your friends.
           </AppText>
@@ -50,7 +52,7 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
 
         <AppText style={[styles.sectionTitle, { color: mainText }]}>Welcome Stranger</AppText>
 
-        <FeaturedCard onPress={onLoginPress} />
+        <FeaturedCard onPress={handleSignUp} />
 
         <AppText style={[styles.subSectionTitle, { color: mainText, marginTop: 24 }]}>Popular Trips</AppText>
 
@@ -60,7 +62,7 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
           contentContainerStyle={styles.tripsRow}
         >
           {displayTrips.map((trip) => (
-            <TripCard key={trip.id} trip={trip} onPress={onLoginPress} />
+            <TripCard key={trip.id} trip={trip} onPress={handleSignUp} />
           ))}
         </ScrollView>
 
@@ -70,12 +72,12 @@ export function WelcomeScreen({ onLoginPress, trips }: WelcomeScreenProps) {
             Don't let your memories fade. Build your digital footprint and keep your travel stories
             alive forever
           </AppText>
-          <RecordTripButton onPress={onLoginPress} />
+          <RecordTripButton onPress={handleSignUp} />
         </View>
       </ScrollView>
 
       <View style={{ backgroundColor: '#FFFFFF' }}>
-        <BottomBar onTabPress={onLoginPress} />
+        <BottomBar onTabPress={handleSignUp} />
       </View>
     </View>
   );

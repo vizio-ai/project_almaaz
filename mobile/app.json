@@ -7,7 +7,6 @@
     "icon": "./assets/images/app_icon.png",
     "scheme": "dora",
     "userInterfaceStyle": "automatic",
-
     "splash": {
       "backgroundColor": "#000000"
     },
@@ -53,7 +52,8 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

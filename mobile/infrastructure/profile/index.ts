@@ -69,7 +69,7 @@ function toInterestsValues(labels: string[]): string[] {
 }
 
 const PROFILE_COLUMNS = [
-  'id', 'name', 'surname', 'email', 'username', 'avatar_url', 'bio',
+  'id', 'name', 'surname', 'email', 'birthday', 'location', 'username', 'avatar_url', 'bio',
   'phone', 'role', 'is_active', 'is_onboarded', 'pace', 'interests', 'journaling',
   'companionship', 'following_count', 'followers_count', 'trip_count',
   'created_at', 'updated_at',
@@ -97,6 +97,8 @@ export function createProfileRemoteDataSource(): ProfileRemoteDataSource {
             name:           data.name,
             surname:        data.surname,
             email:          data.email,
+            birthday:       data.birthday ?? null,
+            location:       data.location ?? null,
             pace:           data.pace ? toPaceValue(data.pace) : null,
             interests:      toInterestsValues(data.interests ?? []),
             journaling:     data.journaling ? toJournalingValue(data.journaling) : null,

@@ -5,6 +5,8 @@ export interface OnboardingProfile {
   name: string;
   surname: string;
   email: string | null;
+  birthday: string | null;
+  location: string | null;
   pace: string | null;
   interests: string[];
   journaling: string | null;

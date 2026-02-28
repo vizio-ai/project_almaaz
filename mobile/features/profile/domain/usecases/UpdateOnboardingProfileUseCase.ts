@@ -7,6 +7,8 @@ export interface UpdateOnboardingProfileParams {
   name: string;
   surname: string;
   email: string;
+  birthday: string;
+  location: string;
   pace: string;
   interests: string[];
   journaling: string;
@@ -24,6 +26,8 @@ export class UpdateOnboardingProfileUseCase
       name: params.name.trim(),
       surname: params.surname.trim(),
       email: params.email.trim() || null,
+      birthday: params.birthday || null,
+      location: params.location || null,
       pace: params.pace || null,
       interests: params.interests,
       journaling: params.journaling || null,

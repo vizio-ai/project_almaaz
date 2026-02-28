@@ -12,10 +12,13 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
     "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/datetimepicker": "8.4.1",
     "@react-navigation/native": "^7.0.14",
     "@supabase/supabase-js": "^2.96.0",
     "base64-arraybuffer": "^1.0.2",
+    "country-state-city": "^3.2.1",
     "expo": "~53.0.0",
+    "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.8",
     "expo-font": "~13.3.2",
     "expo-image-manipulator": "~13.1.7",

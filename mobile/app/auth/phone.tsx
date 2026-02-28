@@ -1,9 +1,10 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { PhoneEntryScreen, useAuth } from '@shared/auth';
 
 export default function PhoneEntryRoute() {
   const router = useRouter();
   const { sendOtp, isLoading, error, clearError } = useAuth();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
 
   const handleSubmit = async (phone: string) => {
     const ok = await sendOtp(phone);
@@ -18,6 +19,7 @@ export default function PhoneEntryRoute() {
       isLoading={isLoading}
       error={error}
       onClearError={clearError}
+      mode={mode === 'signup' ? 'signup' : 'signin'}
     />
   );
 }

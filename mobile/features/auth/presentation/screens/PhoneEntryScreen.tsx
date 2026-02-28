@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppHeader, LabelText, PrimaryButton, AuthErrorSection, ScreenTitle, ScreenSubtitle, useThemeColor } from '@shared/ui-kit';
+import { AppHeader, AppText, LabelText, PrimaryButton, AuthErrorSection, ScreenTitle, ScreenSubtitle, useThemeColor } from '@shared/ui-kit';
 import { COUNTRIES, type Country } from '../../data/config/countries';
 import { CountryPicker } from '../components/CountryPicker';
 import { PhoneInput } from '../components/PhoneInput';
@@ -15,6 +15,7 @@ interface PhoneEntryScreenProps {
   isLoading: boolean;
   error: string | null;
   onClearError: () => void;
+  mode?: 'signin' | 'signup';
 }
 
 export function PhoneEntryScreen({
@@ -22,6 +23,7 @@ export function PhoneEntryScreen({
   isLoading,
   error,
   onClearError,
+  mode = 'signin',
 }: PhoneEntryScreenProps) {
   const [phone, setPhone] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
@@ -71,8 +73,19 @@ export function PhoneEntryScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ScreenTitle text={AuthStrings.phoneEntry.title} />
-          <ScreenSubtitle text={AuthStrings.phoneEntry.subtitle} />
+          {mode === 'signup' ? (
+            <>
+              <AppText style={styles.signupTitle}>
+                Unlock the full dora<AppText style={styles.signupDot}>.</AppText> experience
+              </AppText>
+              <ScreenSubtitle text="Join with your phone number." />
+            </>
+          ) : (
+            <>
+              <ScreenTitle text={AuthStrings.phoneEntry.title} />
+              <ScreenSubtitle text={AuthStrings.phoneEntry.subtitle} />
+            </>
+          )}
 
           <LabelText>{AuthStrings.phoneEntry.phoneLabel}</LabelText>
 
@@ -112,5 +125,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginBottom: 20,
+  },
+  signupTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#18181B',
+    marginBottom: 8,
+  },
+  signupDot: {
+    color: '#44FFFF',
   },
 });

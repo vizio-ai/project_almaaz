@@ -3,6 +3,8 @@ export interface UpdateOnboardingProfileDto {
   name: string;
   surname: string;
   email: string | null;
+  birthday: string | null;
+  location: string | null;
   pace: string | null;
   interests: string[];
   journaling: string | null;
@@ -24,6 +26,8 @@ export interface ProfileRowDto {
   pace: string | null;
   interests: string[];
   journaling: string | null;
+  birthday: string | null;
+  location: string | null;
   companionship: string | null;
   following_count: number;
   followers_count: number;

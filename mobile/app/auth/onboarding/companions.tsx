@@ -28,6 +28,8 @@ export default function CompanionsScreen() {
       name: finalData.name,
       surname: finalData.surname,
       email: finalData.email,
+      birthday: finalData.birthday,
+      location: finalData.location,
       pace: finalData.pace,
       interests: finalData.interests,
       journaling: finalData.journaling,
@@ -35,6 +37,7 @@ export default function CompanionsScreen() {
     });
     if (result.success) {
       markOnboarded();
+      router.replace('/(tabs)/create?fromOnboarding=true');
     } else {
       const errMsg = (result.error?.cause as Error)?.message ?? result.error?.message ?? 'Something went wrong. Please try again.';
       Alert.alert('Error', errMsg);
@@ -50,6 +53,8 @@ export default function CompanionsScreen() {
       name: finalData.name,
       surname: finalData.surname,
       email: finalData.email,
+      birthday: finalData.birthday,
+      location: finalData.location,
       pace: finalData.pace,
       interests: finalData.interests,
       journaling: finalData.journaling,
@@ -57,6 +62,7 @@ export default function CompanionsScreen() {
     });
     if (result.success) {
       markOnboarded();
+      router.replace('/(tabs)/create?fromOnboarding=true');
     } else {
       const errMsg = (result.error?.cause as Error)?.message ?? result.error?.message ?? 'Something went wrong. Please try again.';
       Alert.alert('Error', errMsg);
