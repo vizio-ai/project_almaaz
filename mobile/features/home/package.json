@@ -1,0 +1,12 @@
+{
+  "name": "@shared/home",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "dependencies": {
+    "@shared/auth": "*",
+    "@shared/profile": "*",
+    "@shared/trips": "*",
+    "@shared/ui-kit": "*"
+  }
+}
