@@ -29,8 +29,6 @@ const PLOT_TOP = 10;
 const PLOT_H = 130;
 const CHART_H = PLOT_TOP + PLOT_H + 44;
 
-const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
-
 function niceMax(value: number): number {
   if (value === 0) return 10;
   const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
@@ -43,6 +41,27 @@ function formatYLabel(n: number): string {
   return String(n);
 }
 
+interface WeeklyCount {
+  label: string;
+  count: number;
+}
+
+function groupByWeek(dailyCounts: DailyCount[]): WeeklyCount[] {
+  if (dailyCounts.length === 0) return [];
+  const weeks: WeeklyCount[] = [];
+  let i = 0;
+  while (i < dailyCounts.length) {
+    const chunk = dailyCounts.slice(i, i + 7);
+    const totalCount = chunk.reduce((sum, d) => sum + d.count, 0);
+    const startDate = new Date(chunk[0].date);
+    const day = startDate.getDate();
+    const month = startDate.toLocaleString('en-US', { month: 'short' });
+    weeks.push({ label: `${day} ${month}`, count: totalCount });
+    i += 7;
+  }
+  return weeks;
+}
+
 interface UserLineChartProps {
   width: number;
   dailyCounts: DailyCount[];
@@ -50,7 +69,11 @@ interface UserLineChartProps {
 
 function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
   const plotW = width - Y_LABEL_W - 4 - PLOT_LEFT;
-  const counts = dailyCounts.map(d => d.count);
+
+  const weeklyData = groupByWeek(dailyCounts);
+  const counts = weeklyData.map(w => w.count);
+  const labels = weeklyData.map(w => w.label);
+
   const yMax = niceMax(Math.max(...counts, 1));
   const ySteps = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0].map(Math.round);
 
@@ -60,8 +83,6 @@ function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
   const points = counts
     .map((v, i) => `${getX(i).toFixed(1)},${getY(v).toFixed(1)}`)
     .join(' ');
-
-  const weekDays = dailyCounts.map(d => DAY_INITIALS[new Date(d.date).getDay()]);
 
   return (
     <Svg width={width} height={CHART_H}>
@@ -94,16 +115,16 @@ function UserLineChart({ width, dailyCounts }: UserLineChartProps) {
         />
       )}
 
-      {weekDays.map((day, i) => (
+      {labels.map((label, i) => (
         <SvgText
-          key={`${day}-${i}`}
+          key={`${label}-${i}`}
           x={getX(i)}
           y={PLOT_TOP + PLOT_H + 24}
           textAnchor="middle"
-          fontSize={12}
+          fontSize={10}
           fill={colors.light.subText}
         >
-          {day}
+          {label}
         </SvgText>
       ))}
     </Svg>
@@ -333,7 +354,18 @@ function AdminDashboardContent({
 
   function applyRange() {
     if (draftStart && draftEnd) {
-      setDateRange({ startDate: draftStart, endDate: draftEnd });
+      const start = new Date(draftStart);
+      const end = new Date(draftEnd);
+      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+
+      let effectiveEnd = draftEnd;
+      if (diffDays < 6) {
+        const minEnd = new Date(start);
+        minEnd.setDate(minEnd.getDate() + 6);
+        effectiveEnd = minEnd.toISOString().slice(0, 10);
+      }
+
+      setDateRange({ startDate: draftStart, endDate: effectiveEnd });
     }
     setShowRangePicker(false);
   }
@@ -530,6 +562,7 @@ function AdminDashboardContent({
                       }}
                       thumbColor={colors.light.background}
                       ios_backgroundColor={colors.light.borderMuted}
+                      style={{ backgroundColor: colors.light.background }}
                     />
                     <AppText
                       style={[

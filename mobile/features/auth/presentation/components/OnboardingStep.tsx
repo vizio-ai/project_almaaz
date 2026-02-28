@@ -27,6 +27,7 @@ interface OnboardingStepProps {
   onBack: () => void;
   /** When provided, shows "Finish Later" button aligned with logo. Completes onboarding on press. */
   onFinishLater?: () => void;
+  isLoading?: boolean;
 }
 
 export function OnboardingStep({
@@ -41,6 +42,7 @@ export function OnboardingStep({
   onNext,
   onBack,
   onFinishLater,
+  isLoading = false,
 }: OnboardingStepProps) {
   const { top } = useSafeAreaInsets();
   const bgColor = useThemeColor('background');
@@ -60,6 +62,7 @@ export function OnboardingStep({
               onPress={onFinishLater}
               style={[styles.finishLaterBtn, { borderColor }]}
               activeOpacity={0.7}
+              disabled={isLoading}
             >
               <AppText style={[styles.finishLaterText, { color: textColor }]}>
                 Finish Later
@@ -107,7 +110,7 @@ export function OnboardingStep({
         <View style={styles.nextBtnWrap}>
           <PrimaryButton
             label="Next"
-            disabled={!canNext}
+            disabled={!canNext || isLoading}
             onPress={onNext}
             style={styles.nextBtn}
           />

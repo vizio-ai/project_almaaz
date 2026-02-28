@@ -17,7 +17,8 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "simulator": false 
+        "simulator": false,
+        "image": "latest"
       }
     }
   },

@@ -18,11 +18,13 @@ export default function CompanionsScreen() {
   const { session, markOnboarded } = useSession();
   const { updateOnboardingProfileUseCase } = useProfileDependencies();
   const [selected, setSelected] = useState(data.companionship);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleNext = async () => {
-    if (!session?.user.id) return;
-    update({ companionship: selected });
-    const finalData = { ...data, companionship: selected };
+  const submit = async (companionship: string) => {
+    if (!session?.user.id || isLoading) return;
+    setIsLoading(true);
+    update({ companionship });
+    const finalData = { ...data, companionship };
     const result = await updateOnboardingProfileUseCase.execute({
       userId: session.user.id,
       name: finalData.name,
@@ -39,31 +41,7 @@ export default function CompanionsScreen() {
       markOnboarded();
       router.replace('/(tabs)/create?fromOnboarding=true');
     } else {
-      const errMsg = (result.error?.cause as Error)?.message ?? result.error?.message ?? 'Something went wrong. Please try again.';
-      Alert.alert('Error', errMsg);
-    }
-  };
-
-  const handleFinishLater = async () => {
-    if (!session?.user.id) return;
-    update({ companionship: selected });
-    const finalData = { ...data, companionship: selected };
-    const result = await updateOnboardingProfileUseCase.execute({
-      userId: session.user.id,
-      name: finalData.name,
-      surname: finalData.surname,
-      email: finalData.email,
-      birthday: finalData.birthday,
-      location: finalData.location,
-      pace: finalData.pace,
-      interests: finalData.interests,
-      journaling: finalData.journaling,
-      companionship: finalData.companionship,
-    });
-    if (result.success) {
-      markOnboarded();
-      router.replace('/(tabs)/create?fromOnboarding=true');
-    } else {
+      setIsLoading(false);
       const errMsg = (result.error?.cause as Error)?.message ?? result.error?.message ?? 'Something went wrong. Please try again.';
       Alert.alert('Error', errMsg);
     }
@@ -79,9 +57,10 @@ export default function CompanionsScreen() {
       selected={[selected]}
       onSelect={setSelected}
       multiSelect={false}
-      onNext={handleNext}
+      isLoading={isLoading}
+      onNext={() => submit(selected)}
       onBack={() => router.back()}
-      onFinishLater={handleFinishLater}
+      onFinishLater={() => submit(selected)}
     />
   );
 }

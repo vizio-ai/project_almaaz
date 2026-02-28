@@ -35,10 +35,10 @@ export function createAdminRemoteDataSource(): AdminRemoteDataSource {
     },
 
     async setUserActive(userId: string, isActive: boolean): Promise<void> {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: isActive })
-        .eq('id', userId);
+      const { error } = await supabase.rpc('admin_set_user_active', {
+        target_user_id: userId,
+        new_is_active: isActive,
+      });
 
       if (error) throw new Error(error.message);
     },
