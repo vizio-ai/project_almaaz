@@ -110,14 +110,16 @@ export function DoraConversationScreen({
 
   const showGreeting = messages.length === 0 && !isTyping;
 
+  const darkHeader = !isOnboarding;
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <AppLogo size="md" onLight />
+      <View style={[styles.header, darkHeader && styles.headerDark]}>
+        <AppLogo size="md" onDark={darkHeader} onLight={!darkHeader} />
         <View style={styles.headerRight}>
-          <View style={styles.notifBtn}>
-            <Ionicons name="notifications-outline" size={20} color="#18181B" />
+          <View style={[styles.notifBtn, darkHeader && styles.notifBtnDark]}>
+            <Ionicons name="notifications-outline" size={20} color={darkHeader ? '#FFFFFF' : '#18181B'} />
           </View>
         </View>
       </View>
@@ -202,6 +204,9 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     backgroundColor: '#FFFFFF',
   },
+  headerDark: {
+    backgroundColor: '#000000',
+  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,6 +232,9 @@ const styles = StyleSheet.create({
     borderColor: '#E4E4E7',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notifBtnDark: {
+    borderColor: '#333333',
   },
   greetingWrap: {
     flex: 1,
