@@ -56,6 +56,8 @@ export default function CreateScreen() {
             <ManualItineraryScreen
               itineraryId={null}
               userId={session?.user.id ?? ''}
+              currentUserName={profile?.name}
+              currentUserAvatarUrl={profile?.avatarUrl}
               showHeader={false}
               onBack={() => setShowManualEntry(false)}
             />

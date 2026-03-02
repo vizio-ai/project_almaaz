@@ -4,9 +4,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Image,
   TextInput,
-  Switch,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +15,7 @@ import {
   HeaderTitle,
   CoverImagePicker,
   TripTitleInput,
+  CreatedByAuthor,
   useThemeColor,
   typography,
   spacing,
@@ -29,8 +28,11 @@ import { useTravelInfoMutations } from '../hooks/useTravelInfoMutations';
 import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider';
 import { DaySection } from '../components/DaySection';
 import { TravelInfoFormModal } from '../components/TravelInfoFormModal';
+import { TravelInfoSection } from '../components/TravelInfoSection';
+import { LocationMapModal } from '../components/LocationMapModal';
 import { TripLocationInput } from '../components/TripLocationInput';
 import { TripDateRangeInput } from '../components/TripDateRangeInput';
+import { ToggleRow } from '@shared/ui-kit';
 import type { Activity } from '../../domain/entities/Activity';
 import type { TravelInfo } from '../../domain/entities/TravelInfo';
 
@@ -41,6 +43,10 @@ export interface ManualItineraryScreenProps {
   itineraryId: string | null;
   /** Required when creating a new itinerary. */
   userId: string;
+  /** Logged-in user's display name; shown as "Created by {name}" in create mode. */
+  currentUserName?: string | null;
+  /** Logged-in user's avatar URL; shown in create mode when set. */
+  currentUserAvatarUrl?: string | null;
   /** When false, header is not rendered (e.g. when embedded in Create tab). */
   showHeader?: boolean;
   onShare?: () => void;
@@ -79,6 +85,8 @@ function formatDateRange(startDate: string | null, endDate: string | null): stri
 export function ManualItineraryScreen({
   itineraryId,
   userId,
+  currentUserName,
+  currentUserAvatarUrl,
   showHeader = true,
   onShare,
   onBack,
@@ -115,6 +123,9 @@ export function ManualItineraryScreen({
   // ── TravelInfo modal ──────────────────────────────────────────────────────
   const [travelInfoModalVisible, setTravelInfoModalVisible] = useState(false);
   const [editingTravelInfo, setEditingTravelInfo] = useState<TravelInfo | null>(null);
+
+  // ── Location map modal (create mode: pick destination from OSM) ─────────────
+  const [locationMapVisible, setLocationMapVisible] = useState(false);
 
   React.useEffect(() => {
     if (!itinerary) return;
@@ -263,6 +274,7 @@ export function ManualItineraryScreen({
           <TripLocationInput
             value={isNew ? draftDestination : destination}
             onChange={isNew ? setDraftDestination : undefined}
+            onLocationIconPress={isNew ? () => setLocationMapVisible(true) : undefined}
           />
           {isNew ? (
             <TripDateRangeInput
@@ -280,64 +292,42 @@ export function ManualItineraryScreen({
           ) : null}
         </View>
 
-        {/* ── Creator (edit mode only) ─────────────────────────────────── */}
-        {!isNew && (
-          <View style={styles.metaRow}>
-            {creatorAvatarUrl ? (
-              <Image source={{ uri: creatorAvatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: border }]} />
-            )}
-            <AppText style={[styles.metaText, { color: secondary }]}>
-              Created by {creatorName}
-            </AppText>
-          </View>
-        )}
-
-        {/* ── Allow other users to clone ───────────────────────────────── */}
-        <View style={[styles.toggleRow, { borderColor: border }]}>
-          <AppText style={[styles.toggleLabel, { color: textColor }]}>
-            Allow other users to clone
-          </AppText>
-          <Ionicons name="information-circle-outline" size={16} color={secondary} />
-          <Switch
-            value={isClonable}
-            onValueChange={setIsClonable}
-            trackColor={{ false: border, true: accent }}
+        {/* ── Creator ───────────────────────────────────────────────────── */}
+        <View style={styles.metaRow}>
+          <CreatedByAuthor
+            userName={isNew ? (currentUserName?.trim() || 'You') : creatorName}
+            avatarUrl={isNew ? currentUserAvatarUrl : creatorAvatarUrl}
           />
         </View>
 
-        {/* ── Travel Information (edit mode only) ───────────────────────── */}
-        {!isNew && (
-          <View style={[styles.card, { backgroundColor: surface }]}>
-            <View style={styles.cardHeader}>
-              <AppText style={[styles.cardTitle, { color: textColor }]}>
-                Travel Information
-              </AppText>
-              <TouchableOpacity
-                onPress={() => { setEditingTravelInfo(null); setTravelInfoModalVisible(true); }}
-                hitSlop={8}
-              >
-                <Ionicons name="add" size={22} color={secondary} />
-              </TouchableOpacity>
-            </View>
-            {travelInfo.length === 0 ? (
-              <AppText style={[styles.placeholderText, { color: secondary }]}>
-                No travel info yet. Tap + to add.
-              </AppText>
-            ) : (
-              travelInfo.map((t: TravelInfo) => (
-                <TravelInfoRow
-                  key={t.id}
-                  item={t}
-                  secondary={secondary}
-                  textColor={textColor}
-                  onEdit={() => { setEditingTravelInfo(t); setTravelInfoModalVisible(true); }}
-                />
-              ))
-            )}
-          </View>
-        )}
+        {/* ── Allow other users to clone ───────────────────────────────── */}
+        <ToggleRow
+          label="Allow other users to clone"
+          value={isClonable}
+          onValueChange={setIsClonable}
+          infoMessage="This lets other users use your itinerary as a starting point to plan their own trip"
+        />
+
+        {/* ── Public / Private visibility ───────────────────────────────── */}
+        <ToggleRow
+          label={isPublic ? 'Public itinerary' : 'Private itinerary'}
+          value={isPublic}
+          onValueChange={setIsPublic}
+          infoMessage="When public, other users may see this itinerary in discover or shared views. When private, only you can see it."
+        />
+
+        {/* ── Travel Information ────────────────────────────────────────── */}
+        <TravelInfoSection
+          items={travelInfo}
+          onAddPress={() => {
+            setEditingTravelInfo(null);
+            setTravelInfoModalVisible(true);
+          }}
+          onEditItem={(t) => {
+            setEditingTravelInfo(t);
+            setTravelInfoModalVisible(true);
+          }}
+        />
 
         {/* ── Notes ─────────────────────────────────────────────────────── */}
         <View style={styles.section}>
@@ -447,45 +437,16 @@ export function ManualItineraryScreen({
         onRemove={removeTravelInfo}
         onClose={() => setTravelInfoModalVisible(false)}
       />
-    </View>
-  );
-}
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function TravelInfoRow({
-  item,
-  secondary,
-  textColor,
-  onEdit,
-}: {
-  item: TravelInfo;
-  secondary: string;
-  textColor: string;
-  onEdit: () => void;
-}) {
-  const iconName =
-    item.type === 'flight'
-      ? 'airplane-outline'
-      : item.type === 'rental_car'
-      ? 'car-outline'
-      : item.type === 'hotel'
-      ? 'bed-outline'
-      : ('document-text-outline' as const);
-  const detail = [item.provider, item.detail].filter(Boolean).join(' · ') || item.title;
-
-  return (
-    <View style={styles.travelRow}>
-      <Ionicons name={iconName} size={18} color={secondary} />
-      <View style={styles.travelTextWrap}>
-        <AppText style={[styles.travelTitle, { color: textColor }]}>{item.title}</AppText>
-        {detail !== item.title && (
-          <AppText style={[styles.travelDetail, { color: secondary }]}>{detail}</AppText>
-        )}
-      </View>
-      <TouchableOpacity onPress={onEdit} hitSlop={8}>
-        <Ionicons name="pencil-outline" size={16} color={secondary} />
-      </TouchableOpacity>
+      {/* ── Location map modal (OpenStreetMap picker, create mode only) ──────── */}
+      {isNew && (
+        <LocationMapModal
+          visible={locationMapVisible}
+          initialQuery={draftDestination}
+          onSelect={setDraftDestination}
+          onClose={() => setLocationMapVisible(false)}
+        />
+      )}
     </View>
   );
 }
@@ -523,21 +484,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  metaText: { ...typography.sm, flex: 1 },
-  avatar: { width: 24, height: 24, borderRadius: 12 },
-  avatarPlaceholder: { width: 24, height: 24, borderRadius: 12 },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    marginTop: spacing.sm,
-  },
-  toggleRowNoTopBorder: { borderTopWidth: 0, marginTop: 0 },
-  toggleLabelWrap: { flex: 1 },
-  toggleLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  toggleDesc: { ...typography.caption },
   card: { borderRadius: radii.md, padding: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.xl },
   cardHeader: {
     flexDirection: 'row',
@@ -547,15 +493,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { ...typography.base, fontWeight: typography.weights.semibold },
   placeholderText: { ...typography.sm },
-  travelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  travelTextWrap: { flex: 1 },
-  travelTitle: { ...typography.sm, fontWeight: typography.weights.medium },
-  travelDetail: { ...typography.caption },
   section: { marginBottom: spacing.xl },
   sectionTitle: {
     ...typography.base,
