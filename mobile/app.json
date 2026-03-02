@@ -16,7 +16,9 @@
       "bundleIdentifier": "com.vizio.dora",
       "infoPlist": {
         "UILaunchStoryboardName": "SplashScreen",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to set a cover photo.",
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library to set a cover photo."
       }
     },
     "android": {
@@ -27,7 +29,10 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE"
       ],
       "package": "com.vizio.dora"
     },
@@ -41,7 +46,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow access to your photo library to set a profile picture."
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photo library to set a cover photo.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to set a cover photo."
         }
       ],
       [

@@ -169,25 +169,25 @@ function AppContent() {
         <ProfileProvider dependencies={profileExternalDeps}>
           <TripProvider dependencies={tripExternalDeps}>
             <ItineraryProvider dependencies={itineraryExternalDeps}>
-            <AdminProvider dependencies={adminExternalDeps}>
-            <FollowProvider dependencies={followExternalDeps}>
-            <AuthGuard>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: '#000000' },
-                }}
-              >
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="admin" />
-                <Stack.Screen name="auth" options={{ animation: 'none' }} />
-                <Stack.Screen name="profile" />
-                <Stack.Screen name="deactivated" />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            </AuthGuard>
-            </FollowProvider>
-            </AdminProvider>
+              <AdminProvider dependencies={adminExternalDeps}>
+                <FollowProvider dependencies={followExternalDeps}>
+                  <AuthGuard>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor: '#000000' },
+                      }}
+                    >
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="admin" />
+                      <Stack.Screen name="auth" options={{ animation: 'none' }} />
+                      <Stack.Screen name="profile" />
+                      <Stack.Screen name="deactivated" />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                  </AuthGuard>
+                </FollowProvider>
+              </AdminProvider>
             </ItineraryProvider>
           </TripProvider>
         </ProfileProvider>

@@ -21,6 +21,8 @@ interface DoraConversationScreenProps {
   persona?: DoraPersona | null;
   isOnboarding?: boolean;
   onFinish?: () => void;
+  /** When true, do not render the header (parent provides it, e.g. Create tab). */
+  hideHeader?: boolean;
 }
 
 interface UiMessage {
@@ -34,6 +36,7 @@ export function DoraConversationScreen({
   persona,
   isOnboarding,
   onFinish,
+  hideHeader,
 }: DoraConversationScreenProps) {
   const { sendDoraMessageUseCase } = useItineraryDependencies();
   const [messages, setMessages] = useState<UiMessage[]>([]);
@@ -110,14 +113,16 @@ export function DoraConversationScreen({
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
-      <AppHeader
-        variant="dark"
-        right={
-          <View style={styles.notifBtn}>
-            <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
-          </View>
-        }
-      />
+      {!hideHeader && (
+        <AppHeader
+          variant="dark"
+          right={
+            <View style={styles.notifBtn}>
+              <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
+            </View>
+          }
+        />
+      )}
 
       <KeyboardAvoidingView
         style={styles.flex}

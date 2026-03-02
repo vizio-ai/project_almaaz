@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
 import { DoraConversationScreen } from '@shared/itinerary';
-import { AppText } from '@shared/ui-kit';
+import { ManualItineraryScreen } from '@shared/manual-itinerary';
+import { AppHeader, AppText } from '@shared/ui-kit';
 import { BlurView } from 'expo-blur';
+import ChatHistorySvg from '../../assets/images/chat_history.svg';
+
+const HEADER_ICON_COLOR = '#FFFFFF';
+const HEADER_RIGHT_GAP = 24;
 
 export default function CreateScreen() {
   const { session } = useSession();
@@ -13,13 +19,54 @@ export default function CreateScreen() {
   const router = useRouter();
   const { fromOnboarding } = useLocalSearchParams<{ fromOnboarding?: string }>();
   const [showDialog, setShowDialog] = useState(fromOnboarding === 'true');
+  const [showManualEntry, setShowManualEntry] = useState(false);
+
+  const handleHistoryPress = () => {
+    // TODO: open past chats
+  };
 
   return (
-    <>
-      <DoraConversationScreen
-        userName={profile?.name}
-        persona={profile?.persona}
-      />
+    <View style={styles.root}>
+        <AppHeader
+          variant="dark"
+          right={
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                onPress={() => setShowManualEntry((v) => !v)}
+                activeOpacity={0.8}
+                style={styles.headerPrimaryBtn}
+              >
+                <Ionicons
+                  name={showManualEntry ? 'sparkles-outline' : 'map-outline'}
+                  size={16}
+                  color={HEADER_ICON_COLOR}
+                />
+                <AppText style={styles.headerPrimaryLabel}>
+                  {showManualEntry ? 'Go back to chat' : 'Itinerary'}
+                </AppText>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleHistoryPress} activeOpacity={0.8} style={styles.headerIconBtn}>
+                <ChatHistorySvg width={16} height={16} color={HEADER_ICON_COLOR} />
+              </TouchableOpacity>
+            </View>
+          }
+        />
+        <View style={styles.content}>
+          {showManualEntry ? (
+            <ManualItineraryScreen
+              itineraryId={null}
+              userId={session?.user.id ?? ''}
+              showHeader={false}
+              onBack={() => setShowManualEntry(false)}
+            />
+          ) : (
+            <DoraConversationScreen
+              userName={profile?.name}
+              persona={profile?.persona}
+              hideHeader
+            />
+          )}
+        </View>
       <Modal visible={showDialog} transparent animationType="fade">
         <BlurView intensity={20} tint="dark" style={styles.scrim}>
           <View style={styles.dialog}>
@@ -56,11 +103,43 @@ export default function CreateScreen() {
           </View>
         </BlurView>
       </Modal>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
+  content: { flex: 1 },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: HEADER_RIGHT_GAP,
+  },
+  headerPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerPrimaryLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: HEADER_ICON_COLOR,
+  },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  manualPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  manualPlaceholderText: {
+    fontSize: 14,
+    color: '#71717A',
+  },
   scrim: {
     flex: 1,
     justifyContent: 'center',
