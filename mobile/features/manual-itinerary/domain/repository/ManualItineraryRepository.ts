@@ -15,6 +15,8 @@ export interface CreateItineraryParams {
   isClonable?: boolean;
   tripNotes?: string | null;
   isAiGenerated?: boolean;
+  /** Optional travel info items to create together with the itinerary (create mode). */
+  travelInfo?: AddTravelInfoParams[];
 }
 
 export interface UpdateItineraryParams {
@@ -73,6 +75,8 @@ export interface AddTravelInfoParams {
   provider?: string | null;
   detail?: string | null;
   startDatetime?: string | null;
+  /** Optional end datetime (hotel check-out, rental car drop-off, etc.). */
+  endDatetime?: string | null;
 }
 
 export interface UpdateTravelInfoParams {
@@ -81,6 +85,8 @@ export interface UpdateTravelInfoParams {
   provider?: string | null;
   detail?: string | null;
   startDatetime?: string | null;
+   /** Optional end datetime (hotel check-out, rental car drop-off, etc.). */
+  endDatetime?: string | null;
 }
 
 // ─── Repository ───────────────────────────────────────────────────────────────

@@ -29,12 +29,18 @@ import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider
 import { DaySection } from '../components/DaySection';
 import { TravelInfoFormModal } from '../components/TravelInfoFormModal';
 import { TravelInfoSection } from '../components/TravelInfoSection';
+import { TripNotesSection } from '../components/TripNotesSection';
 import { LocationMapModal } from '../components/LocationMapModal';
 import { TripLocationInput } from '../components/TripLocationInput';
 import { TripDateRangeInput } from '../components/TripDateRangeInput';
+import { ItineraryViewTabs } from '../components/ItineraryViewTabs';
 import { ToggleRow } from '@shared/ui-kit';
 import type { Activity } from '../../domain/entities/Activity';
 import type { TravelInfo } from '../../domain/entities/TravelInfo';
+import type {
+  AddTravelInfoParams,
+  UpdateTravelInfoParams,
+} from '../../domain/repository/ManualItineraryRepository';
 
 type ViewTab = 'detailed' | 'summary' | 'map';
 
@@ -109,6 +115,7 @@ export function ManualItineraryScreen({
   const [draftDestination, setDraftDestination] = useState('');
   const [draftStartDate, setDraftStartDate] = useState<Date | null>(null);
   const [draftEndDate, setDraftEndDate] = useState<Date | null>(null);
+  const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
 
   // ── Shared state (create + edit) ──────────────────────────────────────────
   const [isPublic, setIsPublic] = useState(false);
@@ -123,6 +130,48 @@ export function ManualItineraryScreen({
   // ── TravelInfo modal ──────────────────────────────────────────────────────
   const [travelInfoModalVisible, setTravelInfoModalVisible] = useState(false);
   const [editingTravelInfo, setEditingTravelInfo] = useState<TravelInfo | null>(null);
+
+  const handleDraftAddTravelInfo = useCallback(
+    async (params: AddTravelInfoParams) => {
+      const id = `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const item: TravelInfo = {
+        id,
+        type: params.type,
+        title: params.title,
+        provider: params.provider ?? null,
+        detail: params.detail ?? null,
+        startDatetime: params.startDatetime ?? null,
+        endDatetime: params.endDatetime ?? null,
+      };
+      setDraftTravelInfo((prev) => [...prev, item]);
+    },
+    [],
+  );
+
+  const handleDraftUpdateTravelInfo = useCallback(
+    async (id: string, params: UpdateTravelInfoParams) => {
+      setDraftTravelInfo((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                type: params.type ?? item.type,
+                title: params.title ?? item.title,
+                provider: params.provider ?? item.provider,
+                detail: params.detail ?? item.detail,
+                startDatetime: params.startDatetime ?? item.startDatetime,
+                endDatetime: params.endDatetime ?? item.endDatetime,
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleDraftRemoveTravelInfo = useCallback(async (id: string) => {
+    setDraftTravelInfo((prev) => prev.filter((item) => item.id !== id));
+  }, []);
 
   // ── Location map modal (create mode: pick destination from OSM) ─────────────
   const [locationMapVisible, setLocationMapVisible] = useState(false);
@@ -162,7 +211,16 @@ export function ManualItineraryScreen({
           endDate: draftEndDate ? toISODate(draftEndDate) : null,
           isPublic,
           isClonable,
+          tripNotes: tripNotes || null,
           isAiGenerated: false,
+          travelInfo: draftTravelInfo.map((t) => ({
+            type: t.type,
+            title: t.title,
+            provider: t.provider ?? null,
+            detail: t.detail ?? null,
+            startDatetime: t.startDatetime ?? null,
+            endDatetime: t.endDatetime ?? null,
+          })),
         });
         if (result.success) onBack?.();
       } else {
@@ -318,7 +376,7 @@ export function ManualItineraryScreen({
 
         {/* ── Travel Information ────────────────────────────────────────── */}
         <TravelInfoSection
-          items={travelInfo}
+          items={isNew ? draftTravelInfo : travelInfo}
           onAddPress={() => {
             setEditingTravelInfo(null);
             setTravelInfoModalVisible(true);
@@ -330,99 +388,29 @@ export function ManualItineraryScreen({
         />
 
         {/* ── Notes ─────────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <AppText style={[styles.sectionTitle, { color: textColor }]}>
-            Add a note or things to remember
-          </AppText>
-          <View style={[styles.noteWrap, { backgroundColor: surface, borderColor: border }]}>
-            <TextInput
-              style={[styles.noteInput, { color: textColor }]}
-              placeholder="Placeholder"
-              placeholderTextColor={secondary}
-              multiline
-              value={tripNotes}
-              onChangeText={setTripNotes}
-            />
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={isSaving}
-              style={styles.noteSaveBtn}
-            >
-              <AppText style={[styles.noteSaveBtnLabel, { color: secondary }]}>Save</AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <TripNotesSection
+          value={tripNotes}
+          onChangeText={setTripNotes}
+          onSave={handleSave}
+          isSaving={isSaving}
+        />
 
-        {/* ── View tabs + days (edit mode only) ─────────────────────────── */}
-        {!isNew && (
-          <>
-            <View style={styles.tabs}>
-              {(['detailed', 'summary', 'map'] as const).map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  onPress={() => setViewTab(tab)}
-                  style={[styles.tab, viewTab === tab && { backgroundColor: textColor }]}
-                >
-                  <AppText
-                    style={[
-                      styles.tabLabel,
-                      { color: viewTab === tab ? surfaceAlt : textColor },
-                    ]}
-                  >
-                    {tab === 'detailed'
-                      ? 'Detailed View'
-                      : tab === 'summary'
-                      ? 'Summary View'
-                      : 'Map View'}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {viewTab === 'detailed' && (
-              <>
-                {days.map((day) => (
-                  <DaySection
-                    key={day.id}
-                    day={day}
-                    dayActivities={activitiesByDay[day.id] ?? []}
-                    isCollapsed={collapsedDays.has(day.id)}
-                    onToggle={() => toggleDay(day.id)}
-                    onAddActivity={addActivity}
-                    onEditActivity={updateActivity}
-                    onRemoveActivity={removeActivity}
-                    onUpdateDay={updateDay}
-                    onRemoveDay={removeDay}
-                  />
-                ))}
-
-                {/* ── Add Day button ─────────────────────────────────── */}
-                <TouchableOpacity
-                  style={[styles.addDayBtn, { borderColor: border }]}
-                  onPress={() => addDay()}
-                >
-                  <Ionicons name="add" size={18} color={secondary} />
-                  <AppText style={[styles.addDayLabel, { color: secondary }]}>Add Day</AppText>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {viewTab === 'summary' && (
-              <View style={styles.placeholderBlock}>
-                <AppText style={[styles.placeholderText, { color: secondary }]}>
-                  Summary view — coming soon
-                </AppText>
-              </View>
-            )}
-            {viewTab === 'map' && (
-              <View style={styles.placeholderBlock}>
-                <AppText style={[styles.placeholderText, { color: secondary }]}>
-                  Map view — coming soon
-                </AppText>
-              </View>
-            )}
-          </>
-        )}
+        {/* ── View tabs + days ──────────────────────────────────────────── */}
+        <ItineraryViewTabs
+          viewTab={viewTab}
+          onChangeTab={setViewTab}
+          days={days}
+          activitiesByDay={activitiesByDay}
+          collapsedDays={collapsedDays}
+          onToggleDay={toggleDay}
+          onAddActivity={addActivity}
+          onEditActivity={updateActivity}
+          onRemoveActivity={removeActivity}
+          onUpdateDay={updateDay}
+          onRemoveDay={removeDay}
+          onAddDay={addDay}
+          isNew={isNew}
+        />
 
         <View style={{ height: spacing['2xl'] }} />
       </ScrollView>
@@ -432,10 +420,13 @@ export function ManualItineraryScreen({
       <TravelInfoFormModal
         visible={travelInfoModalVisible}
         editingItem={editingTravelInfo}
-        onAdd={addTravelInfo}
-        onUpdate={updateTravelInfo}
-        onRemove={removeTravelInfo}
-        onClose={() => setTravelInfoModalVisible(false)}
+        onAdd={isNew ? handleDraftAddTravelInfo : addTravelInfo}
+        onUpdate={isNew ? handleDraftUpdateTravelInfo : updateTravelInfo}
+        onRemove={isNew ? handleDraftRemoveTravelInfo : removeTravelInfo}
+        onClose={() => {
+          setTravelInfoModalVisible(false);
+          setEditingTravelInfo(null);
+        }}
       />
 
       {/* ── Location map modal (OpenStreetMap picker, create mode only) ──────── */}
@@ -484,7 +475,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  card: { borderRadius: radii.md, padding: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.xl },
+  card: {
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -493,45 +489,4 @@ const styles = StyleSheet.create({
   },
   cardTitle: { ...typography.base, fontWeight: typography.weights.semibold },
   placeholderText: { ...typography.sm },
-  section: { marginBottom: spacing.xl },
-  sectionTitle: {
-    ...typography.base,
-    fontWeight: typography.weights.semibold,
-    marginBottom: spacing.sm,
-  },
-  noteWrap: {
-    borderWidth: 1,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-  },
-  noteInput: {
-    minHeight: 100,
-    padding: spacing.lg,
-    ...typography.sm,
-  },
-  noteSaveBtn: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  noteSaveBtnLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  tabs: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-  tab: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.rounded,
-  },
-  tabLabel: { ...typography.caption, fontWeight: typography.weights.medium },
-  addDayBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    marginBottom: spacing.xl,
-  },
-  addDayLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  placeholderBlock: { paddingVertical: spacing['2xl'], alignItems: 'center' },
 });

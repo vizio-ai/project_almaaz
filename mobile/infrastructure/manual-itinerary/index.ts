@@ -90,7 +90,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
       const { data: travelData } = await supabase
         .from('itinerary_travel_info')
-        .select('id, type, title, provider, detail, start_datetime')
+        .select('id, type, title, provider, detail, start_datetime, end_datetime')
         .eq('itinerary_id', id)
         .order('created_at', { ascending: true });
 
@@ -101,6 +101,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         provider: t.provider,
         detail: t.detail,
         startDatetime: t.start_datetime,
+        endDatetime: t.end_datetime,
       }));
 
       return { itinerary, days, activities, travelInfo };
@@ -123,7 +124,22 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         .select('id')
         .single();
 
-      if (error) return { success: false };
+      if (error || !data) return { success: false };
+
+      if (params.travelInfo && params.travelInfo.length > 0) {
+        const rows = params.travelInfo.map((t) => ({
+          itinerary_id: data.id,
+          type: t.type,
+          title: t.title,
+          provider: t.provider ?? null,
+          detail: t.detail ?? null,
+          start_datetime: t.startDatetime ?? null,
+          end_datetime: t.endDatetime ?? null,
+        }));
+
+        await supabase.from('itinerary_travel_info').insert(rows);
+      }
+
       return { success: true, id: data.id };
     },
 
@@ -272,6 +288,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
           provider: params.provider ?? null,
           detail: params.detail ?? null,
           start_datetime: params.startDatetime ?? null,
+          end_datetime: params.endDatetime ?? null,
         })
         .select('id')
         .single();
@@ -287,6 +304,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       if (params.provider !== undefined) payload.provider = params.provider;
       if (params.detail !== undefined) payload.detail = params.detail;
       if (params.startDatetime !== undefined) payload.start_datetime = params.startDatetime;
+      if (params.endDatetime !== undefined) payload.end_datetime = params.endDatetime;
 
       const { error } = await supabase.from('itinerary_travel_info').update(payload).eq('id', id);
       return { success: !error };
