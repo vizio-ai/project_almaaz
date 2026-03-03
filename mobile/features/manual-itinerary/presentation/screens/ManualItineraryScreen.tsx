@@ -150,6 +150,9 @@ export function ManualItineraryScreen({
   const [isClonable, setIsClonable] = useState(false);
 
   // ── Edit mode state ───────────────────────────────────────────────────────
+  const [editTitle, setEditTitle] = useState('');
+  const [editDestination, setEditDestination] = useState('');
+  const [editCoverUri, setEditCoverUri] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('detailed');
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const [tripNotes, setTripNotes] = useState('');
@@ -211,6 +214,8 @@ export function ManualItineraryScreen({
     setIsClonable(itinerary.isClonable ?? false);
     setEditStartDate(itinerary.startDate ? new Date(itinerary.startDate) : null);
     setEditEndDate(itinerary.endDate ? new Date(itinerary.endDate) : null);
+    setEditTitle(itinerary.title ?? '');
+    setEditDestination(itinerary.destination ?? '');
   }, [itinerary?.id]);
 
   const textColor = useThemeColor('text');
@@ -297,12 +302,27 @@ export function ManualItineraryScreen({
           onBack?.();
         }
       } else {
+        let newCoverUrl: string | undefined;
+        if (editCoverUri) {
+          const upload = await manualItineraryRepository.uploadCoverImage(
+            userId,
+            itineraryId!,
+            editCoverUri,
+          );
+          if (upload.success && upload.url) {
+            newCoverUrl = upload.url;
+          }
+        }
+
         const result = await manualItineraryRepository.update(itineraryId!, {
+          title: editTitle.trim() || 'Untitled trip',
+          destination: editDestination.trim(),
           startDate: editStartDate ? toISODate(editStartDate) : null,
           endDate: editEndDate ? toISODate(editEndDate) : null,
           tripNotes: tripNotes || null,
           isPublic,
           isClonable,
+          ...(newCoverUrl ? { coverImageUrl: newCoverUrl } : {}),
         });
         if (result.success) refresh();
       }
@@ -318,6 +338,11 @@ export function ManualItineraryScreen({
     draftDestination,
     draftStartDate,
     draftEndDate,
+    editCoverUri,
+    editTitle,
+    editDestination,
+    editStartDate,
+    editEndDate,
     tripNotes,
     isPublic,
     isClonable,
@@ -329,7 +354,6 @@ export function ManualItineraryScreen({
 
   // ── Derived values ────────────────────────────────────────────────────────
 
-  const title = itinerary?.title ?? 'Untitled trip';
   const destination = itinerary?.destination ?? '—';
   const startDate = itinerary?.startDate ?? null;
   const creatorName = itinerary?.creatorName ?? 'You';
@@ -442,16 +466,16 @@ export function ManualItineraryScreen({
 
         {/* ── Cover image ───────────────────────────────────────────────── */}
         <CoverImagePicker
-          imageUri={isNew ? draftCoverUri : coverImageUrl}
-          onChange={isNew ? setDraftCoverUri : undefined}
-          editable={isNew}
+          imageUri={isNew ? draftCoverUri : (editCoverUri ?? coverImageUrl)}
+          onChange={isNew ? setDraftCoverUri : setEditCoverUri}
+          editable={true}
         />
 
         {/* ── Trip title ────────────────────────────────────────────────── */}
         <View style={styles.titleWrap}>
           <TripTitleInput
-            value={isNew ? draftTitle : title}
-            onChange={isNew ? setDraftTitle : undefined}
+            value={isNew ? draftTitle : editTitle}
+            onChange={isNew ? setDraftTitle : setEditTitle}
           />
         </View>
 
@@ -459,9 +483,9 @@ export function ManualItineraryScreen({
         <View style={styles.metaInfoRow}>
           <View style={styles.metaLocationWrap}>
             <TripLocationInput
-              value={isNew ? draftDestination : destination}
-              onChange={isNew ? setDraftDestination : undefined}
-              onLocationIconPress={isNew ? () => setLocationMapVisible(true) : undefined}
+              value={isNew ? draftDestination : editDestination}
+              onChange={isNew ? setDraftDestination : setEditDestination}
+              onLocationIconPress={() => setLocationMapVisible(true)}
             />
           </View>
           <View style={styles.metaDateWrap}>
@@ -472,7 +496,7 @@ export function ManualItineraryScreen({
                 onStartDate={setDraftStartDate}
                 onEndDate={setDraftEndDate}
               />
-            ) : (startDate || itinerary?.endDate) ? (
+            ) : (
               <TripDateRangeInput
                 startDate={editStartDate}
                 endDate={editEndDate}
@@ -480,7 +504,7 @@ export function ManualItineraryScreen({
                 onEndDate={setEditEndDate}
                 displayText={formatDateRange(startDate, itinerary?.endDate ?? null)}
               />
-            ) : null}
+            )}
           </View>
         </View>
 
@@ -576,16 +600,14 @@ export function ManualItineraryScreen({
         }}
       />
 
-      {/* ── Location map modal (OpenStreetMap picker, create mode only) ──────── */}
-      {isNew && (
-        <LocationMapModal
-          visible={locationMapVisible}
-          initialQuery={draftDestination}
-          onSelect={setDraftDestination}
-          onClose={() => setLocationMapVisible(false)}
-          allowPointPick={false}
-        />
-      )}
+      {/* ── Location map modal (OpenStreetMap picker) ──────── */}
+      <LocationMapModal
+        visible={locationMapVisible}
+        initialQuery={isNew ? draftDestination : editDestination}
+        onSelect={isNew ? setDraftDestination : setEditDestination}
+        onClose={() => setLocationMapVisible(false)}
+        allowPointPick={false}
+      />
     </View>
   );
 }
