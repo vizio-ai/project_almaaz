@@ -15,11 +15,14 @@ import {
 export interface ActivityEditCardProps {
   title?: string;
   name: string;
+  /** Optional semantic activity type: controls first tag icon/label on the card. */
+  activityType?: 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach' | null;
   timeLabel?: string;
   placeLabel?: string;
   timeValue: string;
   placeValue: string;
   onChangeName: (value: string) => void;
+  onChangeActivityType?: (value: 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach') => void;
   onPressTime?: () => void;
   onPressPlace?: () => void;
   onDelete?: () => void;
@@ -30,11 +33,13 @@ export interface ActivityEditCardProps {
 export function ActivityEditCard({
   title = 'Visit Nakano Dori',
   name,
+  activityType = 'park',
   timeLabel = 'Time',
   placeLabel = 'Place',
   timeValue,
   placeValue,
   onChangeName,
+  onChangeActivityType,
   onPressTime,
   onPressPlace,
   onDelete,
@@ -98,6 +103,50 @@ export function ActivityEditCard({
               {placeValue || 'Nakano Dori, Tokyo, Japan'}
             </AppText>
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Activity type selector (bottom row) */}
+      <View style={styles.typeRow}>
+        <AppText style={[styles.pickerLabel, { color: textColor }]}>Activity type</AppText>
+        <View style={styles.typeChips}>
+          {(['park', 'museum', 'food', 'shopping', 'historic', 'beach'] as const).map((type) => {
+            const isActive = activityType === type;
+            const label =
+              type === 'park'
+                ? 'Park'
+                : type === 'museum'
+                ? 'Museum'
+                : type === 'food'
+                ? 'Food & Drink'
+                : type === 'shopping'
+                ? 'Shopping'
+                : type === 'historic'
+                ? 'Historic place'
+                : 'Beach';
+            return (
+              <TouchableOpacity
+                key={type}
+                style={[
+                  styles.typeChip,
+                  isActive && { backgroundColor: textColor, borderColor: textColor },
+                ]}
+                activeOpacity={0.8}
+                onPress={() => onChangeActivityType?.(type)}
+              >
+                <AppText
+                  style={[
+                    styles.typeLabel,
+                    { color: isActive ? '#FAFAFA' : secondary },
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {label}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -182,6 +231,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     marginTop: spacing.sm,
+  },
+  typeRow: {
+    alignSelf: 'stretch',
+    marginTop: spacing.sm,
+    gap: spacing.xs,
+  },
+  typeChips: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  typeChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: '#e4e4e7',
+    backgroundColor: '#FFFFFF',
+  },
+  typeLabel: {
+    ...typography.xs,
+    fontWeight: '500',
   },
   pickerColSmall: {
     width: 110,

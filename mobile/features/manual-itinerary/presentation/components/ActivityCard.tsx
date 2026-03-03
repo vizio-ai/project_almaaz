@@ -5,11 +5,15 @@ import { AppText, spacing, radii, typography, useThemeColor, elevatedCard } from
 
 export interface ActivityCardTag {
   label: string;
+  /** Optional semantic type to pick a specific icon (used for fixed trip tags). */
+  icon?: 'type' | 'location' | 'time';
 }
 
 export interface ActivityCardProps {
   title: string;
+  /** Optional free-text description. */
   description?: string;
+  /** Pills shown under the title (e.g. type, location, time). */
   tags?: ActivityCardTag[];
   onPress?: () => void;
   onPressEdit?: () => void;
@@ -59,10 +63,14 @@ export function ActivityCard({
           <View style={styles.tagsRow}>
             {tags.map((tag, idx) => (
               <View key={`${tag.label}-${idx}`} style={styles.tag}>
-                <View style={styles.tagIconWrapper}>
-                  {renderTagIcon(tag.label, secondary)}
-                </View>
-                <AppText style={[styles.tagLabel, { color: secondary }]}>{tag.label}</AppText>
+                <View style={styles.tagIconWrapper}>{renderTagIcon(tag, secondary)}</View>
+                <AppText
+                  style={[styles.tagLabel, { color: secondary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {tag.label}
+                </AppText>
               </View>
             ))}
           </View>
@@ -132,6 +140,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     marginTop: spacing.xs,
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
   },
   tag: {
     flexDirection: 'row',
@@ -148,11 +158,23 @@ const styles = StyleSheet.create({
   tagLabel: {
     ...typography.sm,
     lineHeight: 20,
+    maxWidth: 90,
+    flexShrink: 1,
   },
 });
 
-function renderTagIcon(label: string, color: string) {
-  const lower = label.toLowerCase();
+function renderTagIcon(tag: ActivityCardTag, color: string) {
+  if (tag.icon === 'type') {
+    return <Goal width={12} height={12} color={color} strokeWidth={1.8} />;
+  }
+  if (tag.icon === 'location') {
+    return <MapPin width={12} height={12} color={color} strokeWidth={1.8} />;
+  }
+  if (tag.icon === 'time') {
+    return <Clock2 width={12} height={12} color={color} strokeWidth={1.8} />;
+  }
+
+  const lower = tag.label.toLowerCase();
 
   if (lower === 'park' || lower === 'goal') {
     return <Goal width={12} height={12} color={color} strokeWidth={1.8} />;

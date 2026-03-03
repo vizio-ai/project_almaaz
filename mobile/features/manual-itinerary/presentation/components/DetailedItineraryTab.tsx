@@ -88,12 +88,21 @@ export function DetailedItineraryTab({
     null,
   );
   const [editingActivityId, setEditingActivityId] = React.useState<string | null>(null);
+  const [draftAccommodationByDay, setDraftAccommodationByDay] = React.useState<
+    Record<
+      string,
+      {
+        name: string | null;
+      }
+    >
+  >({});
   const [draftActivitiesByDay, setDraftActivitiesByDay] = React.useState<
     Record<
       string,
       {
         id: string;
         name: string;
+        activityType?: 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach' | null;
         locationText?: string | null;
         timeValue?: string | null;
       }[]
@@ -104,10 +113,17 @@ export function DetailedItineraryTab({
   const [locationModalVisible, setLocationModalVisible] = React.useState(false);
   const [locationModalActivityId, setLocationModalActivityId] = React.useState<string | null>(null);
   const [locationModalInitialQuery, setLocationModalInitialQuery] = React.useState('');
+  const [accommodationLocationModalVisible, setAccommodationLocationModalVisible] =
+    React.useState(false);
+  const [accommodationLocationDayId, setAccommodationLocationDayId] =
+    React.useState<string | null>(null);
+  const [accommodationLocationInitialQuery, setAccommodationLocationInitialQuery] =
+    React.useState('');
 
   const surface = useThemeColor('surface');
   const accent = useThemeColor('accent');
 
+  // Seed initial activities only for days that have never been seeded (so Delete doesn't re-add).
   React.useEffect(() => {
     if (mode !== 'create') return;
     if (!days.length) return;
@@ -117,13 +133,44 @@ export function DetailedItineraryTab({
       let changed = false;
 
       days.forEach((day) => {
-        const existing = next[day.id];
-        if (!existing || existing.length === 0) {
+        if (!(day.id in prev)) {
           const baseId = `draft-activity-${day.id}-`;
           next[day.id] = [
-            { id: `${baseId}1`, name: '', locationText: null, timeValue: null },
-            { id: `${baseId}2`, name: '', locationText: null, timeValue: null },
+            {
+              id: `${baseId}1`,
+              name: '',
+              activityType: 'park',
+              locationText: null,
+              timeValue: null,
+            },
+            {
+              id: `${baseId}2`,
+              name: '',
+              activityType: 'park',
+              locationText: null,
+              timeValue: null,
+            },
           ];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [mode, days]);
+
+  // Ensure each draft day has an accommodation name (used by AccommodationCard/Edit)
+  React.useEffect(() => {
+    if (mode !== 'create') return;
+    if (!days.length) return;
+
+    setDraftAccommodationByDay((prev) => {
+      const next: typeof prev = { ...prev };
+      let changed = false;
+
+      days.forEach((day) => {
+        if (!next[day.id]) {
+          next[day.id] = { name: 'Portrait Firenze' };
           changed = true;
         }
       });
@@ -181,9 +228,19 @@ export function DetailedItineraryTab({
     setDraftActivitiesByDay((prev) => {
       const existing = prev[dayId] ?? [];
       const id = `draft-activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const next = [...existing, { id, name: '', locationText: null, timeValue: null }];
+      const next = [
+        ...existing,
+        { id, name: '', activityType: 'park', locationText: null, timeValue: null },
+      ];
       return { ...prev, [dayId]: next };
     });
+  };
+
+  const updateDraftAccommodationName = (dayId: string, name: string) => {
+    setDraftAccommodationByDay((prev) => ({
+      ...prev,
+      [dayId]: { name },
+    }));
   };
 
   const updateDraftActivityName = (activityId: string, name: string) => {
@@ -191,6 +248,19 @@ export function DetailedItineraryTab({
       const next: typeof prev = {};
       for (const [dayId, list] of Object.entries(prev)) {
         next[dayId] = list.map((a) => (a.id === activityId ? { ...a, name } : a));
+      }
+      return next;
+    });
+  };
+
+  const updateDraftActivityType = (
+    activityId: string,
+    activityType: 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach',
+  ) => {
+    setDraftActivitiesByDay((prev) => {
+      const next: typeof prev = {};
+      for (const [dayId, list] of Object.entries(prev)) {
+        next[dayId] = list.map((a) => (a.id === activityId ? { ...a, activityType } : a));
       }
       return next;
     });
@@ -239,6 +309,23 @@ export function DetailedItineraryTab({
     closeTimePicker();
   };
 
+  const openAccommodationLocationModal = (dayId: string) => {
+    const currentName = draftAccommodationByDay[dayId]?.name ?? '';
+    const fallback = baseLocation && baseLocation !== '—' ? baseLocation : '';
+    const query = currentName.trim() ? currentName : fallback;
+    setAccommodationLocationDayId(dayId);
+    setAccommodationLocationInitialQuery(query);
+    setAccommodationLocationModalVisible(true);
+  };
+
+  const handleSelectAccommodationLocation = (locationName: string) => {
+    if (accommodationLocationDayId) {
+      updateDraftAccommodationName(accommodationLocationDayId, locationName);
+    }
+    setAccommodationLocationModalVisible(false);
+    setAccommodationLocationDayId(null);
+  };
+
   const openLocationModal = (activityId: string, initialQuery: string) => {
     const fallback = baseLocation && baseLocation !== '—' ? baseLocation : '';
     const query = initialQuery.trim() ? initialQuery : fallback;
@@ -253,6 +340,17 @@ export function DetailedItineraryTab({
     }
     setLocationModalVisible(false);
     setLocationModalActivityId(null);
+  };
+
+  const removeDraftActivity = (dayId: string, activityId: string) => {
+    setDraftActivitiesByDay((prev) => {
+      const list = prev[dayId];
+      if (!list) return prev;
+      const nextList = list.filter((a) => a.id !== activityId);
+      if (nextList.length === list.length) return prev;
+      return { ...prev, [dayId]: nextList };
+    });
+    setEditingActivityId(null);
   };
 
   const moveDraftActivityDown = (dayId: string, activityId: string) => {
@@ -293,15 +391,18 @@ export function DetailedItineraryTab({
               {/* Accommodation summary / edit */}
               {editingAccommodationDayId === day.id ? (
                 <AccommodationEditCard
-                  selectedName="Portrait Firenze"
+                  selectedName={draftAccommodationByDay[day.id]?.name ?? 'Select accommodation'}
                   onClose={() => setEditingAccommodationDayId(null)}
-                  onPressSelect={() => {}}
-                  onDelete={() => {}}
+                  onPressSelect={() => openAccommodationLocationModal(day.id)}
+                  onDelete={() => {
+                    updateDraftAccommodationName(day.id, '');
+                    setEditingAccommodationDayId(null);
+                  }}
                   onSave={() => setEditingAccommodationDayId(null)}
                 />
               ) : (
                 <AccommodationCard
-                  title="Portrait Firenze"
+                  title={draftAccommodationByDay[day.id]?.name ?? 'Select accommodation'}
                   onPress={() => setEditingAccommodationDayId(day.id)}
                 />
               )}
@@ -317,15 +418,14 @@ export function DetailedItineraryTab({
                       key={id}
                       title={act?.name ?? 'Visit Nakano Dori'}
                       name={act?.name ?? ''}
+                      activityType={act?.activityType ?? 'park'}
                       timeValue={act?.timeValue ?? ''}
                       placeValue={act?.locationText ?? ''}
                       onChangeName={(value) => updateDraftActivityName(id, value)}
+                      onChangeActivityType={(type) => updateDraftActivityType(id, type)}
                       onPressTime={() => openTimePicker(id)}
                       onPressPlace={() => openLocationModal(id, act?.locationText ?? '')}
-                      onDelete={() => {
-                        // TODO: implement delete activity action
-                        setEditingActivityId(null);
-                      }}
+                      onDelete={() => removeDraftActivity(day.id, id)}
                       onSave={() => setEditingActivityId(null)}
                       onClose={() => setEditingActivityId(null)}
                     />
@@ -336,14 +436,26 @@ export function DetailedItineraryTab({
                   <ActivityCard
                     key={id}
                     title={act.name || 'Visit Nakano Dori'}
-                    description={
-                      act.locationText ||
-                      'A quiet, breathtaking tunnel of over 300 cherry trees.'
-                    }
                     tags={[
-                      { label: 'Park' },
-                      { label: 'Nakano Dori' },
-                      { label: 'Afternoon' },
+                      {
+                        label:
+                          act.activityType === 'museum'
+                            ? 'Museum'
+                            : act.activityType === 'food'
+                            ? 'Food & Drink'
+                            : act.activityType === 'shopping'
+                            ? 'Shopping'
+                            : act.activityType === 'historic'
+                            ? 'Historic place'
+                            : act.activityType === 'beach'
+                            ? 'Beach'
+                            : 'Park',
+                        icon: 'type',
+                      },
+                      // Seçilen konum (yoksa placeholder)
+                      { label: act.locationText || 'Add location', icon: 'location' },
+                      // Seçilen zaman (yoksa placeholder)
+                      { label: act.timeValue || 'Add time', icon: 'time' },
                     ]}
                     onPress={() => setEditingActivityId(id)}
                     onPressEdit={() => setEditingActivityId(id)}
@@ -424,6 +536,17 @@ export function DetailedItineraryTab({
         onClose={() => {
           setLocationModalVisible(false);
           setLocationModalActivityId(null);
+        }}
+      />
+
+      {/* Blurred location picker for accommodation selection (hotel / stay) */}
+      <LocationMapModal
+        visible={accommodationLocationModalVisible}
+        initialQuery={accommodationLocationInitialQuery}
+        onSelect={handleSelectAccommodationLocation}
+        onClose={() => {
+          setAccommodationLocationModalVisible(false);
+          setAccommodationLocationDayId(null);
         }}
       />
     </>

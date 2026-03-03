@@ -20,7 +20,13 @@ export function AccommodationCard({ title, description, onPress }: Accommodation
           <View style={styles.iconButton}>
             <Bed size={16} color={textColor} />
           </View>
-          <AppText style={[styles.title, { color: textColor }]}>{title}</AppText>
+          <AppText
+            style={[styles.title, { color: textColor }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </AppText>
         </View>
 
         <View style={styles.iconButton}>
@@ -73,6 +79,7 @@ const styles = StyleSheet.create({
     ...typography.sm,
     lineHeight: 20,
     fontWeight: '600',
+    flexShrink: 1,
   },
   description: {
     ...typography.sm,
