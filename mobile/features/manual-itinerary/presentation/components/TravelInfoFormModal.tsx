@@ -22,7 +22,7 @@ import type {
 
 const TYPE_OPTIONS: { label: string; value: TravelInfoType; icon: 'airplane-outline' | 'bed-outline' | 'car-outline' | 'document-text-outline' }[] = [
   { label: 'Flight', value: 'flight', icon: 'airplane-outline' },
-  { label: 'Hotel', value: 'hotel', icon: 'bed-outline' },
+  // { label: 'Hotel', value: 'hotel', icon: 'bed-outline' },
   { label: 'Rental Car', value: 'rental_car', icon: 'car-outline' },
   { label: 'Other', value: 'other', icon: 'document-text-outline' },
 ];

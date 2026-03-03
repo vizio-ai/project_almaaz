@@ -36,20 +36,13 @@ function buildMapHtml(initialLat: number, initialLng: number): string {
     var map = L.map('map').setView([${initialLat}, ${initialLng}], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
     var marker = null;
-    map.on('click', function(e) {
-      if (marker) map.removeLayer(marker);
-      marker = L.marker(e.latlng).addTo(map);
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'location', lat: e.latlng.lat, lng: e.latlng.lng }));
-      }
-    });
-    window.setMapView = function(lat, lng) {
-      map.setView([lat, lng], 14);
-      if (marker) map.removeLayer(marker);
-      marker = L.marker([lat, lng]).addTo(map);
-    };
     window.setMapViewNoMarker = function(lat, lng, zoom) {
       map.setView([lat, lng], zoom || 8);
+      if (marker) { map.removeLayer(marker); marker = null; }
+    };
+    window.fitBoundsByBBox = function(south, north, west, east) {
+      var bounds = L.latLngBounds([south, west], [north, east]);
+      map.fitBounds(bounds);
       if (marker) { map.removeLayer(marker); marker = null; }
     };
   </script>
@@ -92,19 +85,52 @@ export function LocationMapModal({
     setSearching(true);
     try {
       const res = await fetch(
-        `${NOMINATIM_BASE}/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
-        { headers: { 'Accept-Language': 'en' } }
+        `${NOMINATIM_BASE}/search?q=${encodeURIComponent(
+          q,
+        )}&format=json&limit=1&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } },
       );
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const { lat, lon } = data[0];
+        const { lat, lon, boundingbox } = data[0];
         const latNum = parseFloat(lat);
         const lngNum = parseFloat(lon);
         setSelectedLat(latNum);
         setSelectedLng(lngNum);
-        webViewRef.current?.injectJavaScript(
-          `window.setMapView && window.setMapView(${latNum}, ${lngNum}); true;`
-        );
+
+        if (Array.isArray(boundingbox) && boundingbox.length === 4) {
+          const [southStr, northStr, westStr, eastStr] = boundingbox;
+          const south = parseFloat(southStr);
+          const north = parseFloat(northStr);
+          const west = parseFloat(westStr);
+          const east = parseFloat(eastStr);
+          const latSpan = Math.abs(north - south);
+          const lonSpan = Math.abs(east - west);
+          const centerLat = (south + north) / 2;
+          const centerLng = (west + east) / 2;
+
+          // Heuristic zoom: country / region / city boyutuna göre otomatik yakınlaştır
+          let zoom = 8;
+          if (latSpan > 40 || lonSpan > 60) {
+            zoom = 3; // kıta / çok büyük bölge
+          } else if (latSpan > 15 || lonSpan > 30) {
+            zoom = 5; // büyük ülke
+          } else if (latSpan > 5 || lonSpan > 15) {
+            zoom = 7; // ülke / büyük bölge
+          } else if (latSpan > 1 || lonSpan > 5) {
+            zoom = 9; // şehir / çevresi
+          } else {
+            zoom = 11; // ilçe / küçük alan
+          }
+
+          webViewRef.current?.injectJavaScript(
+            `window.setMapViewNoMarker && window.setMapViewNoMarker(${centerLat}, ${centerLng}, ${zoom}); true;`,
+          );
+        } else {
+          webViewRef.current?.injectJavaScript(
+            `window.setMapViewNoMarker && window.setMapViewNoMarker(${latNum}, ${lngNum}, 8); true;`,
+          );
+        }
       }
     } finally {
       setSearching(false);
@@ -267,7 +293,7 @@ export function LocationMapModal({
 
           <View style={styles.hintRow}>
             <AppText style={[styles.hint, { color: secondary }]}>
-              Tap on the map to pick a location
+              Search for a city, region or country, then adjust on the map
             </AppText>
             <TouchableOpacity onPress={handleShowOnMap} hitSlop={8}>
               <AppText style={[styles.showOnMapLink, { color: accent }]}>

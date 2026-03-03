@@ -38,7 +38,11 @@ export function TripLocationInput({ value, onChange, onLocationIconPress }: Trip
           returnKeyType="done"
         />
       ) : (
-        <AppText style={[styles.text, { color: secondary }]} numberOfLines={1}>
+        <AppText
+          style={[styles.text, { color: secondary }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {value || '—'}
         </AppText>
       )}

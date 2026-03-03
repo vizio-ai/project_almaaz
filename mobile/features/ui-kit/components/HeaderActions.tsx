@@ -25,8 +25,10 @@ export function HeaderActions({
   onShare,
   onMoreOptions,
 }: HeaderActionsProps) {
-  const textColor = useThemeColor('text');
-  const border = useThemeColor('border');
+  const textColor = useThemeColor('labelText');
+  const background = useThemeColor('background');
+  const borderMuted = useThemeColor('borderMuted');
+  const shadowColor = useThemeColor('shadowColor');
 
   return (
     <View style={styles.row}>
@@ -34,7 +36,14 @@ export function HeaderActions({
         <TouchableOpacity
           onPress={onSave}
           disabled={isSaving}
-          style={[styles.saveBtn, { backgroundColor: border }]}
+          style={[
+            styles.saveBtn,
+            {
+              backgroundColor: background,
+              borderColor: borderMuted,
+              shadowColor,
+            },
+          ]}
           activeOpacity={0.75}
         >
           {isSaving ? (
@@ -47,7 +56,19 @@ export function HeaderActions({
       )}
 
       {onShare && (
-        <TouchableOpacity onPress={onShare} style={styles.iconBtn} hitSlop={8} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={onShare}
+          style={[
+            styles.iconBtn,
+            {
+              backgroundColor: background,
+              borderColor: borderMuted,
+              shadowColor,
+            },
+          ]}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
           <Ionicons name="share-outline" size={22} color={textColor} />
         </TouchableOpacity>
       )}
@@ -55,7 +76,14 @@ export function HeaderActions({
       {onMoreOptions && (
         <TouchableOpacity
           onPress={onMoreOptions}
-          style={styles.iconBtn}
+          style={[
+            styles.iconBtn,
+            {
+              backgroundColor: background,
+              borderColor: borderMuted,
+              shadowColor,
+            },
+          ]}
           hitSlop={8}
           activeOpacity={0.7}
         >
@@ -70,21 +98,36 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: radii.full,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   saveLabel: {
-    ...typography.caption,
+    ...typography.sm,
     fontWeight: typography.weights.medium,
+    lineHeight: 20,
   },
   iconBtn: {
-    padding: spacing.xs,
+    width: 36,
+    height: 36,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });

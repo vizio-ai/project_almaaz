@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  AppHeader,
   AppText,
   HeaderActions,
   HeaderTitle,
@@ -187,7 +186,8 @@ export function ManualItineraryScreen({
   const secondary = useThemeColor('textSecondary');
   const surface = useThemeColor('surface');
   const surfaceAlt = useThemeColor('surfaceAlt');
-  const border = useThemeColor('border');
+  const borderMuted = useThemeColor('borderMuted');
+  const background = useThemeColor('background');
   const accent = useThemeColor('accent');
 
   const toggleDay = useCallback((dayId: string) => {
@@ -271,7 +271,7 @@ export function ManualItineraryScreen({
       onSave={handleSave}
       saveLabel="Save itinerary"
       isSaving={isSaving}
-      onShare={onShare}
+      onShare={() => onShare?.()}
       onMoreOptions={() => {}}
     />
   );
@@ -280,12 +280,63 @@ export function ManualItineraryScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: surfaceAlt }]}>
-      {/* ── App logo bar ───────────────────────────────────────────────── */}
-      {showHeader && <AppHeader variant="light" />}
+      {/* ── Dora app top bar (Figma style) ───────────────────────────────── */}
+      {showHeader && (
+        <View style={styles.topBarContainer}>
+          {/* Status row: time + system icons */}
+          <View style={styles.statusRow}>
+            <AppText style={styles.statusTime}>9:41</AppText>
+            <View style={styles.statusIcons}>
+              <Ionicons name="cellular" size={16} color="#FFFFFF" />
+              <Ionicons name="wifi" size={16} color="#FFFFFF" style={styles.statusIcon} />
+              <Ionicons
+                name="battery-half-outline"
+                size={20}
+                color="#FFFFFF"
+                style={styles.statusIcon}
+              />
+            </View>
+          </View>
+
+          {/* Brand row: dora. + actions */}
+          <View style={styles.brandRow}>
+            <View style={styles.logoRow}>
+              <AppText style={styles.logoText}>dora</AppText>
+              <AppText style={styles.logoDot}>.</AppText>
+            </View>
+
+            <View style={styles.topActions}>
+              <TouchableOpacity
+                style={styles.goBackPill}
+                onPress={onBack}
+                disabled={!onBack}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chevron-back-outline" size={16} color="#FFFFFF" />
+                <AppText style={styles.goBackText}>Go back to chat</AppText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.iconCircleButton}
+                onPress={onBack}
+                disabled={!onBack}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* ── Screen title row: "Itinerary" ← → [Save][Share][⋯] ────────── */}
-      <View style={[styles.screenTitleRow, { borderBottomColor: border }]}>
-        <HeaderTitle title="Itinerary" />
+      <View
+        style={[
+          styles.screenTitleRow,
+          { borderBottomColor: borderMuted, backgroundColor: background },
+        ]}
+      >
+        <AppText style={styles.screenTitleText}>Itinerary</AppText>
         {headerActions}
       </View>
 
@@ -329,25 +380,29 @@ export function ManualItineraryScreen({
 
         {/* ── Location + Date row ───────────────────────────────────────── */}
         <View style={styles.metaInfoRow}>
-          <TripLocationInput
-            value={isNew ? draftDestination : destination}
-            onChange={isNew ? setDraftDestination : undefined}
-            onLocationIconPress={isNew ? () => setLocationMapVisible(true) : undefined}
-          />
-          {isNew ? (
-            <TripDateRangeInput
-              startDate={draftStartDate}
-              endDate={draftEndDate}
-              onStartDate={setDraftStartDate}
-              onEndDate={setDraftEndDate}
+          <View style={styles.metaLocationWrap}>
+            <TripLocationInput
+              value={isNew ? draftDestination : destination}
+              onChange={isNew ? setDraftDestination : undefined}
+              onLocationIconPress={isNew ? () => setLocationMapVisible(true) : undefined}
             />
-          ) : (startDate || itinerary?.endDate) ? (
-            <TripDateRangeInput
-              startDate={null}
-              endDate={null}
-              displayText={formatDateRange(startDate, itinerary?.endDate ?? null)}
-            />
-          ) : null}
+          </View>
+          <View style={styles.metaDateWrap}>
+            {isNew ? (
+              <TripDateRangeInput
+                startDate={draftStartDate}
+                endDate={draftEndDate}
+                onStartDate={setDraftStartDate}
+                onEndDate={setDraftEndDate}
+              />
+            ) : (startDate || itinerary?.endDate) ? (
+              <TripDateRangeInput
+                startDate={null}
+                endDate={null}
+                displayText={formatDateRange(startDate, itinerary?.endDate ?? null)}
+              />
+            ) : null}
+          </View>
         </View>
 
         {/* ── Creator ───────────────────────────────────────────────────── */}
@@ -446,6 +501,92 @@ export function ManualItineraryScreen({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  topBarContainer: {
+    width: '100%',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: '#0A0A0A',
+    borderBottomWidth: 1,
+    borderBottomColor: '#44FFFF',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  statusTime: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 21,
+  },
+  statusIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusIcon: {
+    marginLeft: 6,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+  logoDot: {
+    color: '#44FFFF',
+    fontSize: 24,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  goBackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'transparent',
+  },
+  goBackText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  iconCircleButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenTitleText: {
+    ...typography.lg,
+    fontWeight: typography.weights.semibold,
+    lineHeight: 28,
+    color: '#18181B',
+  },
   scroll: { flex: 1 },
   scrollContent: {
     paddingTop: spacing['2xl'],
@@ -466,8 +607,15 @@ const styles = StyleSheet.create({
   metaInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
     marginBottom: spacing.sm,
+  },
+  metaLocationWrap: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  metaDateWrap: {
+    width: '50%',
+    alignItems: 'flex-start',
   },
   metaRow: {
     flexDirection: 'row',
