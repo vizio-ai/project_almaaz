@@ -286,7 +286,7 @@ export function LocationMapModal({
   }, [selectedLat, selectedLng]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <BlurView intensity={40} tint="dark" style={styles.scrim}>
         <TouchableOpacity style={styles.scrimTouchable} activeOpacity={1} onPress={onClose} />
         <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>

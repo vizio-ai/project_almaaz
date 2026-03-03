@@ -136,7 +136,7 @@ export function TripDateRangeInput({
             }}
           />
         ) : (
-          <Modal visible transparent animationType="slide" onRequestClose={handleDismiss}>
+          <Modal visible transparent animationType="none" onRequestClose={handleDismiss}>
             <View style={pickerStyles.overlay}>
               <TouchableOpacity
                 style={pickerStyles.scrim}

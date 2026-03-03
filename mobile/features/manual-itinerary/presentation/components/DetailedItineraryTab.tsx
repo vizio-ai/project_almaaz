@@ -46,6 +46,7 @@ export interface DetailedItineraryTabProps {
     longitude: number | null,
   ) => Promise<unknown>;
   onReorderActivities?: (dayId: string, orderedIds: string[]) => Promise<unknown>;
+  onReorderDays?: (orderedDayIds: string[]) => Promise<unknown>;
   isNew?: boolean;
   border?: string;
 
@@ -62,6 +63,8 @@ export interface DetailedItineraryTabProps {
   onDraftActivitiesChange?: (
     byDraftDayId: Record<string, { name: string; locationText: string | null }[]>,
   ) => void;
+  /** Called whenever draft accommodation changes so the parent can persist them on save. */
+  onDraftAccommodationChange?: (accommodation: Record<string, string | null>) => void;
 }
 
 function formatDraftDate(dateStr: string | null): string {
@@ -90,12 +93,14 @@ export function DetailedItineraryTab({
   onAddDay,
   onUpdateActivityLocation,
   onReorderActivities,
+  onReorderDays: _onReorderDays,
   isNew,
   border,
   secondary,
   draftDayNotes,
   onChangeDraftDayNote,
   onDraftActivitiesChange,
+  onDraftAccommodationChange,
   baseLocation,
 }: DetailedItineraryTabProps) {
   const textColor = useThemeColor('text');
@@ -181,7 +186,7 @@ export function DetailedItineraryTab({
 
       days.forEach((day) => {
         if (!next[day.id]) {
-          next[day.id] = { name: 'Portrait Firenze' };
+          next[day.id] = { name: null };
           changed = true;
         }
       });
@@ -203,12 +208,23 @@ export function DetailedItineraryTab({
     onDraftActivitiesChange(simplified);
   }, [mode, draftActivitiesByDay, onDraftActivitiesChange]);
 
+  // Notify parent of draft accommodation changes so it can save them on submit.
+  React.useEffect(() => {
+    if (mode !== 'create' || !onDraftAccommodationChange) return;
+    const result: Record<string, string | null> = {};
+    for (const [dayId, acc] of Object.entries(draftAccommodationByDay)) {
+      result[dayId] = acc.name ?? null;
+    }
+    onDraftAccommodationChange(result);
+  }, [mode, draftAccommodationByDay, onDraftAccommodationChange]);
+
   if (!days.length) {
     return null;
   }
 
   if (mode === 'edit') {
-    // Edit mode: real days/activities from Supabase, using DaySection + external collapse state
+    // Edit mode: real days/activities from Supabase
+    // TODO: day-level drag-and-drop reordering (onReorderDays) — deferred until backend behavior confirmed
     return (
       <>
         {days.map((day) => (
@@ -538,7 +554,7 @@ export function DetailedItineraryTab({
             }}
           />
         ) : (
-          <Modal visible transparent animationType="slide" onRequestClose={closeTimePicker}>
+          <Modal visible transparent animationType="none" onRequestClose={closeTimePicker}>
             <View style={styles.timeOverlay}>
               <TouchableOpacity
                 style={styles.timeScrim}

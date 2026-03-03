@@ -127,7 +127,7 @@ export function ManualItineraryScreen({
     useGetItinerary(itineraryId);
   const { manualItineraryRepository } = useManualItineraryDependencies();
   const { addActivity, updateActivity, removeActivity, updateActivityLocation, reorderActivities } = useActivityMutations(refresh);
-  const { addDay, updateDay, removeDay } = useDayMutations(itineraryId, refresh);
+  const { addDay, updateDay, removeDay, reorderDays } = useDayMutations(itineraryId, refresh);
   const { addTravelInfo, updateTravelInfo, removeTravelInfo } = useTravelInfoMutations(
     itineraryId,
     refresh,
@@ -144,6 +144,7 @@ export function ManualItineraryScreen({
   const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
   const [draftDayNotes, setDraftDayNotes] = useState<Record<string, string>>({});
   const draftActivitiesRef = useRef<Record<string, { name: string; locationText: string | null }[]>>({});
+  const draftAccommodationRef = useRef<Record<string, string | null>>({});
 
   // ── Shared state (create + edit) ──────────────────────────────────────────
   const [isPublic, setIsPublic] = useState(false);
@@ -297,6 +298,17 @@ export function ManualItineraryScreen({
                 }
               }
             }
+
+            // Save draft accommodations as hotel TravelInfo items
+            for (const day of draftDays) {
+              const hotelName = draftAccommodationRef.current[day.id];
+              if (hotelName?.trim()) {
+                await manualItineraryRepository.addTravelInfo(result.id, {
+                  type: 'hotel',
+                  title: hotelName.trim(),
+                });
+              }
+            }
           }
 
           onBack?.();
@@ -354,7 +366,6 @@ export function ManualItineraryScreen({
 
   // ── Derived values ────────────────────────────────────────────────────────
 
-  const destination = itinerary?.destination ?? '—';
   const startDate = itinerary?.startDate ?? null;
   const creatorName = itinerary?.creatorName ?? 'You';
   const creatorAvatarUrl = itinerary?.creatorAvatarUrl ?? null;
@@ -570,7 +581,7 @@ export function ManualItineraryScreen({
           onUpdateActivityLocation={updateActivityLocation}
           onReorderActivities={reorderActivities}
           isNew={isNew}
-        destination={isNew ? draftDestination : destination}
+          destination={isNew ? draftDestination : editDestination}
           draftDayNotes={draftDayNotes}
           onChangeDraftDayNote={(dayId, note) =>
             setDraftDayNotes((prev) => ({
@@ -581,6 +592,10 @@ export function ManualItineraryScreen({
           onDraftActivitiesChange={(acts) => {
             draftActivitiesRef.current = acts;
           }}
+          onDraftAccommodationChange={(acc) => {
+            draftAccommodationRef.current = acc;
+          }}
+          onReorderDays={reorderDays}
         />
 
         <View style={{ height: spacing['2xl'] }} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,6 +78,52 @@ export function TravelInfoFormModal({
   const [otherLocation, setOtherLocation] = useState('');
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [citySearch, setCitySearch] = useState('');
+
+  const sheetTranslateY = useRef(new Animated.Value(600)).current;
+  const airportSheetTranslateY = useRef(new Animated.Value(600)).current;
+  const citySheetTranslateY = useRef(new Animated.Value(600)).current;
+  const datePickerOpacity = useRef(new Animated.Value(0)).current;
+  const endDatePickerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
+    } else {
+      sheetTranslateY.setValue(600);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (showAirportPicker) {
+      Animated.spring(airportSheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
+    } else {
+      airportSheetTranslateY.setValue(600);
+    }
+  }, [showAirportPicker]);
+
+  useEffect(() => {
+    if (showCityPicker) {
+      Animated.spring(citySheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
+    } else {
+      citySheetTranslateY.setValue(600);
+    }
+  }, [showCityPicker]);
+
+  useEffect(() => {
+    if (showDatePicker) {
+      Animated.timing(datePickerOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    } else {
+      datePickerOpacity.setValue(0);
+    }
+  }, [showDatePicker]);
+
+  useEffect(() => {
+    if (showEndDatePicker) {
+      Animated.timing(endDatePickerOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    } else {
+      endDatePickerOpacity.setValue(0);
+    }
+  }, [showEndDatePicker]);
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const countryMap = useMemo(() => new Map(allCountries.map((c) => [c.isoCode, c])), [allCountries]);
@@ -278,7 +325,7 @@ export function TravelInfoFormModal({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
@@ -286,7 +333,7 @@ export function TravelInfoFormModal({
         style={styles.overlay}
       >
         <TouchableOpacity style={styles.scrimTouchable} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: surface }]}>
+        <Animated.View style={[styles.sheet, { backgroundColor: surface, transform: [{ translateY: sheetTranslateY }] }]}>
           {/* Drag handle */}
           <View style={[styles.handle, { backgroundColor: border }]} />
 
@@ -570,7 +617,7 @@ export function TravelInfoFormModal({
           <Modal
             visible={showDatePicker}
             transparent
-            animationType="fade"
+            animationType="none"
             onRequestClose={() => setShowDatePicker(false)}
           >
             <TouchableOpacity
@@ -578,6 +625,7 @@ export function TravelInfoFormModal({
               activeOpacity={1}
               onPress={() => setShowDatePicker(false)}
             >
+              <Animated.View style={{ opacity: datePickerOpacity }}>
               <TouchableOpacity activeOpacity={1} style={[styles.dateCard, { backgroundColor: surface }]}>
                 <AppText style={[styles.dateTitle, { color: textColor }]}>
                   {getDatePickerTitle(type, detail)}
@@ -608,6 +656,7 @@ export function TravelInfoFormModal({
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
+              </Animated.View>
             </TouchableOpacity>
           </Modal>
 
@@ -615,7 +664,7 @@ export function TravelInfoFormModal({
           <Modal
             visible={showEndDatePicker}
             transparent
-            animationType="fade"
+            animationType="none"
             onRequestClose={() => setShowEndDatePicker(false)}
           >
             <TouchableOpacity
@@ -623,6 +672,7 @@ export function TravelInfoFormModal({
               activeOpacity={1}
               onPress={() => setShowEndDatePicker(false)}
             >
+              <Animated.View style={{ opacity: endDatePickerOpacity }}>
               <TouchableOpacity activeOpacity={1} style={[styles.dateCard, { backgroundColor: surface }]}>
                 <AppText style={[styles.dateTitle, { color: textColor }]}>
                   {type === 'hotel'
@@ -655,6 +705,7 @@ export function TravelInfoFormModal({
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
+              </Animated.View>
             </TouchableOpacity>
           </Modal>
 
@@ -662,7 +713,7 @@ export function TravelInfoFormModal({
           <Modal
             visible={showAirportPicker}
             transparent
-            animationType="slide"
+            animationType="none"
             onRequestClose={() => setShowAirportPicker(false)}
           >
             <TouchableOpacity
@@ -670,7 +721,7 @@ export function TravelInfoFormModal({
               activeOpacity={1}
               onPress={() => setShowAirportPicker(false)}
             />
-            <View style={styles.locationSheet}>
+            <Animated.View style={[styles.locationSheet, { transform: [{ translateY: airportSheetTranslateY }] }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.sheetTitleRow}>
                 <AppText style={styles.sheetTitle}>Select departure airport</AppText>
@@ -730,14 +781,14 @@ export function TravelInfoFormModal({
                   ))
                 )}
               </ScrollView>
-            </View>
+            </Animated.View>
           </Modal>
 
           {/* City picker modal for "Other" */}
           <Modal
             visible={showCityPicker}
             transparent
-            animationType="slide"
+            animationType="none"
             onRequestClose={() => setShowCityPicker(false)}
           >
             <TouchableOpacity
@@ -745,7 +796,7 @@ export function TravelInfoFormModal({
               activeOpacity={1}
               onPress={() => setShowCityPicker(false)}
             />
-            <View style={styles.locationSheet}>
+            <Animated.View style={[styles.locationSheet, { transform: [{ translateY: citySheetTranslateY }] }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.sheetTitleRow}>
                 <AppText style={styles.sheetTitle}>Select location</AppText>
@@ -803,9 +854,9 @@ export function TravelInfoFormModal({
                   ))
                 )}
               </ScrollView>
-            </View>
+            </Animated.View>
           </Modal>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
