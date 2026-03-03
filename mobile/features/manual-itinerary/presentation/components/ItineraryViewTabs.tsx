@@ -68,7 +68,7 @@ export function ItineraryViewTabs({
 
   return (
     <>
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { borderColor: border }]}>
         {(['detailed', 'summary', 'map'] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
@@ -129,7 +129,14 @@ export function ItineraryViewTabs({
 }
 
 const styles = StyleSheet.create({
-  tabs: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
+  tabs: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.xl,
+    padding: 4,
+    borderRadius: radii.rounded,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   tab: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,

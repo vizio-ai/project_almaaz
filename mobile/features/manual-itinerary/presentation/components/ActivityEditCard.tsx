@@ -152,20 +152,33 @@ export function ActivityEditCard({
 
       {/* Footer buttons */}
       <View style={styles.footerRow}>
-        <View style={styles.footerCol}>
+        {/* Top row: Cancel + Save */}
+        <View style={styles.footerTopRow}>
+          <View style={styles.footerCol}>
+            <PrimaryButton
+              label="Cancel"
+              variant="outline"
+              onPress={onClose}
+              style={[styles.footerButton, styles.deleteButton]}
+            />
+          </View>
+          <View style={styles.footerCol}>
+            <PrimaryButton
+              label="Save"
+              onPress={onSave}
+              style={styles.footerButton}
+            />
+          </View>
+        </View>
+
+        {/* Bottom row: Delete full-width */}
+        <View style={styles.footerBottomRow}>
           <PrimaryButton
             label="Delete"
             variant="outline"
             onPress={onDelete}
             style={[styles.footerButton, styles.deleteButton]}
             labelStyle={styles.deleteLabel}
-          />
-        </View>
-        <View style={styles.footerCol}>
-          <PrimaryButton
-            label="Save"
-            onPress={onSave}
-            style={styles.footerButton}
           />
         </View>
       </View>
@@ -315,10 +328,17 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     alignSelf: 'stretch',
+    flexDirection: 'column',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  footerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+  },
+  footerBottomRow: {
+    marginTop: spacing.xs,
   },
   footerCol: {
     flex: 1,

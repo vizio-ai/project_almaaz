@@ -95,17 +95,20 @@ export function TripDateRangeInput({
 
   return (
     <View style={styles.row}>
-      <Ionicons name="calendar-outline" size={14} color={secondary} />
       {editable ? (
-        <TouchableOpacity onPress={openPicker} activeOpacity={0.7}>
+        <TouchableOpacity onPress={openPicker} activeOpacity={0.7} style={styles.rowTouchable}>
+          <Ionicons name="calendar-outline" size={14} color={secondary} />
           <AppText style={[styles.label, { color: (startDate || endDate) ? textColor : secondary }]}>
             {label}
           </AppText>
         </TouchableOpacity>
       ) : (
-        <AppText style={[styles.label, { color: secondary }]} numberOfLines={1}>
-          {label}
-        </AppText>
+        <>
+          <Ionicons name="calendar-outline" size={14} color={secondary} />
+          <AppText style={[styles.label, { color: secondary }]} numberOfLines={1}>
+            {label}
+          </AppText>
+        </>
       )}
 
       {/* ── Picker modal ─────────────────────────────────────────────── */}
@@ -175,6 +178,11 @@ export function TripDateRangeInput({
 
 const styles = StyleSheet.create({
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  rowTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,

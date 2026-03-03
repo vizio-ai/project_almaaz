@@ -40,7 +40,7 @@ export function ActivityCard({
     >
       {/* Left stripe for drag handle visual */}
       <View style={styles.leftStripe}>
-        <GripVertical size={14} color={"#A1A1AA"} strokeWidth={1.8} style={styles.gripIcon} />
+        <GripVertical size={14} color={"#71717A"} strokeWidth={1.8} style={styles.gripIcon} />
       </View>
 
       <View style={styles.content}>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gripIcon: {
-    opacity: 0.6,
+    
   },
   content: {
     gap: spacing.xs,

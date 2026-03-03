@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-native';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { Plus } from 'lucide-react-native';
 import {
   AppText,
@@ -155,13 +156,6 @@ export function DetailedItineraryTab({
           next[day.id] = [
             {
               id: `${baseId}1`,
-              name: '',
-              activityType: 'park',
-              locationText: null,
-              timeValue: null,
-            },
-            {
-              id: `${baseId}2`,
               name: '',
               activityType: 'park',
               locationText: null,
@@ -386,19 +380,6 @@ export function DetailedItineraryTab({
     setEditingActivityId(null);
   };
 
-  const moveDraftActivityDown = (dayId: string, activityId: string) => {
-    setDraftActivitiesByDay((prev) => {
-      const list = prev[dayId];
-      if (!list || list.length < 2) return prev;
-      const index = list.findIndex((a) => a.id === activityId);
-      if (index === -1 || index === list.length - 1) return prev;
-      const nextList = [...list];
-      const [item] = nextList.splice(index, 1);
-      nextList.splice(index + 1, 0, item);
-      return { ...prev, [dayId]: nextList };
-    });
-  };
-
   return (
     <>
       {days.map((day) => {
@@ -456,61 +437,77 @@ export function DetailedItineraryTab({
               )}
 
               {/* Activities */}
-              {dayActivities.map((act, idx) => {
-                const id = act.id;
-                const isEditing = editingActivityId === id;
+              <DraggableFlatList
+                data={dayActivities}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                activationDistance={10}
+                contentContainerStyle={{ gap: spacing.md }}
+                onDragEnd={({ data }) => {
+                  setDraftActivitiesByDay((prev) => ({
+                    ...prev,
+                    [day.id]: data,
+                  }));
+                }}
+                renderItem={({ item: act, drag }) => {
+                  const id = act.id;
+                  const isEditing = editingActivityId === id;
 
-                if (isEditing) {
+                  if (isEditing) {
+                    return (
+                      <ActivityEditCard
+                        key={id}
+                        title={act?.name ?? 'Visit Nakano Dori'}
+                        name={act?.name ?? ''}
+                        activityType={act?.activityType ?? 'park'}
+                        timeValue={act?.timeValue ?? ''}
+                        placeValue={act?.locationText ?? ''}
+                        onChangeName={(value) => updateDraftActivityName(id, value)}
+                        onChangeActivityType={(type) => updateDraftActivityType(id, type)}
+                        onPressTime={() => openTimePicker(id)}
+                        onPressPlace={() => openLocationModal(id, act?.locationText ?? '')}
+                        onDelete={() => removeDraftActivity(day.id, id)}
+                        onSave={() => setEditingActivityId(null)}
+                        onClose={() => setEditingActivityId(null)}
+                      />
+                    );
+                  }
+
                   return (
-                    <ActivityEditCard
-                      key={id}
-                      title={act?.name ?? 'Visit Nakano Dori'}
-                      name={act?.name ?? ''}
-                      activityType={act?.activityType ?? 'park'}
-                      timeValue={act?.timeValue ?? ''}
-                      placeValue={act?.locationText ?? ''}
-                      onChangeName={(value) => updateDraftActivityName(id, value)}
-                      onChangeActivityType={(type) => updateDraftActivityType(id, type)}
-                      onPressTime={() => openTimePicker(id)}
-                      onPressPlace={() => openLocationModal(id, act?.locationText ?? '')}
-                      onDelete={() => removeDraftActivity(day.id, id)}
-                      onSave={() => setEditingActivityId(null)}
-                      onClose={() => setEditingActivityId(null)}
-                    />
+                    <ScaleDecorator>
+                      <ActivityCard
+                        key={id}
+                        title={act.name || 'Visit Nakano Dori'}
+                        tags={[
+                          {
+                            label:
+                              act.activityType === 'museum'
+                                ? 'Museum'
+                                : act.activityType === 'food'
+                                ? 'Food & Drink'
+                                : act.activityType === 'shopping'
+                                ? 'Shopping'
+                                : act.activityType === 'historic'
+                                ? 'Historic place'
+                                : act.activityType === 'beach'
+                                ? 'Beach'
+                                : 'Park',
+                            icon: 'type',
+                          },
+                          // Seçilen konum (yoksa placeholder)
+                          { label: act.locationText || 'Add location', icon: 'location' },
+                          // Seçilen zaman (yoksa placeholder)
+                          { label: act.timeValue || 'Add time', icon: 'time' },
+                        ]}
+                        onPress={() => setEditingActivityId(id)}
+                        onPressEdit={() => setEditingActivityId(id)}
+                        // Long-press on the card starts drag
+                        onMoveDown={drag}
+                      />
+                    </ScaleDecorator>
                   );
-                }
-
-                return (
-                  <ActivityCard
-                    key={id}
-                    title={act.name || 'Visit Nakano Dori'}
-                    tags={[
-                      {
-                        label:
-                          act.activityType === 'museum'
-                            ? 'Museum'
-                            : act.activityType === 'food'
-                            ? 'Food & Drink'
-                            : act.activityType === 'shopping'
-                            ? 'Shopping'
-                            : act.activityType === 'historic'
-                            ? 'Historic place'
-                            : act.activityType === 'beach'
-                            ? 'Beach'
-                            : 'Park',
-                        icon: 'type',
-                      },
-                      // Seçilen konum (yoksa placeholder)
-                      { label: act.locationText || 'Add location', icon: 'location' },
-                      // Seçilen zaman (yoksa placeholder)
-                      { label: act.timeValue || 'Add time', icon: 'time' },
-                    ]}
-                    onPress={() => setEditingActivityId(id)}
-                    onPressEdit={() => setEditingActivityId(id)}
-                    onMoveDown={() => moveDraftActivityDown(day.id, id)}
-                  />
-                );
-              })}
+                }}
+              />
 
               {/* Add another activity */}
               <AddAnotherActivityButton

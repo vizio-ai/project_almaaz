@@ -139,6 +139,8 @@ export function ManualItineraryScreen({
   const [draftDestination, setDraftDestination] = useState('');
   const [draftStartDate, setDraftStartDate] = useState<Date | null>(null);
   const [draftEndDate, setDraftEndDate] = useState<Date | null>(null);
+  const [editStartDate, setEditStartDate] = useState<Date | null>(null);
+  const [editEndDate, setEditEndDate] = useState<Date | null>(null);
   const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
   const [draftDayNotes, setDraftDayNotes] = useState<Record<string, string>>({});
   const draftActivitiesRef = useRef<Record<string, { name: string; locationText: string | null }[]>>({});
@@ -207,6 +209,8 @@ export function ManualItineraryScreen({
     setTripNotes(itinerary.tripNotes ?? '');
     setIsPublic(itinerary.isPublic ?? false);
     setIsClonable(itinerary.isClonable ?? false);
+    setEditStartDate(itinerary.startDate ? new Date(itinerary.startDate) : null);
+    setEditEndDate(itinerary.endDate ? new Date(itinerary.endDate) : null);
   }, [itinerary?.id]);
 
   const textColor = useThemeColor('text');
@@ -294,6 +298,8 @@ export function ManualItineraryScreen({
         }
       } else {
         const result = await manualItineraryRepository.update(itineraryId!, {
+          startDate: editStartDate ? toISODate(editStartDate) : null,
+          endDate: editEndDate ? toISODate(editEndDate) : null,
           tripNotes: tripNotes || null,
           isPublic,
           isClonable,
@@ -468,8 +474,10 @@ export function ManualItineraryScreen({
               />
             ) : (startDate || itinerary?.endDate) ? (
               <TripDateRangeInput
-                startDate={null}
-                endDate={null}
+                startDate={editStartDate}
+                endDate={editEndDate}
+                onStartDate={setEditStartDate}
+                onEndDate={setEditEndDate}
                 displayText={formatDateRange(startDate, itinerary?.endDate ?? null)}
               />
             ) : null}
