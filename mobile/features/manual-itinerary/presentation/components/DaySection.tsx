@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Trash2, ChevronDown, ChevronUp, Pencil, X, MapPin, Check } from 'lucide-react-native';
 import { AppText, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
@@ -130,13 +130,13 @@ export function DaySection({
         </AppText>
         <View style={styles.dayHeaderRight}>
           <TouchableOpacity onPress={() => onRemoveDay(day.id)} hitSlop={8}>
-            <Ionicons name="trash-outline" size={16} color={secondary} />
+            <Trash2 size={16} color={secondary} strokeWidth={1.8} />
           </TouchableOpacity>
-          <Ionicons
-            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-            size={20}
-            color={secondary}
-          />
+          {isCollapsed ? (
+            <ChevronDown size={20} color={secondary} strokeWidth={1.8} />
+          ) : (
+            <ChevronUp size={20} color={secondary} strokeWidth={1.8} />
+          )}
         </View>
       </TouchableOpacity>
 
@@ -150,7 +150,7 @@ export function DaySection({
                 <AppText style={[styles.noteLabel, { color: secondary }]}>Note</AppText>
                 {!isEditingNotes && (
                   <TouchableOpacity onPress={() => setIsEditingNotes(true)} hitSlop={8}>
-                    <Ionicons name="pencil-outline" size={15} color={secondary} />
+                    <Pencil size={15} color={secondary} strokeWidth={1.8} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -207,7 +207,7 @@ export function DaySection({
                     {act.name}
                   </AppText>
                   <TouchableOpacity onPress={cancelEdit} hitSlop={8}>
-                    <Ionicons name="close" size={18} color={secondary} />
+                    <X size={18} color={secondary} strokeWidth={1.8} />
                   </TouchableOpacity>
                 </View>
                 <TextInput
@@ -260,7 +260,7 @@ export function DaySection({
                   {act.locationText ? (
                     <View style={styles.tagsRow}>
                       <View style={[styles.tag, { backgroundColor: border }]}>
-                        <Ionicons name="location-outline" size={11} color={secondary} />
+                        <MapPin size={11} color={secondary} strokeWidth={1.8} />
                         <AppText style={[styles.tagLabel, { color: secondary }]}>
                           {act.locationText}
                         </AppText>
@@ -270,7 +270,7 @@ export function DaySection({
                 </View>
 
                 <TouchableOpacity onPress={() => startEdit(act)} hitSlop={8}>
-                  <Ionicons name="pencil-outline" size={16} color={secondary} />
+                  <Pencil size={16} color={secondary} strokeWidth={1.8} />
                 </TouchableOpacity>
               </View>
             ),
@@ -292,7 +292,7 @@ export function DaySection({
                 {busy ? (
                   <ActivityIndicator size="small" color={accent} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={accent} />
+                  <Check size={20} color={accent} strokeWidth={1.8} />
                 )}
               </TouchableOpacity>
             )}

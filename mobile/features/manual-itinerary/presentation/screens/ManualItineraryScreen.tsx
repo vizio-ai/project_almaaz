@@ -40,6 +40,7 @@ import type {
   AddTravelInfoParams,
   UpdateTravelInfoParams,
 } from '../../domain/repository/ManualItineraryRepository';
+import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 
 type ViewTab = 'detailed' | 'summary' | 'map';
 
@@ -85,6 +86,30 @@ function formatDateRange(startDate: string | null, endDate: string | null): stri
   return `${month} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${year}`;
 }
 
+function buildDraftDays(start: Date | null, end: Date | null): ItineraryDay[] {
+  if (!start || !end) return [];
+
+  const days: ItineraryDay[] = [];
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+
+  let index = 1;
+  for (
+    let d = new Date(startDate);
+    d <= endDate;
+    d = new Date(d.getTime() + 24 * 60 * 60 * 1000), index += 1
+  ) {
+    days.push({
+      id: `draft-${index}`,
+      dayNumber: index,
+      date: toISODate(d),
+      notes: null,
+    });
+  }
+
+  return days;
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function ManualItineraryScreen({
@@ -115,6 +140,7 @@ export function ManualItineraryScreen({
   const [draftStartDate, setDraftStartDate] = useState<Date | null>(null);
   const [draftEndDate, setDraftEndDate] = useState<Date | null>(null);
   const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
+  const [draftDayNotes, setDraftDayNotes] = useState<Record<string, string>>({});
 
   // ── Shared state (create + edit) ──────────────────────────────────────────
   const [isPublic, setIsPublic] = useState(false);
@@ -199,6 +225,11 @@ export function ManualItineraryScreen({
     });
   }, []);
 
+  const effectiveDays: ItineraryDay[] = React.useMemo(
+    () => (isNew ? buildDraftDays(draftStartDate, draftEndDate) : days),
+    [isNew, draftStartDate, draftEndDate, days],
+  );
+
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -222,7 +253,21 @@ export function ManualItineraryScreen({
             endDatetime: t.endDatetime ?? null,
           })),
         });
-        if (result.success) onBack?.();
+        if (result.success && result.id) {
+          // Create concrete days in Supabase based on selected date range
+          if (draftStartDate && draftEndDate) {
+            const draftDays = buildDraftDays(draftStartDate, draftEndDate);
+            for (const day of draftDays) {
+              const note = draftDayNotes[day.id]?.trim() || null;
+              await manualItineraryRepository.addDay(result.id, {
+                date: day.date,
+                notes: note,
+              });
+            }
+          }
+
+          onBack?.();
+        }
       } else {
         const result = await manualItineraryRepository.update(itineraryId!, {
           tripNotes: tripNotes || null,
@@ -246,6 +291,7 @@ export function ManualItineraryScreen({
     isPublic,
     isClonable,
     manualItineraryRepository,
+    draftDayNotes,
     refresh,
     onBack,
   ]);
@@ -279,7 +325,7 @@ export function ManualItineraryScreen({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <View style={[styles.root, { backgroundColor: surfaceAlt }]}>
+    <View style={[styles.root, { backgroundColor: background }]}>
       {/* ── Dora app top bar (Figma style) ───────────────────────────────── */}
       {showHeader && (
         <View style={styles.topBarContainer}>
@@ -454,7 +500,7 @@ export function ManualItineraryScreen({
         <ItineraryViewTabs
           viewTab={viewTab}
           onChangeTab={setViewTab}
-          days={days}
+          days={effectiveDays}
           activitiesByDay={activitiesByDay}
           collapsedDays={collapsedDays}
           onToggleDay={toggleDay}
@@ -465,6 +511,13 @@ export function ManualItineraryScreen({
           onRemoveDay={removeDay}
           onAddDay={addDay}
           isNew={isNew}
+          draftDayNotes={draftDayNotes}
+          onChangeDraftDayNote={(dayId, note) =>
+            setDraftDayNotes((prev) => ({
+              ...prev,
+              [dayId]: note,
+            }))
+          }
         />
 
         <View style={{ height: spacing['2xl'] }} />

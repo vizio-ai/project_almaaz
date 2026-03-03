@@ -177,7 +177,12 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
       const { data, error } = await supabase
         .from('itinerary_days')
-        .insert({ itinerary_id: itineraryId, day_number: nextDayNumber, date: params.date ?? null })
+        .insert({
+          itinerary_id: itineraryId,
+          day_number: nextDayNumber,
+          date: params.date ?? null,
+          notes: params.notes ?? null,
+        })
         .select('id')
         .single();
 

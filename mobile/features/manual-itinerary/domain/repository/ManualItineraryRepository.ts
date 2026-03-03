@@ -41,6 +41,8 @@ export interface ItineraryWithDetails {
 export interface AddDayParams {
   /** ISO date string (YYYY-MM-DD). Optional — day may be dateless. */
   date?: string | null;
+  /** Optional free-form notes for this day (Figma: "Add a note"). */
+  notes?: string | null;
 }
 
 export interface UpdateDayParams {

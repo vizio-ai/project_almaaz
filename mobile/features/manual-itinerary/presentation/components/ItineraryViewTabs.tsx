@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { AppText, useThemeColor, spacing, radii, typography } from '@shared/ui-kit';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
-import { DaySection } from './DaySection';
+import { DetailedItineraryTab } from './DetailedItineraryTab';
+import { SummaryItineraryTab } from './SummaryItineraryTab';
+import { MapItineraryTab } from './MapItineraryTab';
 
 export type ItineraryViewTab = 'detailed' | 'summary' | 'map';
 
@@ -22,6 +23,9 @@ export interface ItineraryViewTabsProps {
   onRemoveDay: (dayId: string) => Promise<unknown>;
   onAddDay: () => Promise<unknown>;
   isNew: boolean;
+  /** Create mode only: local draft notes keyed by day.id (e.g. "draft-1"). */
+  draftDayNotes?: Record<string, string>;
+  onChangeDraftDayNote?: (dayId: string, note: string) => void;
 }
 
 export function ItineraryViewTabs({
@@ -38,6 +42,8 @@ export function ItineraryViewTabs({
   onRemoveDay,
   onAddDay,
   isNew,
+  draftDayNotes,
+  onChangeDraftDayNote,
 }: ItineraryViewTabsProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -71,6 +77,7 @@ export function ItineraryViewTabs({
 
       {viewTab === 'detailed' && (
         <DetailedItineraryTab
+          mode={isNew ? 'create' : 'edit'}
           days={days}
           activitiesByDay={activitiesByDay}
           collapsedDays={collapsedDays}
@@ -84,92 +91,14 @@ export function ItineraryViewTabs({
           isNew={isNew}
           border={border}
           secondary={secondary}
+          draftDayNotes={draftDayNotes}
+          onChangeDraftDayNote={onChangeDraftDayNote}
         />
       )}
 
       {viewTab === 'summary' && <SummaryItineraryTab secondary={secondary} />}
       {viewTab === 'map' && <MapItineraryTab secondary={secondary} />}
     </>
-  );
-}
-
-interface DetailedItineraryTabProps {
-  days: ItineraryDay[];
-  activitiesByDay: Record<string, Activity[]>;
-  collapsedDays: Set<string>;
-  onToggleDay: (dayId: string) => void;
-  onAddActivity: (dayId: string, name: string) => Promise<unknown>;
-  onEditActivity: (activityId: string, name: string) => Promise<unknown>;
-  onRemoveActivity: (activityId: string) => Promise<unknown>;
-  onUpdateDay: (dayId: string, notes: string | null) => Promise<unknown>;
-  onRemoveDay: (dayId: string) => Promise<unknown>;
-  onAddDay: () => Promise<unknown>;
-  isNew: boolean;
-  border: string;
-  secondary: string;
-}
-
-function DetailedItineraryTab({
-  days,
-  activitiesByDay,
-  collapsedDays,
-  onToggleDay,
-  onAddActivity,
-  onEditActivity,
-  onRemoveActivity,
-  onUpdateDay,
-  onRemoveDay,
-  onAddDay,
-  isNew,
-  border,
-  secondary,
-}: DetailedItineraryTabProps) {
-  return (
-    <>
-      {days.map((day) => (
-        <DaySection
-          key={day.id}
-          day={day}
-          dayActivities={activitiesByDay[day.id] ?? []}
-          isCollapsed={collapsedDays.has(day.id)}
-          onToggle={() => onToggleDay(day.id)}
-          onAddActivity={onAddActivity}
-          onEditActivity={onEditActivity}
-          onRemoveActivity={onRemoveActivity}
-          onUpdateDay={onUpdateDay}
-          onRemoveDay={onRemoveDay}
-        />
-      ))}
-
-      <TouchableOpacity
-        style={[styles.addDayBtn, { borderColor: border }]}
-        onPress={onAddDay}
-        disabled={isNew}
-      >
-        <Ionicons name="add" size={18} color={secondary} />
-        <AppText style={[styles.addDayLabel, { color: secondary }]}>Add Day</AppText>
-      </TouchableOpacity>
-    </>
-  );
-}
-
-function SummaryItineraryTab({ secondary }: { secondary: string }) {
-  return (
-    <View style={styles.placeholderBlock}>
-      <AppText style={[styles.placeholderText, { color: secondary }]}>
-        Summary view — coming soon
-      </AppText>
-    </View>
-  );
-}
-
-function MapItineraryTab({ secondary }: { secondary: string }) {
-  return (
-    <View style={styles.placeholderBlock}>
-      <AppText style={[styles.placeholderText, { color: secondary }]}>
-        Map view — coming soon
-      </AppText>
-    </View>
   );
 }
 
@@ -181,18 +110,5 @@ const styles = StyleSheet.create({
     borderRadius: radii.rounded,
   },
   tabLabel: { ...typography.caption, fontWeight: typography.weights.medium },
-  addDayBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    marginBottom: spacing.xl,
-  },
-  addDayLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  placeholderBlock: { paddingVertical: spacing['2xl'], alignItems: 'center' },
-  placeholderText: { ...typography.sm },
 });
 

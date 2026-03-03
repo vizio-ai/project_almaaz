@@ -1,5 +1,5 @@
 // Theme
-export { colors, typography, radii, spacing } from './theme';
+export { colors, typography, radii, spacing, elevatedCard } from './theme';
 export type { ColorScheme, ColorToken } from './theme';
 
 // Hooks
@@ -45,3 +45,9 @@ export { CustomSwitch } from './components/CustomSwitch';
 export type { CustomSwitchProps } from './components/CustomSwitch';
 export { ToggleRow } from './components/ToggleRow';
 export type { ToggleRowProps } from './components/ToggleRow';
+export { AccordionSection } from './components/AccordionSection';
+export type { AccordionSectionProps } from './components/AccordionSection';
+export { InfoCard } from './components/InfoCard';
+export type { InfoCardProps } from './components/InfoCard';
+export { NoteCard } from './components/NoteCard';
+export type { NoteCardProps } from './components/NoteCard';
