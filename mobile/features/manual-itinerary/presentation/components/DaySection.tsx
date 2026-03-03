@@ -7,9 +7,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Trash2, ChevronDown, ChevronUp, Pencil, X, MapPin, Check } from 'lucide-react-native';
-import { AppText, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { AppText, PrimaryButton, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { NoteCreateCard } from './NoteCreateCard';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
+import { LocationMapModal } from './LocationMapModal';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
@@ -34,6 +36,15 @@ export interface DaySectionProps {
   onRemoveActivity: (activityId: string) => Promise<unknown>;
   onUpdateDay: (dayId: string, notes: string | null) => Promise<unknown>;
   onRemoveDay: (dayId: string) => Promise<unknown>;
+  /** Called when user picks / clears a location for an activity. */
+  onUpdateActivityLocation?: (
+    activityId: string,
+    locationText: string | null,
+    latitude: number | null,
+    longitude: number | null,
+  ) => Promise<unknown>;
+  /** Base trip location used to seed the location search query. */
+  baseLocation?: string;
 }
 
 export function DaySection({
@@ -46,6 +57,8 @@ export function DaySection({
   onRemoveActivity,
   onUpdateDay,
   onRemoveDay,
+  onUpdateActivityLocation,
+  baseLocation,
 }: DaySectionProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -58,6 +71,11 @@ export function DaySection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // ── Location modal state ────────────────────────────────────────────────────
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [locationModalActivityId, setLocationModalActivityId] = useState<string | null>(null);
+  const [locationModalInitialQuery, setLocationModalInitialQuery] = useState('');
 
   // ── Day note state ─────────────────────────────────────────────────────────
   const [dayNotes, setDayNotes] = useState(day.notes ?? '');
@@ -121,6 +139,30 @@ export function DaySection({
     setEditingName('');
   };
 
+  // ── Location modal handlers ─────────────────────────────────────────────────
+
+  const openLocationModal = useCallback(
+    (act: Activity) => {
+      const current = act.locationText ?? '';
+      const fallback = baseLocation && baseLocation !== '—' ? baseLocation : '';
+      setLocationModalActivityId(act.id);
+      setLocationModalInitialQuery(current || fallback);
+      setLocationModalVisible(true);
+    },
+    [baseLocation],
+  );
+
+  const handleSelectLocation = useCallback(
+    async (name: string, lat?: number | null, lng?: number | null) => {
+      const actId = locationModalActivityId;
+      setLocationModalVisible(false);
+      setLocationModalActivityId(null);
+      if (!actId || !onUpdateActivityLocation) return;
+      await onUpdateActivityLocation(actId, name || null, lat ?? null, lng ?? null);
+    },
+    [locationModalActivityId, onUpdateActivityLocation],
+  );
+
   return (
     <View style={styles.daySection}>
       {/* ── Day header ──────────────────────────────────────────────────── */}
@@ -144,54 +186,35 @@ export function DaySection({
       {!isCollapsed && (
         <>
           {/* ── Note section ──────────────────────────────────────────── */}
-          {isEditingNotes || dayNotes.length > 0 ? (
+          {!dayNotes && !isEditingNotes ? (
+            /* State 1: No note → Add Note button */
+            <PrimaryButton
+              variant="outline"
+              label="Add Note"
+              onPress={() => setIsEditingNotes(true)}
+              style={styles.addNoteBtn}
+            />
+          ) : isEditingNotes ? (
+            /* State 2: Creating or editing → NoteCreateCard */
+            <NoteCreateCard
+              value={dayNotes}
+              onChange={setDayNotes}
+              onSave={handleNoteSave}
+              isSaving={notesBusy}
+            />
+          ) : (
+            /* State 3: Has note, viewing → NoteCard */
             <View style={[styles.noteCard, { backgroundColor: surface, borderColor: border }]}>
               <View style={styles.noteCardRow}>
                 <AppText style={[styles.noteLabel, { color: secondary }]}>Note</AppText>
-                {!isEditingNotes && (
-                  <TouchableOpacity onPress={() => setIsEditingNotes(true)} hitSlop={8}>
-                    <Pencil size={15} color={secondary} strokeWidth={1.8} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={() => setIsEditingNotes(true)} hitSlop={8}>
+                  <Pencil size={15} color={secondary} strokeWidth={1.8} />
+                </TouchableOpacity>
               </View>
-              {isEditingNotes ? (
-                <>
-                  <TextInput
-                    style={[styles.noteInput, { color: textColor }]}
-                    placeholder="Add a note for this day…"
-                    placeholderTextColor={secondary}
-                    multiline
-                    value={dayNotes}
-                    onChangeText={setDayNotes}
-                    autoFocus
-                  />
-                  <TouchableOpacity
-                    onPress={handleNoteSave}
-                    disabled={notesBusy}
-                    style={styles.noteSaveBtn}
-                  >
-                    {notesBusy ? (
-                      <ActivityIndicator size="small" color={accent} />
-                    ) : (
-                      <AppText style={[styles.noteSaveLabel, { color: accent }]}>Save</AppText>
-                    )}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <AppText style={[styles.noteText, { color: textColor }]} numberOfLines={4}>
-                  {dayNotes}
-                </AppText>
-              )}
+              <AppText style={[styles.noteText, { color: textColor }]} numberOfLines={4}>
+                {dayNotes}
+              </AppText>
             </View>
-          ) : (
-            /* "Add a note" right-aligned link */
-            <TouchableOpacity
-              style={styles.addNoteRow}
-              onPress={() => setIsEditingNotes(true)}
-              hitSlop={8}
-            >
-              <AppText style={[styles.addNoteLabel, { color: secondary }]}>Add a note</AppText>
-            </TouchableOpacity>
           )}
 
           {/* ── Activity list ──────────────────────────────────────────── */}
@@ -221,6 +244,22 @@ export function DaySection({
                   onSubmitEditing={handleEdit}
                   selectTextOnFocus
                 />
+                {/* Location row */}
+                {onUpdateActivityLocation && (
+                  <TouchableOpacity
+                    style={[styles.locationRow, { borderColor: border }]}
+                    onPress={() => openLocationModal(act)}
+                    hitSlop={4}
+                  >
+                    <MapPin size={14} color={act.locationText ? accent : secondary} strokeWidth={1.8} />
+                    <AppText
+                      style={[styles.locationLabel, { color: act.locationText ? textColor : secondary }]}
+                      numberOfLines={1}
+                    >
+                      {act.locationText || 'Add location'}
+                    </AppText>
+                  </TouchableOpacity>
+                )}
                 <View style={styles.editCardActions}>
                   <TouchableOpacity
                     onPress={() => handleRemoveActivity(act.id)}
@@ -299,6 +338,18 @@ export function DaySection({
           </View>
         </>
       )}
+
+      {/* ── Location map modal ──────────────────────────────────────────── */}
+      <LocationMapModal
+        visible={locationModalVisible}
+        initialQuery={locationModalInitialQuery}
+        onSelect={handleSelectLocation}
+        onClose={() => {
+          setLocationModalVisible(false);
+          setLocationModalActivityId(null);
+        }}
+        allowPointPick
+      />
     </View>
   );
 }
@@ -317,13 +368,9 @@ const styles = StyleSheet.create({
   dayTitle: { ...typography.base, fontWeight: typography.weights.semibold, flex: 1 },
 
   // ── Note section ───────────────────────────────────────────────────────────
-  addNoteRow: {
-    alignSelf: 'flex-end',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.xs,
+  addNoteBtn: {
     marginBottom: spacing.sm,
   },
-  addNoteLabel: { ...typography.caption },
   noteCard: {
     borderWidth: 1,
     borderRadius: radii.md,
@@ -338,10 +385,6 @@ const styles = StyleSheet.create({
   },
   noteLabel: { ...typography.caption, fontWeight: typography.weights.medium },
   noteText: { ...typography.sm },
-  noteInput: { ...typography.sm, minHeight: 72, paddingVertical: spacing.xs },
-  noteSaveBtn: { alignSelf: 'flex-end', paddingTop: spacing.sm },
-  noteSaveLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-
   // ── Edit card ──────────────────────────────────────────────────────────────
   editCard: {
     borderWidth: 1,
@@ -363,6 +406,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     ...typography.sm,
     marginBottom: spacing.md,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  locationLabel: {
+    ...typography.caption,
+    flex: 1,
   },
   editCardActions: {
     flexDirection: 'row',

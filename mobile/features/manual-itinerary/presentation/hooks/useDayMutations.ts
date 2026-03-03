@@ -29,10 +29,13 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
 
   const updateDay = useCallback(
     async (dayId: string, notes: string | null) => {
-      // No refresh — caller handles UI state to avoid losing cursor focus
-      return updateUseCase.execute(dayId, notes);
+      const result = await updateUseCase.execute(dayId, notes);
+      // Delayed refresh: avoids stealing TextInput focus while keeping state in sync
+      // with subsequent activity add/remove operations.
+      if (result.success) setTimeout(refresh, 300);
+      return result;
     },
-    [updateUseCase],
+    [updateUseCase, refresh],
   );
 
   const removeDay = useCallback(

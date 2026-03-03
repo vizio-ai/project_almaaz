@@ -22,12 +22,21 @@ export interface ItineraryViewTabsProps {
   onUpdateDay: (dayId: string, notes: string | null) => Promise<unknown>;
   onRemoveDay: (dayId: string) => Promise<unknown>;
   onAddDay: () => Promise<unknown>;
+  onUpdateActivityLocation: (
+    activityId: string,
+    locationText: string | null,
+    latitude: number | null,
+    longitude: number | null,
+  ) => Promise<unknown>;
   isNew: boolean;
   /** Current trip destination text (used as base location for activity pickers in create mode). */
   destination?: string;
   /** Create mode only: local draft notes keyed by day.id (e.g. "draft-1"). */
   draftDayNotes?: Record<string, string>;
   onChangeDraftDayNote?: (dayId: string, note: string) => void;
+  onDraftActivitiesChange?: (
+    byDraftDayId: Record<string, { name: string; locationText: string | null }[]>,
+  ) => void;
 }
 
 export function ItineraryViewTabs({
@@ -43,10 +52,12 @@ export function ItineraryViewTabs({
   onUpdateDay,
   onRemoveDay,
   onAddDay,
+  onUpdateActivityLocation,
   isNew,
   destination,
   draftDayNotes,
   onChangeDraftDayNote,
+  onDraftActivitiesChange,
 }: ItineraryViewTabsProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -91,17 +102,25 @@ export function ItineraryViewTabs({
           onUpdateDay={onUpdateDay}
           onRemoveDay={onRemoveDay}
           onAddDay={onAddDay}
+          onUpdateActivityLocation={onUpdateActivityLocation}
           isNew={isNew}
           border={border}
           secondary={secondary}
           baseLocation={destination}
           draftDayNotes={draftDayNotes}
           onChangeDraftDayNote={onChangeDraftDayNote}
+          onDraftActivitiesChange={onDraftActivitiesChange}
         />
       )}
 
       {viewTab === 'summary' && <SummaryItineraryTab secondary={secondary} />}
-      {viewTab === 'map' && <MapItineraryTab secondary={secondary} />}
+      {viewTab === 'map' && (
+        <MapItineraryTab
+          secondary={secondary}
+          days={days}
+          activitiesByDay={activitiesByDay}
+        />
+      )}
     </>
   );
 }

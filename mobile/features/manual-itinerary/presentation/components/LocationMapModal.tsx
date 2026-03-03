@@ -69,7 +69,12 @@ function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: bo
 export interface LocationMapModalProps {
   visible: boolean;
   initialQuery?: string;
-  onSelect: (locationName: string) => void;
+  /**
+   * Called when the user confirms a location.
+   * `latitude` and `longitude` are provided when the user searched or picked
+   * a point (allowPointPick=true). For trip-level free-text only mode they are null.
+   */
+  onSelect: (locationName: string, latitude?: number | null, longitude?: number | null) => void;
   onClose: () => void;
   /** When true, user can pick an exact point on the map (used for activities). */
   allowPointPick?: boolean;
@@ -206,7 +211,7 @@ export function LocationMapModal({
     // Trip-level usage: only allow free-text / search-based label, no map picking.
     if (!allowPointPick) {
       if (typed) {
-        onSelect(typed);
+        onSelect(typed, null, null);
       }
       onClose();
       return;
@@ -214,7 +219,7 @@ export function LocationMapModal({
 
     // If user never selected a point but typed a query, just use the typed text.
     if ((lat == null || lng == null) && typed) {
-      onSelect(typed);
+      onSelect(typed, null, null);
       onClose();
       return;
     }
@@ -240,7 +245,7 @@ export function LocationMapModal({
         data?.display_name ||
         [city, country].filter(Boolean).join(', ') ||
         `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
-      onSelect(name);
+      onSelect(name, lat, lng);
       onClose();
     } finally {
       setSelecting(false);

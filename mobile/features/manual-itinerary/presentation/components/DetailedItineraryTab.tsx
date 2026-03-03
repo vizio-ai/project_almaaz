@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-nativ
 import { Plus } from 'lucide-react-native';
 import {
   AppText,
+  PrimaryButton,
   useThemeColor,
   spacing,
   radii,
@@ -10,6 +11,7 @@ import {
   AccordionSection,
   NoteCard,
 } from '@shared/ui-kit';
+import { NoteCreateCard } from './NoteCreateCard';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
@@ -36,6 +38,12 @@ export interface DetailedItineraryTabProps {
   onUpdateDay?: (dayId: string, notes: string | null) => Promise<unknown>;
   onRemoveDay?: (dayId: string) => Promise<unknown>;
   onAddDay?: () => Promise<unknown>;
+  onUpdateActivityLocation?: (
+    activityId: string,
+    locationText: string | null,
+    latitude: number | null,
+    longitude: number | null,
+  ) => Promise<unknown>;
   isNew?: boolean;
   border?: string;
 
@@ -48,6 +56,10 @@ export interface DetailedItineraryTabProps {
   // Create mode props (draft-only)
   draftDayNotes?: Record<string, string>;
   onChangeDraftDayNote?: (dayId: string, note: string) => void;
+  /** Called whenever draft activities change so the parent can persist them on save. */
+  onDraftActivitiesChange?: (
+    byDraftDayId: Record<string, { name: string; locationText: string | null }[]>,
+  ) => void;
 }
 
 function formatDraftDate(dateStr: string | null): string {
@@ -74,11 +86,13 @@ export function DetailedItineraryTab({
   onUpdateDay,
   onRemoveDay,
   onAddDay,
+  onUpdateActivityLocation,
   isNew,
   border,
   secondary,
   draftDayNotes,
   onChangeDraftDayNote,
+  onDraftActivitiesChange,
   baseLocation,
 }: DetailedItineraryTabProps) {
   const textColor = useThemeColor('text');
@@ -119,6 +133,7 @@ export function DetailedItineraryTab({
     React.useState<string | null>(null);
   const [accommodationLocationInitialQuery, setAccommodationLocationInitialQuery] =
     React.useState('');
+  const [noteEditingDayId, setNoteEditingDayId] = React.useState<string | null>(null);
 
   const surface = useThemeColor('surface');
   const accent = useThemeColor('accent');
@@ -179,6 +194,19 @@ export function DetailedItineraryTab({
     });
   }, [mode, days]);
 
+  // Notify parent of draft activity changes so it can save them on submit.
+  React.useEffect(() => {
+    if (mode !== 'create' || !onDraftActivitiesChange) return;
+    const simplified: Record<string, { name: string; locationText: string | null }[]> = {};
+    for (const [dayId, acts] of Object.entries(draftActivitiesByDay)) {
+      const named = acts
+        .filter((a) => a.name.trim())
+        .map((a) => ({ name: a.name.trim(), locationText: a.locationText ?? null }));
+      if (named.length > 0) simplified[dayId] = named;
+    }
+    onDraftActivitiesChange(simplified);
+  }, [mode, draftActivitiesByDay, onDraftActivitiesChange]);
+
   if (!days.length) {
     return null;
   }
@@ -199,6 +227,8 @@ export function DetailedItineraryTab({
             onRemoveActivity={onRemoveActivity ?? (async () => {})}
             onUpdateDay={onUpdateDay ?? (async () => {})}
             onRemoveDay={onRemoveDay ?? (async () => {})}
+            onUpdateActivityLocation={onUpdateActivityLocation}
+            baseLocation={baseLocation}
           />
         ))}
 
@@ -380,12 +410,27 @@ export function DetailedItineraryTab({
             collapsed={collapsedDraft.has(day.id)}
             onToggle={() => toggleDraft(day.id)}
           >
-            <NoteCard
-              title="Note"
-              value={noteValue}
-              placeholder="Finally making this dream trip happen! Don't forget..."
-              onChangeText={(text) => onChangeDraftDayNote?.(day.id, text)}
-            />
+            {!noteValue && noteEditingDayId !== day.id ? (
+              <PrimaryButton
+                variant="outline"
+                label="Add Note"
+                onPress={() => setNoteEditingDayId(day.id)}
+                style={styles.addNoteBtn}
+              />
+            ) : noteEditingDayId === day.id ? (
+              <NoteCreateCard
+                value={noteValue}
+                onChange={(text) => onChangeDraftDayNote?.(day.id, text)}
+                onSave={() => setNoteEditingDayId(null)}
+              />
+            ) : (
+              <NoteCard
+                title="Note"
+                value={noteValue}
+                placeholder="Finally making this dream trip happen! Don't forget..."
+                onChangeText={(text) => onChangeDraftDayNote?.(day.id, text)}
+              />
+            )}
 
             <View style={styles.accordionContent}>
               {/* Accommodation summary / edit */}
@@ -566,6 +611,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   addDayLabel: { ...typography.sm, fontWeight: typography.weights.medium },
+
+  addNoteBtn: {
+    marginBottom: spacing.md,
+  },
 
   // Draft (create mode) content inside accordion
   accordionContent: {

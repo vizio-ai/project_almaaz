@@ -1,3 +1,5 @@
+import { decode } from 'base64-arraybuffer';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../supabase';
 import type {
   ManualItineraryRepository,
@@ -152,6 +154,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       if (params.tripNotes !== undefined) payload.trip_notes = params.tripNotes;
       if (params.isPublic !== undefined) payload.is_public = params.isPublic;
       if (params.isClonable !== undefined) payload.is_clonable = params.isClonable;
+      if (params.coverImageUrl !== undefined) payload.cover_image_url = params.coverImageUrl;
 
       const { error } = await supabase.from('itineraries').update(payload).eq('id', id);
       return { success: !error };
@@ -318,6 +321,36 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
     async removeTravelInfo(id: string) {
       const { error } = await supabase.from('itinerary_travel_info').delete().eq('id', id);
       return { success: !error };
+    },
+
+    // ─── Cover Image ─────────────────────────────────────────────────────────
+
+    async uploadCoverImage(userId: string, itineraryId: string, localUri: string) {
+      try {
+        // Compress to JPEG, max 1280px wide (16:9 cover, ~150–400 KB)
+        const compressed = await ImageManipulator.manipulateAsync(
+          localUri,
+          [{ resize: { width: 1280 } }],
+          { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+        );
+        if (!compressed.base64) return { success: false };
+
+        const path = `${userId}/${itineraryId}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('covers')
+          .upload(path, decode(compressed.base64), {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
+
+        if (uploadError) return { success: false };
+
+        const { data } = supabase.storage.from('covers').getPublicUrl(path);
+        return { success: true, url: data.publicUrl };
+      } catch {
+        return { success: false };
+      }
     },
   };
 }

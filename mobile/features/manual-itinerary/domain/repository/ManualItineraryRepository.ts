@@ -27,6 +27,7 @@ export interface UpdateItineraryParams {
   tripNotes?: string | null;
   isPublic?: boolean;
   isClonable?: boolean;
+  coverImageUrl?: string | null;
 }
 
 export interface ItineraryWithDetails {
@@ -99,6 +100,16 @@ export interface ManualItineraryRepository {
   create(params: CreateItineraryParams): Promise<{ success: boolean; id?: string }>;
   update(id: string, params: UpdateItineraryParams): Promise<{ success: boolean }>;
   remove(id: string): Promise<{ success: boolean }>;
+  /**
+   * Compress and upload a local image URI to the `covers` Storage bucket.
+   * Returns the public URL on success.
+   * Path pattern: covers/{userId}/{itineraryId}.jpg
+   */
+  uploadCoverImage(
+    userId: string,
+    itineraryId: string,
+    localUri: string,
+  ): Promise<{ success: boolean; url?: string }>;
 
   // Days
   addDay(itineraryId: string, params: AddDayParams): Promise<{ success: boolean; id?: string }>;

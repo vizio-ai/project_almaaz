@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -126,7 +126,7 @@ export function ManualItineraryScreen({
   const { itinerary, days, activities, travelInfo, isLoading, error, refresh } =
     useGetItinerary(itineraryId);
   const { manualItineraryRepository } = useManualItineraryDependencies();
-  const { addActivity, updateActivity, removeActivity } = useActivityMutations(refresh);
+  const { addActivity, updateActivity, removeActivity, updateActivityLocation } = useActivityMutations(refresh);
   const { addDay, updateDay, removeDay } = useDayMutations(itineraryId, refresh);
   const { addTravelInfo, updateTravelInfo, removeTravelInfo } = useTravelInfoMutations(
     itineraryId,
@@ -141,6 +141,7 @@ export function ManualItineraryScreen({
   const [draftEndDate, setDraftEndDate] = useState<Date | null>(null);
   const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
   const [draftDayNotes, setDraftDayNotes] = useState<Record<string, string>>({});
+  const draftActivitiesRef = useRef<Record<string, { name: string; locationText: string | null }[]>>({});
 
   // ── Shared state (create + edit) ──────────────────────────────────────────
   const [isPublic, setIsPublic] = useState(false);
@@ -254,15 +255,38 @@ export function ManualItineraryScreen({
           })),
         });
         if (result.success && result.id) {
-          // Create concrete days in Supabase based on selected date range
+          // Upload cover image to Storage and persist the public URL
+          if (draftCoverUri) {
+            const upload = await manualItineraryRepository.uploadCoverImage(
+              userId,
+              result.id,
+              draftCoverUri,
+            );
+            if (upload.success && upload.url) {
+              await manualItineraryRepository.update(result.id, { coverImageUrl: upload.url });
+            }
+          }
+
+          // Create concrete days and their draft activities
           if (draftStartDate && draftEndDate) {
             const draftDays = buildDraftDays(draftStartDate, draftEndDate);
             for (const day of draftDays) {
               const note = draftDayNotes[day.id]?.trim() || null;
-              await manualItineraryRepository.addDay(result.id, {
+              const dayResult = await manualItineraryRepository.addDay(result.id, {
                 date: day.date,
                 notes: note,
               });
+              if (dayResult.success && dayResult.id) {
+                const acts = draftActivitiesRef.current[day.id] ?? [];
+                for (const act of acts) {
+                  if (act.name) {
+                    await manualItineraryRepository.addActivity(dayResult.id, {
+                      name: act.name,
+                      locationText: act.locationText,
+                    });
+                  }
+                }
+              }
             }
           }
 
@@ -283,6 +307,7 @@ export function ManualItineraryScreen({
     isNew,
     itineraryId,
     userId,
+    draftCoverUri,
     draftTitle,
     draftDestination,
     draftStartDate,
@@ -510,6 +535,7 @@ export function ManualItineraryScreen({
           onUpdateDay={updateDay}
           onRemoveDay={removeDay}
           onAddDay={addDay}
+          onUpdateActivityLocation={updateActivityLocation}
           isNew={isNew}
         destination={isNew ? draftDestination : destination}
           draftDayNotes={draftDayNotes}
@@ -519,6 +545,9 @@ export function ManualItineraryScreen({
               [dayId]: note,
             }))
           }
+          onDraftActivitiesChange={(acts) => {
+            draftActivitiesRef.current = acts;
+          }}
         />
 
         <View style={{ height: spacing['2xl'] }} />

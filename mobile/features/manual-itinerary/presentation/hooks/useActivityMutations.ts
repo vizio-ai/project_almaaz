@@ -47,5 +47,23 @@ export function useActivityMutations(refresh: () => void) {
     [removeUseCase, refresh],
   );
 
-  return { addActivity, updateActivity, removeActivity };
+  const updateActivityLocation = useCallback(
+    async (
+      activityId: string,
+      locationText: string | null,
+      latitude: number | null,
+      longitude: number | null,
+    ) => {
+      const result = await manualItineraryRepository.updateActivity(activityId, {
+        locationText,
+        latitude,
+        longitude,
+      });
+      if (result.success) refresh();
+      return result;
+    },
+    [manualItineraryRepository, refresh],
+  );
+
+  return { addActivity, updateActivity, removeActivity, updateActivityLocation };
 }
