@@ -44,6 +44,7 @@ export interface DetailedItineraryTabProps {
     latitude: number | null,
     longitude: number | null,
   ) => Promise<unknown>;
+  onReorderActivities?: (dayId: string, orderedIds: string[]) => Promise<unknown>;
   isNew?: boolean;
   border?: string;
 
@@ -87,6 +88,7 @@ export function DetailedItineraryTab({
   onRemoveDay,
   onAddDay,
   onUpdateActivityLocation,
+  onReorderActivities,
   isNew,
   border,
   secondary,
@@ -228,6 +230,7 @@ export function DetailedItineraryTab({
             onUpdateDay={onUpdateDay ?? (async () => {})}
             onRemoveDay={onRemoveDay ?? (async () => {})}
             onUpdateActivityLocation={onUpdateActivityLocation}
+            onReorderActivities={onReorderActivities}
             baseLocation={baseLocation}
           />
         ))}
@@ -260,7 +263,7 @@ export function DetailedItineraryTab({
       const id = `draft-activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const next = [
         ...existing,
-        { id, name: '', activityType: 'park', locationText: null, timeValue: null },
+        { id, name: '', activityType: 'park' as const, locationText: null, timeValue: null },
       ];
       return { ...prev, [dayId]: next };
     });
@@ -613,7 +616,10 @@ const styles = StyleSheet.create({
   addDayLabel: { ...typography.sm, fontWeight: typography.weights.medium },
 
   addNoteBtn: {
-    marginBottom: spacing.md,
+    marginBottom: 0,
+    borderColor: '#E4E4E7',
+    alignSelf: 'flex-end',
+    width: 105,
   },
 
   // Draft (create mode) content inside accordion

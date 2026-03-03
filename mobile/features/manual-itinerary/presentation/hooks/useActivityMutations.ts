@@ -3,6 +3,7 @@ import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider
 import { AddActivityUseCase } from '../../domain/usecases/AddActivityUseCase';
 import { UpdateActivityUseCase } from '../../domain/usecases/UpdateActivityUseCase';
 import { RemoveActivityUseCase } from '../../domain/usecases/RemoveActivityUseCase';
+import { ReorderActivitiesUseCase } from '../../domain/usecases/ReorderActivitiesUseCase';
 
 export function useActivityMutations(refresh: () => void) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
@@ -17,6 +18,10 @@ export function useActivityMutations(refresh: () => void) {
   );
   const removeUseCase = useMemo(
     () => new RemoveActivityUseCase(manualItineraryRepository),
+    [manualItineraryRepository],
+  );
+  const reorderUseCase = useMemo(
+    () => new ReorderActivitiesUseCase(manualItineraryRepository),
     [manualItineraryRepository],
   );
 
@@ -65,5 +70,14 @@ export function useActivityMutations(refresh: () => void) {
     [manualItineraryRepository, refresh],
   );
 
-  return { addActivity, updateActivity, removeActivity, updateActivityLocation };
+  const reorderActivities = useCallback(
+    async (dayId: string, orderedActivityIds: string[]) => {
+      const result = await reorderUseCase.execute(dayId, orderedActivityIds);
+      if (result.success) refresh();
+      return result;
+    },
+    [reorderUseCase, refresh],
+  );
+
+  return { addActivity, updateActivity, removeActivity, updateActivityLocation, reorderActivities };
 }

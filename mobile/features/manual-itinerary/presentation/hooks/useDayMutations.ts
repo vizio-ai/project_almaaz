@@ -3,6 +3,7 @@ import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider
 import { AddDayUseCase } from '../../domain/usecases/AddDayUseCase';
 import { UpdateDayUseCase } from '../../domain/usecases/UpdateDayUseCase';
 import { RemoveDayUseCase } from '../../domain/usecases/RemoveDayUseCase';
+import { ReorderDaysUseCase } from '../../domain/usecases/ReorderDaysUseCase';
 
 export function useDayMutations(itineraryId: string | null, refresh: () => void) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
@@ -17,6 +18,10 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
   );
   const removeUseCase = useMemo(
     () => new RemoveDayUseCase(manualItineraryRepository),
+    [manualItineraryRepository],
+  );
+  const reorderUseCase = useMemo(
+    () => new ReorderDaysUseCase(manualItineraryRepository),
     [manualItineraryRepository],
   );
 
@@ -47,5 +52,15 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
     [removeUseCase, refresh],
   );
 
-  return { addDay, updateDay, removeDay };
+  const reorderDays = useCallback(
+    async (orderedDayIds: string[]) => {
+      if (!itineraryId) return { success: false as const };
+      const result = await reorderUseCase.execute(itineraryId, orderedDayIds);
+      if (result.success) refresh();
+      return result;
+    },
+    [itineraryId, reorderUseCase, refresh],
+  );
+
+  return { addDay, updateDay, removeDay, reorderDays };
 }

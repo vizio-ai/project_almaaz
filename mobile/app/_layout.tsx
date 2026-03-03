@@ -20,6 +20,7 @@ import { createDoraRemoteDataSource } from '@/infrastructure/itinerary';
 import { createAdminRemoteDataSource } from '@/infrastructure/admin';
 import { createFollowRemoteDataSource } from '@/infrastructure/follow';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -218,12 +219,14 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
-      <AuthProvider dependencies={authExternalDeps}>
-        <AuthSessionProvider>
-          <AppContent />
-        </AuthSessionProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <AuthProvider dependencies={authExternalDeps}>
+          <AuthSessionProvider>
+            <AppContent />
+          </AuthSessionProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

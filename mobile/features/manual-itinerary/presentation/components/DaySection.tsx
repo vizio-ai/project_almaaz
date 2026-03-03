@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -6,12 +6,13 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Trash2, ChevronDown, ChevronUp, Pencil, X, MapPin, Check } from 'lucide-react-native';
+import { Trash2, ChevronDown, ChevronUp, Pencil, X, MapPin, Check, GripVertical } from 'lucide-react-native';
 import { AppText, PrimaryButton, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
 import { NoteCreateCard } from './NoteCreateCard';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
 import { LocationMapModal } from './LocationMapModal';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
@@ -43,6 +44,12 @@ export interface DaySectionProps {
     latitude: number | null,
     longitude: number | null,
   ) => Promise<unknown>;
+  /** Called after a drag-and-drop reorder. Receives the new ordered IDs. */
+  onReorderActivities?: (dayId: string, orderedIds: string[]) => Promise<unknown>;
+  /** Long-press handler from the parent DraggableFlatList — activates day drag. */
+  onDragDay?: () => void;
+  /** True while this day is being actively dragged. */
+  isDraggingDay?: boolean;
   /** Base trip location used to seed the location search query. */
   baseLocation?: string;
 }
@@ -58,6 +65,9 @@ export function DaySection({
   onUpdateDay,
   onRemoveDay,
   onUpdateActivityLocation,
+  onReorderActivities,
+  onDragDay,
+  isDraggingDay = false,
   baseLocation,
 }: DaySectionProps) {
   const textColor = useThemeColor('text');
@@ -67,10 +77,16 @@ export function DaySection({
   const accent = useThemeColor('accent');
 
   // ── Activity state ─────────────────────────────────────────────────────────
+  const [orderedActivities, setOrderedActivities] = useState(dayActivities);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Keep local order in sync when parent refreshes (e.g. after add/remove)
+  useEffect(() => {
+    setOrderedActivities(dayActivities);
+  }, [dayActivities]);
 
   // ── Location modal state ────────────────────────────────────────────────────
   const [locationModalVisible, setLocationModalVisible] = useState(false);
@@ -164,9 +180,20 @@ export function DaySection({
   );
 
   return (
-    <View style={styles.daySection}>
+    <View style={[styles.daySection, isDraggingDay && styles.daySectionDragging]}>
       {/* ── Day header ──────────────────────────────────────────────────── */}
       <TouchableOpacity style={styles.dayHeader} onPress={onToggle} activeOpacity={0.7}>
+        {/* Day drag handle — long-press to reorder days */}
+        {onDragDay && (
+          <TouchableOpacity
+            onLongPress={onDragDay}
+            delayLongPress={200}
+            hitSlop={6}
+            style={styles.dayDragHandle}
+          >
+            <GripVertical size={18} color={secondary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        )}
         <AppText style={[styles.dayTitle, { color: textColor }]}>
           {formatDayLabel(day.date, day.dayNumber)}
         </AppText>
@@ -196,12 +223,14 @@ export function DaySection({
             />
           ) : isEditingNotes ? (
             /* State 2: Creating or editing → NoteCreateCard */
-            <NoteCreateCard
-              value={dayNotes}
-              onChange={setDayNotes}
-              onSave={handleNoteSave}
-              isSaving={notesBusy}
-            />
+            <View style={{ marginBottom: spacing.md }}>
+              <NoteCreateCard
+                value={dayNotes}
+                onChange={setDayNotes}
+                onSave={handleNoteSave}
+                isSaving={notesBusy}
+              />
+            </View>
           ) : (
             /* State 3: Has note, viewing → NoteCard */
             <View style={[styles.noteCard, { backgroundColor: surface, borderColor: border }]}>
@@ -218,102 +247,118 @@ export function DaySection({
           )}
 
           {/* ── Activity list ──────────────────────────────────────────── */}
-          {dayActivities.map((act) =>
-            editingId === act.id ? (
-              /* ── Inline edit card ─────────────────────────────────── */
-              <View
-                key={act.id}
-                style={[styles.editCard, { backgroundColor: surface, borderColor: accent }]}
-              >
-                <View style={styles.editCardHeader}>
-                  <AppText style={[styles.editCardTitle, { color: textColor }]}>
-                    {act.name}
-                  </AppText>
-                  <TouchableOpacity onPress={cancelEdit} hitSlop={8}>
-                    <X size={18} color={secondary} strokeWidth={1.8} />
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  style={[styles.editCardInput, { color: textColor, borderColor: border }]}
-                  placeholder="Activity name"
-                  placeholderTextColor={secondary}
-                  value={editingName}
-                  onChangeText={setEditingName}
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={handleEdit}
-                  selectTextOnFocus
-                />
-                {/* Location row */}
-                {onUpdateActivityLocation && (
-                  <TouchableOpacity
-                    style={[styles.locationRow, { borderColor: border }]}
-                    onPress={() => openLocationModal(act)}
-                    hitSlop={4}
-                  >
-                    <MapPin size={14} color={act.locationText ? accent : secondary} strokeWidth={1.8} />
-                    <AppText
-                      style={[styles.locationLabel, { color: act.locationText ? textColor : secondary }]}
-                      numberOfLines={1}
-                    >
-                      {act.locationText || 'Add location'}
-                    </AppText>
-                  </TouchableOpacity>
-                )}
-                <View style={styles.editCardActions}>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveActivity(act.id)}
-                    disabled={busy}
-                    style={styles.deleteBtn}
-                  >
-                    <AppText style={styles.deleteBtnLabel}>Delete</AppText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleEdit}
-                    disabled={busy || !editingName.trim()}
-                    style={[styles.saveBtn, { backgroundColor: textColor }]}
-                  >
-                    {busy ? (
-                      <ActivityIndicator size="small" color={surface} />
-                    ) : (
-                      <AppText style={[styles.saveBtnLabel, { color: surface }]}>Save</AppText>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              /* ── Activity info card ─────────────────────────────────── */
-              <View
-                key={act.id}
-                style={[styles.activityCard, { backgroundColor: surface, borderColor: border }]}
-              >
-                {/* Drag handle (static visual) */}
-                <View style={styles.dragHandle}>
-                  <AppText style={[styles.dragDots, { color: border }]}>⠿</AppText>
-                </View>
-
-                <View style={styles.activityContent}>
-                  <AppText style={[styles.activityName, { color: textColor }]}>
-                    {act.name}
-                  </AppText>
-                  {act.locationText ? (
-                    <View style={styles.tagsRow}>
-                      <View style={[styles.tag, { backgroundColor: border }]}>
-                        <MapPin size={11} color={secondary} strokeWidth={1.8} />
-                        <AppText style={[styles.tagLabel, { color: secondary }]}>
-                          {act.locationText}
-                        </AppText>
-                      </View>
+          <DraggableFlatList
+            data={orderedActivities}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            activationDistance={10}
+            onDragEnd={({ data }) => {
+              setOrderedActivities(data);
+              onReorderActivities?.(day.id, data.map((a) => a.id));
+            }}
+            renderItem={({ item: act, drag, isActive }) => (
+              <ScaleDecorator activeScale={1.02}>
+                {editingId === act.id ? (
+                  /* ── Inline edit card ───────────────────────────────── */
+                  <View style={[styles.editCard, { backgroundColor: surface, borderColor: accent }]}>
+                    <View style={styles.editCardHeader}>
+                      <AppText style={[styles.editCardTitle, { color: textColor }]}>
+                        {act.name}
+                      </AppText>
+                      <TouchableOpacity onPress={cancelEdit} hitSlop={8}>
+                        <X size={18} color={secondary} strokeWidth={1.8} />
+                      </TouchableOpacity>
                     </View>
-                  ) : null}
-                </View>
+                    <TextInput
+                      style={[styles.editCardInput, { color: textColor, borderColor: border }]}
+                      placeholder="Activity name"
+                      placeholderTextColor={secondary}
+                      value={editingName}
+                      onChangeText={setEditingName}
+                      autoFocus
+                      returnKeyType="done"
+                      onSubmitEditing={handleEdit}
+                      selectTextOnFocus
+                    />
+                    {onUpdateActivityLocation && (
+                      <TouchableOpacity
+                        style={[styles.locationRow, { borderColor: border }]}
+                        onPress={() => openLocationModal(act)}
+                        hitSlop={4}
+                      >
+                        <MapPin size={14} color={act.locationText ? accent : secondary} strokeWidth={1.8} />
+                        <AppText
+                          style={[styles.locationLabel, { color: act.locationText ? textColor : secondary }]}
+                          numberOfLines={1}
+                        >
+                          {act.locationText || 'Add location'}
+                        </AppText>
+                      </TouchableOpacity>
+                    )}
+                    <View style={styles.editCardActions}>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveActivity(act.id)}
+                        disabled={busy}
+                        style={styles.deleteBtn}
+                      >
+                        <AppText style={styles.deleteBtnLabel}>Delete</AppText>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleEdit}
+                        disabled={busy || !editingName.trim()}
+                        style={[styles.saveBtn, { backgroundColor: textColor }]}
+                      >
+                        {busy ? (
+                          <ActivityIndicator size="small" color={surface} />
+                        ) : (
+                          <AppText style={[styles.saveBtnLabel, { color: surface }]}>Save</AppText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  /* ── Activity info card ─────────────────────────────── */
+                  <View
+                    style={[
+                      styles.activityCard,
+                      { backgroundColor: surface, borderColor: isActive ? accent : border },
+                    ]}
+                  >
+                    {/* Drag handle — long-press to activate drag */}
+                    <TouchableOpacity
+                      onLongPress={drag}
+                      delayLongPress={200}
+                      disabled={editingId !== null}
+                      style={styles.dragHandle}
+                      hitSlop={4}
+                    >
+                      <GripVertical size={16} color={border} strokeWidth={1.5} />
+                    </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => startEdit(act)} hitSlop={8}>
-                  <Pencil size={16} color={secondary} strokeWidth={1.8} />
-                </TouchableOpacity>
-              </View>
-            ),
-          )}
+                    <View style={styles.activityContent}>
+                      <AppText style={[styles.activityName, { color: textColor }]}>
+                        {act.name}
+                      </AppText>
+                      {act.locationText ? (
+                        <View style={styles.tagsRow}>
+                          <View style={[styles.tag, { backgroundColor: border }]}>
+                            <MapPin size={11} color={secondary} strokeWidth={1.8} />
+                            <AppText style={[styles.tagLabel, { color: secondary }]}>
+                              {act.locationText}
+                            </AppText>
+                          </View>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <TouchableOpacity onPress={() => startEdit(act)} hitSlop={8}>
+                      <Pencil size={16} color={secondary} strokeWidth={1.8} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </ScaleDecorator>
+            )}
+          />
 
           {/* ── Inline add activity input (always visible) ─────────────── */}
           <View style={[styles.addActivityRow, { borderColor: border }]}>
@@ -356,8 +401,10 @@ export function DaySection({
 
 const styles = StyleSheet.create({
   daySection: { marginBottom: spacing.xl },
+  daySectionDragging: { opacity: 0.9 },
 
   // ── Day header ─────────────────────────────────────────────────────────────
+  dayDragHandle: { marginRight: spacing.xs },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -449,8 +496,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: spacing.sm,
   },
-  dragHandle: { width: 16, alignItems: 'center' },
-  dragDots: { fontSize: 16, lineHeight: 20 },
+  dragHandle: { width: 20, alignItems: 'center', justifyContent: 'center' },
   activityContent: { flex: 1 },
   activityName: { ...typography.sm, fontWeight: typography.weights.medium },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },

@@ -28,6 +28,7 @@ export interface ItineraryViewTabsProps {
     latitude: number | null,
     longitude: number | null,
   ) => Promise<unknown>;
+  onReorderActivities?: (dayId: string, orderedIds: string[]) => Promise<unknown>;
   isNew: boolean;
   /** Current trip destination text (used as base location for activity pickers in create mode). */
   destination?: string;
@@ -53,6 +54,7 @@ export function ItineraryViewTabs({
   onRemoveDay,
   onAddDay,
   onUpdateActivityLocation,
+  onReorderActivities,
   isNew,
   destination,
   draftDayNotes,
@@ -103,6 +105,7 @@ export function ItineraryViewTabs({
           onRemoveDay={onRemoveDay}
           onAddDay={onAddDay}
           onUpdateActivityLocation={onUpdateActivityLocation}
+          onReorderActivities={onReorderActivities}
           isNew={isNew}
           border={border}
           secondary={secondary}

@@ -19,7 +19,7 @@ export function NoteCreateCard({
 }: NoteCreateCardProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
-  const surface = useThemeColor('surface');
+  const surface = useThemeColor('background');
   const border = useThemeColor('border');
   const accent = useThemeColor('accent');
 
@@ -48,7 +48,7 @@ export function NoteCreateCard({
           {isSaving ? (
             <ActivityIndicator size="small" color={accent} />
           ) : (
-            <AppText style={[styles.saveBtnLabel, { color: accent }]}>Save</AppText>
+            <AppText style={[styles.saveBtnLabel, { color: textColor }]}>Save</AppText>
           )}
         </TouchableOpacity>
       </View>
@@ -59,7 +59,7 @@ export function NoteCreateCard({
 const styles = StyleSheet.create({
   container: {
     gap: 6,
-    marginBottom: spacing.md,
+    marginBottom: 0,
   },
   label: {
     ...typography.sm,

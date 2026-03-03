@@ -126,7 +126,7 @@ export function ManualItineraryScreen({
   const { itinerary, days, activities, travelInfo, isLoading, error, refresh } =
     useGetItinerary(itineraryId);
   const { manualItineraryRepository } = useManualItineraryDependencies();
-  const { addActivity, updateActivity, removeActivity, updateActivityLocation } = useActivityMutations(refresh);
+  const { addActivity, updateActivity, removeActivity, updateActivityLocation, reorderActivities } = useActivityMutations(refresh);
   const { addDay, updateDay, removeDay } = useDayMutations(itineraryId, refresh);
   const { addTravelInfo, updateTravelInfo, removeTravelInfo } = useTravelInfoMutations(
     itineraryId,
@@ -536,6 +536,7 @@ export function ManualItineraryScreen({
           onRemoveDay={removeDay}
           onAddDay={addDay}
           onUpdateActivityLocation={updateActivityLocation}
+          onReorderActivities={reorderActivities}
           isNew={isNew}
         destination={isNew ? draftDestination : destination}
           draftDayNotes={draftDayNotes}

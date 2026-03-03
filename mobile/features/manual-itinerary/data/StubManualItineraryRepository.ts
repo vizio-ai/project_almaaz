@@ -25,5 +25,8 @@ export function createStubManualItineraryRepository(): ManualItineraryRepository
     async addTravelInfo() { return { success: true, id: 'stub-travel-info-id' }; },
     async updateTravelInfo() { return { success: true }; },
     async removeTravelInfo() { return { success: true }; },
+
+    // Cover image
+    async uploadCoverImage() { return { success: false }; },
   };
 }
