@@ -22,9 +22,7 @@ export interface ActivityEditCardProps {
   onChangeName: (value: string) => void;
   onPressTime?: () => void;
   onPressPlace?: () => void;
-   dayPart?: 'morning' | 'afternoon' | 'evening' | null;
-   onChangeDayPart?: (value: 'morning' | 'afternoon' | 'evening') => void;
-  onCancel?: () => void;
+  onDelete?: () => void;
   onSave?: () => void;
   onClose?: () => void;
 }
@@ -39,9 +37,7 @@ export function ActivityEditCard({
   onChangeName,
   onPressTime,
   onPressPlace,
-  dayPart,
-  onChangeDayPart,
-  onCancel,
+  onDelete,
   onSave,
   onClose,
 }: ActivityEditCardProps) {
@@ -105,44 +101,15 @@ export function ActivityEditCard({
         </View>
       </View>
 
-      {/* Day part selector */}
-      <View style={styles.dayPartRow}>
-        <AppText style={[styles.pickerLabel, { color: textColor }]}>Day part</AppText>
-        <View style={styles.dayPartChips}>
-          {(['morning', 'afternoon', 'evening'] as const).map((part) => {
-            const isActive = dayPart === part;
-            return (
-              <TouchableOpacity
-                key={part}
-                style={[
-                  styles.dayPartChip,
-                  isActive && { backgroundColor: textColor },
-                ]}
-                activeOpacity={0.8}
-                onPress={() => onChangeDayPart?.(part)}
-              >
-                <AppText
-                  style={[
-                    styles.dayPartLabel,
-                    { color: isActive ? '#FAFAFA' : secondary },
-                  ]}
-                >
-                  {part.charAt(0).toUpperCase() + part.slice(1)}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
       {/* Footer buttons */}
       <View style={styles.footerRow}>
         <View style={styles.footerCol}>
           <PrimaryButton
-            label="Cancel"
+            label="Delete"
             variant="outline"
-            onPress={onCancel}
-            style={styles.footerButton}
+            onPress={onDelete}
+            style={[styles.footerButton, styles.deleteButton]}
+            labelStyle={styles.deleteLabel}
           />
         </View>
         <View style={styles.footerCol}>
@@ -286,6 +253,12 @@ const styles = StyleSheet.create({
   },
   footerButton: {
     // Let PrimaryButton control vertical padding/height to avoid clipping label text
+  },
+  deleteButton: {
+    borderColor: '#A1A1AA',
+  },
+  deleteLabel: {
+    color: '#DC2626',
   },
 });
 

@@ -21,7 +21,7 @@ const DEFAULT_LAT = 20;
 const DEFAULT_LNG = 0;
 const USER_LOCATION_ZOOM = 8;
 
-function buildMapHtml(initialLat: number, initialLng: number): string {
+function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: boolean): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -40,6 +40,22 @@ function buildMapHtml(initialLat: number, initialLng: number): string {
       map.setView([lat, lng], zoom || 8);
       if (marker) { map.removeLayer(marker); marker = null; }
     };
+    ${allowPointPick ? `
+    function setMarker(lat, lng) {
+      if (marker) { map.removeLayer(marker); }
+      marker = L.marker([lat, lng]).addTo(map);
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'location', lat: lat, lng: lng }));
+      }
+    }
+    map.on('click', function(e) {
+      setMarker(e.latlng.lat, e.latlng.lng);
+    });
+    window.setMarkerFromNative = function(lat, lng, zoom) {
+      map.setView([lat, lng], zoom || 8);
+      setMarker(lat, lng);
+    };
+    ` : ''}
     window.fitBoundsByBBox = function(south, north, west, east) {
       var bounds = L.latLngBounds([south, west], [north, east]);
       map.fitBounds(bounds);
@@ -55,6 +71,8 @@ export interface LocationMapModalProps {
   initialQuery?: string;
   onSelect: (locationName: string) => void;
   onClose: () => void;
+  /** When true, user can pick an exact point on the map (used for activities). */
+  allowPointPick?: boolean;
 }
 
 export function LocationMapModal({
@@ -62,6 +80,7 @@ export function LocationMapModal({
   initialQuery = '',
   onSelect,
   onClose,
+  allowPointPick = true,
 }: LocationMapModalProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -77,7 +96,7 @@ export function LocationMapModal({
   const webViewRef = useRef<WebView>(null);
   const pendingOpenRef = useRef<{ query: string } | null>(null);
 
-  const mapHtml = buildMapHtml(DEFAULT_LAT, DEFAULT_LNG);
+  const mapHtml = buildMapHtml(DEFAULT_LAT, DEFAULT_LNG, allowPointPick);
 
   const searchNominatim = useCallback(async (query: string) => {
     const q = query.trim();
@@ -123,19 +142,21 @@ export function LocationMapModal({
             zoom = 11; // ilçe / küçük alan
           }
 
+          const fn = allowPointPick ? 'setMarkerFromNative' : 'setMapViewNoMarker';
           webViewRef.current?.injectJavaScript(
-            `window.setMapViewNoMarker && window.setMapViewNoMarker(${centerLat}, ${centerLng}, ${zoom}); true;`,
+            `window.${fn} && window.${fn}(${centerLat}, ${centerLng}, ${zoom}); true;`,
           );
         } else {
+          const fn = allowPointPick ? 'setMarkerFromNative' : 'setMapViewNoMarker';
           webViewRef.current?.injectJavaScript(
-            `window.setMapViewNoMarker && window.setMapViewNoMarker(${latNum}, ${lngNum}, 8); true;`,
+            `window.${fn} && window.${fn}(${latNum}, ${lngNum}, 8); true;`,
           );
         }
       }
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [allowPointPick]);
 
   // Modal açıldığında: search alanını güncelle. Seçili lokasyon varsa (initialQuery dolu) pin'i kapatma.
   useEffect(() => {
@@ -178,12 +199,31 @@ export function LocationMapModal({
   }, [searchNominatim]);
 
   const handleSelectLocation = useCallback(async () => {
-    let lat = selectedLat;
-    let lng = selectedLng;
+    const lat = selectedLat;
+    const lng = selectedLng;
+    const typed = searchQuery.trim();
+
+    // Trip-level usage: only allow free-text / search-based label, no map picking.
+    if (!allowPointPick) {
+      if (typed) {
+        onSelect(typed);
+      }
+      onClose();
+      return;
+    }
+
+    // If user never selected a point but typed a query, just use the typed text.
+    if ((lat == null || lng == null) && typed) {
+      onSelect(typed);
+      onClose();
+      return;
+    }
+
     if (lat == null || lng == null) {
       onClose();
       return;
     }
+
     setSelecting(true);
     try {
       const res = await fetch(
@@ -195,16 +235,17 @@ export function LocationMapModal({
       const city =
         addr?.city ?? addr?.town ?? addr?.village ?? addr?.municipality ?? addr?.state ?? '';
       const country = addr?.country ?? '';
+      // Prefer the full place name (e.g. museum / restaurant), fall back to city,country
       const name =
-        [city, country].filter(Boolean).join(', ') ||
         data?.display_name ||
+        [city, country].filter(Boolean).join(', ') ||
         `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
       onSelect(name);
       onClose();
     } finally {
       setSelecting(false);
     }
-  }, [selectedLat, selectedLng, onSelect, onClose]);
+  }, [selectedLat, selectedLng, searchQuery, onSelect, onClose]);
 
   const onMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -315,7 +356,12 @@ export function LocationMapModal({
               label="Use this location"
               onPress={handleSelectLocation}
               isLoading={selecting}
-              disabled={selectedLat == null && selectedLng == null}
+              // Trip-level: require at least search text; activity-level: require either text or picked point
+              disabled={
+                allowPointPick
+                  ? selectedLat == null && selectedLng == null && !searchQuery.trim()
+                  : !searchQuery.trim()
+              }
               style={styles.actionBtn}
             />
           </View>

@@ -23,6 +23,8 @@ export interface ItineraryViewTabsProps {
   onRemoveDay: (dayId: string) => Promise<unknown>;
   onAddDay: () => Promise<unknown>;
   isNew: boolean;
+  /** Current trip destination text (used as base location for activity pickers in create mode). */
+  destination?: string;
   /** Create mode only: local draft notes keyed by day.id (e.g. "draft-1"). */
   draftDayNotes?: Record<string, string>;
   onChangeDraftDayNote?: (dayId: string, note: string) => void;
@@ -42,6 +44,7 @@ export function ItineraryViewTabs({
   onRemoveDay,
   onAddDay,
   isNew,
+  destination,
   draftDayNotes,
   onChangeDraftDayNote,
 }: ItineraryViewTabsProps) {
@@ -91,6 +94,7 @@ export function ItineraryViewTabs({
           isNew={isNew}
           border={border}
           secondary={secondary}
+          baseLocation={destination}
           draftDayNotes={draftDayNotes}
           onChangeDraftDayNote={onChangeDraftDayNote}
         />

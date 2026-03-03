@@ -1,7 +1,16 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-native';
 import { Plus } from 'lucide-react-native';
-import { AppText, useThemeColor, spacing, radii, typography, AccordionSection, NoteCard } from '@shared/ui-kit';
+import {
+  AppText,
+  useThemeColor,
+  spacing,
+  radii,
+  typography,
+  AccordionSection,
+  NoteCard,
+} from '@shared/ui-kit';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
 import { DaySection } from './DaySection';
@@ -10,6 +19,7 @@ import { AccommodationEditCard } from './AccommodationEditCard';
 import { ActivityCard } from './ActivityCard';
 import { ActivityEditCard } from './ActivityEditCard';
 import { AddAnotherActivityButton } from './AddAnotherActivityButton';
+import { LocationMapModal } from './LocationMapModal';
 
 export interface DetailedItineraryTabProps {
   /** 'create' → local draft state, 'edit' → Supabase-backed */
@@ -31,6 +41,9 @@ export interface DetailedItineraryTabProps {
 
   // Shared / styling
   secondary: string;
+
+  /** Base trip location (e.g. "Tokyo, Japan") used to initialise activity location picker. */
+  baseLocation?: string;
 
   // Create mode props (draft-only)
   draftDayNotes?: Record<string, string>;
@@ -66,6 +79,7 @@ export function DetailedItineraryTab({
   secondary,
   draftDayNotes,
   onChangeDraftDayNote,
+  baseLocation,
 }: DetailedItineraryTabProps) {
   const textColor = useThemeColor('text');
   // Local collapse state for create mode (draft days are not in DB yet)
@@ -74,9 +88,6 @@ export function DetailedItineraryTab({
     null,
   );
   const [editingActivityId, setEditingActivityId] = React.useState<string | null>(null);
-  const [editingActivityDayPart, setEditingActivityDayPart] = React.useState<
-    Record<string, 'morning' | 'afternoon' | 'evening'>
-  >({});
   const [draftActivitiesByDay, setDraftActivitiesByDay] = React.useState<
     Record<
       string,
@@ -84,9 +95,18 @@ export function DetailedItineraryTab({
         id: string;
         name: string;
         locationText?: string | null;
+        timeValue?: string | null;
       }[]
     >
   >({});
+  const [timePickerActivityId, setTimePickerActivityId] = React.useState<string | null>(null);
+  const [timePickerDate, setTimePickerDate] = React.useState<Date>(new Date());
+  const [locationModalVisible, setLocationModalVisible] = React.useState(false);
+  const [locationModalActivityId, setLocationModalActivityId] = React.useState<string | null>(null);
+  const [locationModalInitialQuery, setLocationModalInitialQuery] = React.useState('');
+
+  const surface = useThemeColor('surface');
+  const accent = useThemeColor('accent');
 
   React.useEffect(() => {
     if (mode !== 'create') return;
@@ -101,8 +121,8 @@ export function DetailedItineraryTab({
         if (!existing || existing.length === 0) {
           const baseId = `draft-activity-${day.id}-`;
           next[day.id] = [
-            { id: `${baseId}1`, name: '', locationText: null },
-            { id: `${baseId}2`, name: '', locationText: null },
+            { id: `${baseId}1`, name: '', locationText: null, timeValue: null },
+            { id: `${baseId}2`, name: '', locationText: null, timeValue: null },
           ];
           changed = true;
         }
@@ -161,7 +181,7 @@ export function DetailedItineraryTab({
     setDraftActivitiesByDay((prev) => {
       const existing = prev[dayId] ?? [];
       const id = `draft-activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const next = [...existing, { id, name: '', locationText: null }];
+      const next = [...existing, { id, name: '', locationText: null, timeValue: null }];
       return { ...prev, [dayId]: next };
     });
   };
@@ -174,6 +194,65 @@ export function DetailedItineraryTab({
       }
       return next;
     });
+  };
+
+  const updateDraftActivityTime = (activityId: string, timeValue: string) => {
+    setDraftActivitiesByDay((prev) => {
+      const next: typeof prev = {};
+      for (const [dayId, list] of Object.entries(prev)) {
+        next[dayId] = list.map((a) => (a.id === activityId ? { ...a, timeValue } : a));
+      }
+      return next;
+    });
+  };
+
+  const updateDraftActivityLocation = (activityId: string, locationText: string) => {
+    setDraftActivitiesByDay((prev) => {
+      const next: typeof prev = {};
+      for (const [dayId, list] of Object.entries(prev)) {
+        next[dayId] = list.map((a) => (a.id === activityId ? { ...a, locationText } : a));
+      }
+      return next;
+    });
+  };
+
+  const openTimePicker = (activityId: string) => {
+    setTimePickerActivityId(activityId);
+    setTimePickerDate(new Date());
+  };
+
+  const closeTimePicker = () => {
+    setTimePickerActivityId(null);
+  };
+
+  const formatTimeLabel = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  const handleConfirmTime = () => {
+    if (!timePickerActivityId) return;
+    const label = formatTimeLabel(timePickerDate);
+    updateDraftActivityTime(timePickerActivityId, label);
+    closeTimePicker();
+  };
+
+  const openLocationModal = (activityId: string, initialQuery: string) => {
+    const fallback = baseLocation && baseLocation !== '—' ? baseLocation : '';
+    const query = initialQuery.trim() ? initialQuery : fallback;
+    setLocationModalActivityId(activityId);
+    setLocationModalInitialQuery(query);
+    setLocationModalVisible(true);
+  };
+
+  const handleSelectLocation = (locationName: string) => {
+    if (locationModalActivityId) {
+      updateDraftActivityLocation(locationModalActivityId, locationName);
+    }
+    setLocationModalVisible(false);
+    setLocationModalActivityId(null);
   };
 
   const moveDraftActivityDown = (dayId: string, activityId: string) => {
@@ -238,16 +317,15 @@ export function DetailedItineraryTab({
                       key={id}
                       title={act?.name ?? 'Visit Nakano Dori'}
                       name={act?.name ?? ''}
-                      timeValue="" // ileride gerçek zaman alanına bağlanacak
+                      timeValue={act?.timeValue ?? ''}
                       placeValue={act?.locationText ?? ''}
                       onChangeName={(value) => updateDraftActivityName(id, value)}
-                      onPressTime={() => {}}
-                      onPressPlace={() => {}}
-                      dayPart={editingActivityDayPart[id] ?? 'afternoon'}
-                      onChangeDayPart={(part) =>
-                        setEditingActivityDayPart((prev) => ({ ...prev, [id]: part }))
-                      }
-                      onCancel={() => setEditingActivityId(null)}
+                      onPressTime={() => openTimePicker(id)}
+                      onPressPlace={() => openLocationModal(id, act?.locationText ?? '')}
+                      onDelete={() => {
+                        // TODO: implement delete activity action
+                        setEditingActivityId(null);
+                      }}
                       onSave={() => setEditingActivityId(null)}
                       onClose={() => setEditingActivityId(null)}
                     />
@@ -284,6 +362,70 @@ export function DetailedItineraryTab({
           </AccordionSection>
         );
       })}
+
+      {/* Time picker for activity time selection */}
+      {timePickerActivityId &&
+        (Platform.OS === 'android' ? (
+          <DateTimePicker
+            value={timePickerDate}
+            mode="time"
+            display="default"
+            onChange={(_, date) => {
+              if (!date) {
+                closeTimePicker();
+                return;
+              }
+              const label = formatTimeLabel(date);
+              updateDraftActivityTime(timePickerActivityId, label);
+              closeTimePicker();
+            }}
+          />
+        ) : (
+          <Modal visible transparent animationType="slide" onRequestClose={closeTimePicker}>
+            <View style={styles.timeOverlay}>
+              <TouchableOpacity
+                style={styles.timeScrim}
+                activeOpacity={1}
+                onPress={closeTimePicker}
+              />
+              <View style={[styles.timeSheet, { backgroundColor: surface }]}>
+                <AppText style={[styles.timeTitle, { color: secondary }]}>Select time</AppText>
+                <DateTimePicker
+                  value={timePickerDate}
+                  mode="time"
+                  display="spinner"
+                  onChange={(_, date) => {
+                    if (date) setTimePickerDate(date);
+                  }}
+                />
+                <View style={styles.timeActions}>
+                  <TouchableOpacity onPress={closeTimePicker} style={styles.timeCancelBtn}>
+                    <AppText style={[styles.timeCancelLabel, { color: secondary }]}>
+                      Cancel
+                    </AppText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleConfirmTime}
+                    style={[styles.timeConfirmBtn, { backgroundColor: accent }]}
+                  >
+                    <AppText style={styles.timeConfirmLabel}>Done</AppText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        ))}
+
+      {/* Blurred location picker for activity location (OSM-based) */}
+      <LocationMapModal
+        visible={locationModalVisible}
+        initialQuery={locationModalInitialQuery}
+        onSelect={handleSelectLocation}
+        onClose={() => {
+          setLocationModalVisible(false);
+          setLocationModalActivityId(null);
+        }}
+      />
     </>
   );
 }
@@ -308,5 +450,33 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.md,
   },
+  timeOverlay: { flex: 1, justifyContent: 'flex-end' },
+  timeScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+  timeSheet: {
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    paddingBottom: 32,
+    paddingTop: spacing.lg,
+  },
+  timeTitle: {
+    ...typography.sm,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  timeActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
+  },
+  timeCancelBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  timeCancelLabel: { ...typography.base },
+  timeConfirmBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+  },
+  timeConfirmLabel: { ...typography.base, fontWeight: typography.weights.semibold, color: '#fff' },
 });
 

@@ -42,7 +42,6 @@ export function AccommodationEditCard({
         </TouchableOpacity>
       </View>
 
-      {/* Description placeholder (şimdilik gizli, tasarıma uyum için tutuluyor) */}
       {/* Select row */}
       <View style={styles.selectBlock}>
         <AppText style={[styles.selectLabel, { color: textColor }]}>Place</AppText>

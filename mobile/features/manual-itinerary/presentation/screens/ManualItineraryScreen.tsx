@@ -511,6 +511,7 @@ export function ManualItineraryScreen({
           onRemoveDay={removeDay}
           onAddDay={addDay}
           isNew={isNew}
+        destination={isNew ? draftDestination : destination}
           draftDayNotes={draftDayNotes}
           onChangeDraftDayNote={(dayId, note) =>
             setDraftDayNotes((prev) => ({
@@ -544,6 +545,7 @@ export function ManualItineraryScreen({
           initialQuery={draftDestination}
           onSelect={setDraftDestination}
           onClose={() => setLocationMapVisible(false)}
+          allowPointPick={false}
         />
       )}
     </View>
