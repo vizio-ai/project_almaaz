@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -62,7 +63,6 @@ export interface ManualItineraryScreenProps {
   currentUserAvatarUrl?: string | null;
   /** When false, header is not rendered (e.g. when embedded in Create tab). */
   showHeader?: boolean;
-  onShare?: () => void;
   onBack?: () => void;
 }
 
@@ -128,7 +128,6 @@ export const ManualItineraryScreen = React.forwardRef<
   currentUserName,
   currentUserAvatarUrl,
   showHeader = true,
-  onShare,
   onBack,
 }: ManualItineraryScreenProps, ref) {
   const isNew = itineraryId === null;
@@ -333,6 +332,20 @@ export const ManualItineraryScreen = React.forwardRef<
             }
           }
 
+          // Reset draft state so the form is clean next time
+          setDraftTitle('');
+          setDraftDestination('');
+          setDraftStartDate(null);
+          setDraftEndDate(null);
+          setDraftCoverUri(null);
+          setDraftTravelInfo([]);
+          setDraftDayNotes({});
+          setTripNotes('');
+          setIsPublic(false);
+          setIsClonable(false);
+          draftActivitiesRef.current = {};
+          draftAccommodationRef.current = {};
+
           onBack?.();
         }
       } else {
@@ -425,6 +438,82 @@ export const ManualItineraryScreen = React.forwardRef<
 
   useImperativeHandle(ref, () => ({ requestClose: handleBack }), [handleBack]);
 
+  // ── Share ─────────────────────────────────────────────────────────────────
+
+  const doShare = useCallback(() => {
+    const title = itinerary?.title || editTitle || 'My Trip';
+    const destination = itinerary?.destination || editDestination;
+    const start = itinerary?.startDate ?? null;
+    const end = itinerary?.endDate ?? null;
+
+    let message = title;
+    if (destination) message += `\nDestination: ${destination}`;
+    if (start && end) message += `\nDates: ${formatDate(start)} – ${formatDate(end)}`;
+    else if (start) message += `\nDate: ${formatDate(start)}`;
+
+    Share.share({ title, message });
+  }, [itinerary, editTitle, editDestination]);
+
+  const handleShare = useCallback(() => {
+    if (isNew) {
+      Alert.alert('Save first', 'Save your itinerary before sharing it.');
+      return;
+    }
+    if (!isPublic) {
+      Alert.alert(
+        'Private itinerary',
+        'This itinerary is private. Make it public to share it.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Make Public & Share',
+            onPress: async () => {
+              await manualItineraryRepository.update(itineraryId!, { isPublic: true });
+              setIsPublic(true);
+              refresh();
+              doShare();
+            },
+          },
+        ],
+      );
+      return;
+    }
+    doShare();
+  }, [isNew, isPublic, itineraryId, manualItineraryRepository, refresh, doShare]);
+
+  // ── More options (delete) ─────────────────────────────────────────────────
+
+  const handleMoreOptions = useCallback(() => {
+    Alert.alert(
+      'Options',
+      undefined,
+      [
+        {
+          text: 'Delete itinerary',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete itinerary',
+              'Are you sure? This cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await manualItineraryRepository.remove(itineraryId!);
+                    onBack?.();
+                  },
+                },
+              ],
+            );
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, [itineraryId, manualItineraryRepository, onBack]);
+
   // ── Derived values ────────────────────────────────────────────────────────
 
   const startDate = itinerary?.startDate ?? null;
@@ -444,8 +533,8 @@ export const ManualItineraryScreen = React.forwardRef<
       onSave={handleSave}
       saveLabel="Save itinerary"
       isSaving={isSaving}
-      onShare={() => onShare?.()}
-      onMoreOptions={() => {}}
+      onShare={handleShare}
+      onMoreOptions={!isNew ? handleMoreOptions : undefined}
     />
   );
 

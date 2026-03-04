@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
 import { useUserTrips, ItinerariesGrid } from '@shared/trips';
@@ -10,7 +11,9 @@ export default function MyTripsScreen() {
   const { session } = useSession();
   const userId = session?.user.id;
   const { profile } = useProfile(userId);
-  const { trips, isLoading } = useUserTrips(userId);
+  const { trips, isLoading, refresh } = useUserTrips(userId);
+
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
   const bg = useThemeColor('background');
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -21,7 +24,7 @@ export default function MyTripsScreen() {
         itineraryId={selectedTripId}
         userId={userId ?? ''}
         showHeader
-        onBack={() => setSelectedTripId(null)}
+        onBack={() => { setSelectedTripId(null); refresh(); }}
       />
     );
   }

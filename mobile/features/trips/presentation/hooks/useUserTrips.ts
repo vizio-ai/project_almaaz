@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PopularTrip } from '../../domain/entities/PopularTrip';
 import { useTripDependencies } from '../../di/useTripDependencies';
 
@@ -6,6 +6,7 @@ interface UseUserTripsResult {
   trips: PopularTrip[];
   isLoading: boolean;
   error: string | null;
+  refresh: () => void;
 }
 
 export function useUserTrips(userId: string | undefined): UseUserTripsResult {
@@ -13,6 +14,7 @@ export function useUserTrips(userId: string | undefined): UseUserTripsResult {
   const [trips, setTrips] = useState<PopularTrip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -34,7 +36,9 @@ export function useUserTrips(userId: string | undefined): UseUserTripsResult {
     return () => {
       cancelled = true;
     };
-  }, [getTripsByUserIdUseCase, userId]);
+  }, [getTripsByUserIdUseCase, userId, fetchKey]);
 
-  return { trips, isLoading, error };
+  const refresh = useCallback(() => setFetchKey((k) => k + 1), []);
+
+  return { trips, isLoading, error, refresh };
 }

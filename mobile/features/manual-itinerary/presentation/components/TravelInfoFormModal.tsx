@@ -384,7 +384,7 @@ export function TravelInfoFormModal({
               onChangeText={setTitle}
               placeholder={
                 type === 'flight'
-                  ? 'e.g. Istanbul → London'
+                  ? 'e.g. New York → London'
                   : type === 'hotel'
                   ? 'e.g. Hotel Name'
                   : type === 'rental_car'
@@ -471,7 +471,7 @@ export function TravelInfoFormModal({
               onChangeText={setProvider}
               placeholder={
                 type === 'flight'
-                  ? 'e.g. Turkish Airlines'
+                  ? 'e.g. American Airlines'
                   : type === 'hotel'
                   ? 'e.g. Marriott'
                   : type === 'rental_car'
@@ -488,7 +488,7 @@ export function TravelInfoFormModal({
               onChangeText={setDetail}
               placeholder={
                 type === 'flight'
-                  ? 'e.g. Outbound / Return / Gate 12'
+                  ? 'e.g. PNR: ABC123 / Seat 14A'
                   : type === 'hotel'
                   ? 'e.g. Check-in / Check-out'
                   : type === 'rental_car'
