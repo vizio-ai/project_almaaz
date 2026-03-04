@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
 import { DoraConversationScreen } from '@shared/itinerary';
-import { ManualItineraryScreen } from '@shared/manual-itinerary';
+import { ManualItineraryScreen, type ManualItineraryScreenRef } from '@shared/manual-itinerary';
 import { AppHeader, AppText } from '@shared/ui-kit';
 import { BlurView } from 'expo-blur';
 import ChatHistorySvg from '../../assets/images/chat_history.svg';
@@ -20,9 +20,18 @@ export default function CreateScreen() {
   const { fromOnboarding } = useLocalSearchParams<{ fromOnboarding?: string }>();
   const [showDialog, setShowDialog] = useState(fromOnboarding === 'true');
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const manualScreenRef = useRef<ManualItineraryScreenRef>(null);
 
   const handleHistoryPress = () => {
     // TODO: open past chats
+  };
+
+  const handleToggleManualEntry = () => {
+    if (showManualEntry) {
+      manualScreenRef.current?.requestClose();
+    } else {
+      setShowManualEntry(true);
+    }
   };
 
   return (
@@ -32,7 +41,7 @@ export default function CreateScreen() {
           right={
             <View style={styles.headerRight}>
               <TouchableOpacity
-                onPress={() => setShowManualEntry((v) => !v)}
+                onPress={handleToggleManualEntry}
                 activeOpacity={0.8}
                 style={styles.headerPrimaryBtn}
               >
@@ -52,8 +61,9 @@ export default function CreateScreen() {
           }
         />
         <View style={styles.content}>
-          {showManualEntry ? (
+          <View style={{ flex: 1, display: showManualEntry ? 'flex' : 'none' }}>
             <ManualItineraryScreen
+              ref={manualScreenRef}
               itineraryId={null}
               userId={session?.user.id ?? ''}
               currentUserName={profile?.name}
@@ -61,13 +71,14 @@ export default function CreateScreen() {
               showHeader={false}
               onBack={() => setShowManualEntry(false)}
             />
-          ) : (
+          </View>
+          <View style={{ flex: 1, display: showManualEntry ? 'none' : 'flex' }}>
             <DoraConversationScreen
               userName={profile?.name}
               persona={profile?.persona}
               hideHeader
             />
-          )}
+          </View>
         </View>
       <Modal visible={showDialog} transparent animationType="fade">
         <BlurView intensity={20} tint="dark" style={styles.scrim}>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useImperativeHandle } from 'react';
 import {
   View,
   ScrollView,
@@ -6,9 +6,11 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
+  AppHeader,
   AppText,
   HeaderActions,
   HeaderTitle,
@@ -43,6 +45,11 @@ import type {
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 
 type ViewTab = 'detailed' | 'summary' | 'map';
+
+export interface ManualItineraryScreenRef {
+  /** Triggers the unsaved-changes guard and navigates back if confirmed. */
+  requestClose: () => void;
+}
 
 export interface ManualItineraryScreenProps {
   /** When null, show create form. When set, load existing itinerary from Supabase. */
@@ -112,7 +119,10 @@ function buildDraftDays(start: Date | null, end: Date | null): ItineraryDay[] {
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
-export function ManualItineraryScreen({
+export const ManualItineraryScreen = React.forwardRef<
+  ManualItineraryScreenRef,
+  ManualItineraryScreenProps
+>(function ManualItineraryScreen({
   itineraryId,
   userId,
   currentUserName,
@@ -120,7 +130,7 @@ export function ManualItineraryScreen({
   showHeader = true,
   onShare,
   onBack,
-}: ManualItineraryScreenProps) {
+}: ManualItineraryScreenProps, ref) {
   const isNew = itineraryId === null;
 
   const { itinerary, days, activities, travelInfo, isLoading, error, refresh } =
@@ -376,6 +386,45 @@ export function ManualItineraryScreen({
     onBack,
   ]);
 
+  // ── Unsaved changes guard ─────────────────────────────────────────────────
+
+  const hasUnsavedChanges = React.useMemo(() => {
+    if (isNew) {
+      return !!(draftTitle || draftDestination || draftStartDate || draftCoverUri);
+    }
+    if (!itinerary) return false;
+    return (
+      editTitle !== (itinerary.title ?? '') ||
+      editDestination !== (itinerary.destination ?? '') ||
+      editCoverUri !== null ||
+      (tripNotes || '') !== (itinerary.tripNotes ?? '') ||
+      isPublic !== (itinerary.isPublic ?? false) ||
+      isClonable !== (itinerary.isClonable ?? false)
+    );
+  }, [
+    isNew, itinerary, draftTitle, draftDestination, draftStartDate, draftCoverUri,
+    editTitle, editDestination, editCoverUri, tripNotes, isPublic, isClonable,
+  ]);
+
+  const handleBack = useCallback(() => {
+    if (!onBack) return;
+    if (!hasUnsavedChanges) {
+      onBack();
+      return;
+    }
+    Alert.alert(
+      'Unsaved changes',
+      'You have unsaved changes. Would you like to save before leaving?',
+      [
+        { text: 'Discard', style: 'destructive', onPress: onBack },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Save', onPress: async () => { await handleSave(); } },
+      ],
+    );
+  }, [onBack, hasUnsavedChanges, handleSave]);
+
+  useImperativeHandle(ref, () => ({ requestClose: handleBack }), [handleBack]);
+
   // ── Derived values ────────────────────────────────────────────────────────
 
   const startDate = itinerary?.startDate ?? null;
@@ -404,53 +453,18 @@ export function ManualItineraryScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: background }]}>
-      {/* ── Dora app top bar (Figma style) ───────────────────────────────── */}
       {showHeader && (
-        <View style={styles.topBarContainer}>
-          {/* Status row: time + system icons */}
-          <View style={styles.statusRow}>
-            <AppText style={styles.statusTime}>9:41</AppText>
-            <View style={styles.statusIcons}>
-              <Ionicons name="cellular" size={16} color="#FFFFFF" />
-              <Ionicons name="wifi" size={16} color="#FFFFFF" style={styles.statusIcon} />
-              <Ionicons
-                name="battery-half-outline"
-                size={20}
-                color="#FFFFFF"
-                style={styles.statusIcon}
-              />
-            </View>
-          </View>
-
-          {/* Brand row: dora. + actions */}
-          <View style={styles.brandRow}>
-            <View style={styles.logoRow}>
-              <AppText style={styles.logoText}>dora</AppText>
-              <AppText style={styles.logoDot}>.</AppText>
-            </View>
-
-            <View style={styles.topActions}>
-              <TouchableOpacity
-                style={styles.goBackPill}
-                onPress={onBack}
-                disabled={!onBack}
-                activeOpacity={0.8}
-              >
+        <AppHeader
+          variant="dark"
+          right={
+            onBack ? (
+              <TouchableOpacity style={styles.goBackPill} onPress={handleBack} activeOpacity={0.8}>
                 <Ionicons name="chevron-back-outline" size={16} color="#FFFFFF" />
-                <AppText style={styles.goBackText}>Go back to chat</AppText>
+                <AppText style={styles.goBackText}>Go back</AppText>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.iconCircleButton}
-                onPress={onBack}
-                disabled={!onBack}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+            ) : undefined
+          }
+        />
       )}
 
       {/* ── Screen title row: "Itinerary" ← → [Save][Share][⋯] ────────── */}
@@ -637,66 +651,12 @@ export function ManualItineraryScreen({
       />
     </View>
   );
-}
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  topBarContainer: {
-    width: '100%',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.xl,
-    backgroundColor: '#0A0A0A',
-    borderBottomWidth: 1,
-    borderBottomColor: '#44FFFF',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  statusTime: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    lineHeight: 21,
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusIcon: {
-    marginLeft: 6,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 24,
-  },
-  logoDot: {
-    color: '#44FFFF',
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 24,
-  },
-  topActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   goBackPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -713,15 +673,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
-  },
-  iconCircleButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   screenTitleText: {
     ...typography.lg,
