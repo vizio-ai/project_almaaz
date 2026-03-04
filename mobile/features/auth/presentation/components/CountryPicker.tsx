@@ -32,12 +32,18 @@ export function CountryPicker({ selectedCountry, onSelect }: CountryPickerProps)
   const accentColor = useThemeColor('accent');
   const selectedBg = useThemeColor('selectedBg');
 
+  const normalize = (text: string) =>
+    text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
   const filteredCountries = search.trim()
-    ? COUNTRIES.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.dialCode.includes(search),
-      )
+    ? COUNTRIES.filter((c) => {
+        const q = normalize(search);
+        return (
+          normalize(c.name).includes(q) ||
+          c.code.toLowerCase().includes(q) ||
+          c.dialCode.includes(search)
+        );
+      })
     : COUNTRIES;
 
   const handleOpen = () => {
@@ -111,8 +117,13 @@ export function CountryPicker({ selectedCountry, onSelect }: CountryPickerProps)
                   onPress={() => handleSelect(item)}
                   activeOpacity={0.7}
                 >
-                  <AppText style={[styles.rowName, { color: textColor }]}>{item.name}</AppText>
-                  <AppText style={[styles.rowCode, { color: secondaryText }]}>{item.dialCode}</AppText>
+                  <AppText style={[styles.rowName, { color: textColor }]}>
+                    {item.name}{' '}
+                    <AppText style={{ color: secondaryText }}>({item.code})</AppText>
+                  </AppText>
+                  <AppText style={[styles.rowCode, { color: secondaryText }]}>
+                    {item.dialCode}
+                  </AppText>
                 </TouchableOpacity>
               );
             }}

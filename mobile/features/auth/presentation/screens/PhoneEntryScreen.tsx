@@ -6,8 +6,8 @@ import { COUNTRIES, type Country } from '../../data/config/countries';
 import { CountryPicker } from '../components/CountryPicker';
 import { PhoneInput } from '../components/PhoneInput';
 import { AuthStrings } from '../constants/strings';
+import { isPossiblePhoneNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
 
-const MIN_PHONE_DIGITS = 10;
 const VALIDATION_WARNING = 'You entered your phone number missing or incorrectly.';
 
 interface PhoneEntryScreenProps {
@@ -30,8 +30,8 @@ export function PhoneEntryScreen({
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
 
   const bgColor = useThemeColor('background');
-  const digitsOnly = phone.replace(/\D/g, '');
-  const isValidLength = digitsOnly.length >= MIN_PHONE_DIGITS;
+
+  const isValidLength = isPossiblePhoneNumber(phone, selectedCountry.code);
 
   const handlePhoneChange = useCallback((text: string) => {
     setPhone(text);
@@ -39,14 +39,18 @@ export function PhoneEntryScreen({
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!isValidLength) {
+    try {
+      const parsed = parsePhoneNumberWithError(phone, selectedCountry.code);
+      if (!parsed.isValid()) {
+        setValidationWarning(VALIDATION_WARNING);
+        return;
+      }
+      setValidationWarning(null);
+      onSubmit(parsed.format('E.164'));
+    } catch {
       setValidationWarning(VALIDATION_WARNING);
-      return;
     }
-    setValidationWarning(null);
-    const digits = phone.trim().replace(/\D/g, '');
-    onSubmit(`${selectedCountry.dialCode}${digits}`);
-  }, [isValidLength, phone, selectedCountry.dialCode, onSubmit]);
+  }, [phone, selectedCountry.code, onSubmit]);
 
   const hasError = !!error || !!validationWarning;
 

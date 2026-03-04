@@ -3,6 +3,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_VERIFY_SID = Deno.env.get('TWILIO_VERIFY_SID')!;
+const TEST_PHONE = Deno.env.get('TEST_PHONE');
+const TEST_OTP = Deno.env.get('TEST_OTP');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,6 +39,17 @@ serve(async (req) => {
       );
     }
 
+    const phoneE164 = normalizeToE164(phone.trim());
+
+    // Test bypass: skip Twilio for the configured test number
+    if (TEST_PHONE && TEST_OTP && phoneE164 === TEST_PHONE) {
+      console.log('send-otp: test number detected, skipping Twilio');
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const url = `https://verify.twilio.com/v2/Services/${TWILIO_VERIFY_SID}/Verifications`;
     const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
@@ -47,7 +60,7 @@ serve(async (req) => {
         Authorization: `Basic ${auth}`,
       },
       body: new URLSearchParams({
-        To: normalizeToE164(phone.trim()),
+        To: phoneE164,
         Channel: 'sms',
       }),
     });
