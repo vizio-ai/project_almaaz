@@ -408,7 +408,7 @@ export const ManualItineraryScreen = React.forwardRef<
 
   const handleBack = useCallback(() => {
     if (!onBack) return;
-    if (!hasUnsavedChanges) {
+    if (isNew || !hasUnsavedChanges) {
       onBack();
       return;
     }
