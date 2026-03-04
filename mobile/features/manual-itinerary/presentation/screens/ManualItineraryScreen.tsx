@@ -158,6 +158,18 @@ export function ManualItineraryScreen({
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const [tripNotes, setTripNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (isNew) return;
+    setIsSavingNotes(true);
+    try {
+      await manualItineraryRepository.update(itineraryId!, { tripNotes: tripNotes || null });
+      refresh();
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [isNew, itineraryId, tripNotes, manualItineraryRepository, refresh]);
 
   // ── TravelInfo modal ──────────────────────────────────────────────────────
   const [travelInfoModalVisible, setTravelInfoModalVisible] = useState(false);
@@ -560,8 +572,8 @@ export function ManualItineraryScreen({
         <TripNotesSection
           value={tripNotes}
           onChangeText={setTripNotes}
-          onSave={handleSave}
-          isSaving={isSaving}
+          onSave={handleSaveNotes}
+          isSaving={isSavingNotes}
         />
 
         {/* ── View tabs + days ──────────────────────────────────────────── */}

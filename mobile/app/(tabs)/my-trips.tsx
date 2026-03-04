@@ -1,27 +1,52 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
-import { AppHeader, AppText, useThemeColor } from '@shared/ui-kit';
+import { useUserTrips, ItinerariesGrid } from '@shared/trips';
+import { ManualItineraryScreen } from '@shared/manual-itinerary';
+import { AppHeader, useThemeColor } from '@shared/ui-kit';
 
 export default function MyTripsScreen() {
   const { session } = useSession();
-  const { profile } = useProfile(session?.user.id);
+  const userId = session?.user.id;
+  const { profile } = useProfile(userId);
+  const { trips, isLoading } = useUserTrips(userId);
   const bg = useThemeColor('background');
-  const secondary = useThemeColor('textSecondary');
+
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+
+  if (selectedTripId) {
+    return (
+      <ManualItineraryScreen
+        itineraryId={selectedTripId}
+        userId={userId ?? ''}
+        showHeader
+        onBack={() => setSelectedTripId(null)}
+      />
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AppHeader showAdminLabel={profile?.role === 'admin'} />
-      <View style={styles.body}>
-        <AppText style={[styles.placeholder, { color: secondary }]}>My Trips — Coming soon</AppText>
-      </View>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ItinerariesGrid
+          trips={trips}
+          isLoading={isLoading}
+          onTripPress={(trip) => setSelectedTripId(trip.id)}
+        />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  placeholder: { fontSize: 14 },
+  content: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
 });
