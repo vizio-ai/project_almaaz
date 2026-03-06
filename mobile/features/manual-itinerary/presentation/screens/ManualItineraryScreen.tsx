@@ -258,6 +258,39 @@ export const ManualItineraryScreen = React.forwardRef<
     });
   }, []);
 
+  /**
+   * Adds the next day in sequence and keeps the itinerary end date in sync.
+   * Advancing rule: last dated day + 1 → if no dates yet, adds a dateless day.
+   */
+  const handleAddDay = useCallback(async () => {
+    if (!itineraryId) return;
+
+    const sortedDays = [...days].sort((a, b) => a.dayNumber - b.dayNumber);
+    const lastDatedDay = [...sortedDays].reverse().find((d) => !!d.date);
+
+    let newDateStr: string | null = null;
+
+    if (lastDatedDay?.date) {
+      // Advance last known date by 1 UTC day
+      const d = new Date(lastDatedDay.date);
+      d.setUTCDate(d.getUTCDate() + 1);
+      newDateStr = toISODate(d);
+    } else if (editEndDate) {
+      const d = new Date(editEndDate.getTime());
+      d.setUTCDate(d.getUTCDate() + 1);
+      newDateStr = toISODate(d);
+    }
+
+    if (newDateStr) {
+      // Keep the displayed date range consistent with the new day count
+      const newEnd = new Date(newDateStr);
+      await manualItineraryRepository.update(itineraryId, { endDate: newDateStr });
+      setEditEndDate(newEnd);
+    }
+
+    await addDay({ date: newDateStr ?? undefined });
+  }, [itineraryId, days, editEndDate, manualItineraryRepository, addDay]);
+
   const effectiveDays: ItineraryDay[] = React.useMemo(
     () => (isNew ? buildDraftDays(draftStartDate, draftEndDate) : days),
     [isNew, draftStartDate, draftEndDate, days],
@@ -709,7 +742,7 @@ export const ManualItineraryScreen = React.forwardRef<
           onRemoveActivity={removeActivity}
           onUpdateDay={updateDay}
           onRemoveDay={removeDay}
-          onAddDay={addDay}
+          onAddDay={handleAddDay}
           onUpdateActivityLocation={updateActivityLocation}
           onReorderActivities={reorderActivities}
           isNew={isNew}

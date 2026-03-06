@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider';
 import { GetItineraryUseCase } from '../../domain/usecases/GetItineraryUseCase';
 import type { Itinerary } from '../../domain/entities/Itinerary';
@@ -26,6 +26,9 @@ export function useGetItinerary(itineraryId: string | null): {
   const [travelInfo, setTravelInfo] = useState<TravelInfo[]>([]);
   const [isLoading, setIsLoading] = useState(!!itineraryId);
   const [error, setError] = useState<string | null>(null);
+  // Only show the full-screen spinner on the very first load.
+  // Subsequent refresh() calls (after mutations) update data silently.
+  const initialLoadDone = useRef(false);
 
   const load = useCallback(async () => {
     if (!itineraryId) {
@@ -35,9 +38,12 @@ export function useGetItinerary(itineraryId: string | null): {
       setTravelInfo([]);
       setIsLoading(false);
       setError(null);
+      initialLoadDone.current = false;
       return;
     }
-    setIsLoading(true);
+    if (!initialLoadDone.current) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const result = await getUseCase.execute(itineraryId);
@@ -60,6 +66,7 @@ export function useGetItinerary(itineraryId: string | null): {
       setActivities([]);
       setTravelInfo([]);
     } finally {
+      initialLoadDone.current = true;
       setIsLoading(false);
     }
   }, [itineraryId, getUseCase]);

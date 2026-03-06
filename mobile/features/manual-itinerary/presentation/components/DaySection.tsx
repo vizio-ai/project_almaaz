@@ -6,18 +6,16 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { Trash2, GripVertical, Pencil } from 'lucide-react-native';
+import { Trash2, GripVertical } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   AppText,
   AccordionSection,
-  PrimaryButton,
   useThemeColor,
   typography,
   spacing,
-  radii,
 } from '@shared/ui-kit';
-import { NoteCreateCard } from './NoteCreateCard';
+import { DayNoteSection } from './DayNoteSection';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity, ActivityType } from '../../domain/entities/Activity';
 import type {
@@ -84,10 +82,7 @@ export function DaySection({
   isDraggingDay = false,
   baseLocation,
 }: DaySectionProps) {
-  const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
-  const surface = useThemeColor('surface');
-  const border = useThemeColor('border');
 
   // ── Activity list state ────────────────────────────────────────────────────
   const [orderedActivities, setOrderedActivities] = useState(dayActivities);
@@ -99,7 +94,8 @@ export function DaySection({
   const [activityBusy, setActivityBusy] = useState(false);
 
   // ── Pending new activity state ─────────────────────────────────────────────
-  const [isPendingNew, setIsPendingNew] = useState(false);
+  // Auto-open the new-activity card when the day has no activities yet
+  const [isPendingNew, setIsPendingNew] = useState(dayActivities.length === 0);
   const [pendingName, setPendingName] = useState('');
   const [pendingActivityType, setPendingActivityType] = useState<ActivityType>('park');
   const [pendingTimeValue, setPendingTimeValue] = useState('');
@@ -118,14 +114,12 @@ export function DaySection({
 
   // ── Accommodation state ────────────────────────────────────────────────────
   const [accommodationText, setAccommodationText] = useState(day.accommodation ?? '');
-  const [isEditingAccommodation, setIsEditingAccommodation] = useState(false);
+  // Open AccommodationEditCard by default on a new day (no accommodation yet).
+  // After the user closes or deletes it, isEditingAccommodation becomes false
+  // and the "Add Accommodation" button is shown instead.
+  const [isEditingAccommodation, setIsEditingAccommodation] = useState(!day.accommodation);
   const [accommodationLocationModalVisible, setAccommodationLocationModalVisible] = useState(false);
   const [accommodationBusy, setAccommodationBusy] = useState(false);
-
-  // ── Day note state ─────────────────────────────────────────────────────────
-  const [dayNotes, setDayNotes] = useState(day.notes ?? '');
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notesBusy, setNotesBusy] = useState(false);
 
   useEffect(() => {
     setOrderedActivities(dayActivities);
@@ -206,19 +200,6 @@ export function DaySection({
     setPendingLocationText('');
   };
 
-  // ── Note handlers ──────────────────────────────────────────────────────────
-
-  const handleNoteSave = useCallback(async () => {
-    if (notesBusy) return;
-    setNotesBusy(true);
-    try {
-      await onUpdateDay(day.id, { notes: dayNotes.trim() || null });
-      setIsEditingNotes(false);
-    } finally {
-      setNotesBusy(false);
-    }
-  }, [day.id, dayNotes, notesBusy, onUpdateDay]);
-
   // ── Location modal handlers ────────────────────────────────────────────────
 
   const openLocationModal = useCallback(
@@ -294,6 +275,15 @@ export function DaySection({
     }
   };
 
+  // ── Note save handler (passed to DayNoteSection) ───────────────────────────
+
+  const handleNoteSave = useCallback(
+    async (note: string | null) => {
+      await onUpdateDay(day.id, { notes: note });
+    },
+    [day.id, onUpdateDay],
+  );
+
   return (
     <View style={[styles.daySection, isDraggingDay && styles.daySectionDragging]}>
       {/* ── Controls row: drag handle + delete ──────────────────────────── */}
@@ -321,58 +311,35 @@ export function DaySection({
         onToggle={onToggle}
       >
         {/* ── Accommodation ─────────────────────────────────────────────── */}
-        {isEditingAccommodation ? (
-          <AccommodationEditCard
-            selectedName={accommodationText}
-            onPressSelect={() => setAccommodationLocationModalVisible(true)}
-            onClose={() => setIsEditingAccommodation(false)}
-            onDelete={handleAccommodationDelete}
-            onSave={handleAccommodationSave}
-          />
-        ) : accommodationText ? (
-          <AccommodationCard
-            title={accommodationText}
-            onPress={() => setIsEditingAccommodation(true)}
-          />
-        ) : (
-          <PrimaryButton
-            variant="outline"
-            label="Add Accommodation"
-            onPress={() => setIsEditingAccommodation(true)}
-            style={styles.addBtn}
-          />
-        )}
+        <View style={styles.sectionRow}>
+          {isEditingAccommodation ? (
+            <AccommodationEditCard
+              selectedName={accommodationText}
+              onPressSelect={() => setAccommodationLocationModalVisible(true)}
+              onClose={() => setIsEditingAccommodation(false)}
+              onDelete={handleAccommodationDelete}
+              onSave={handleAccommodationSave}
+            />
+          ) : accommodationText ? (
+            <AccommodationCard
+              title={accommodationText}
+              onPress={() => setIsEditingAccommodation(true)}
+            />
+          ) : (
+            <AddAnotherActivityButton
+              label="Add Accommodation"
+              onPress={() => setIsEditingAccommodation(true)}
+            />
+          )}
+        </View>
 
         {/* ── Day note ──────────────────────────────────────────────────── */}
-        {!dayNotes && !isEditingNotes ? (
-          <PrimaryButton
-            variant="outline"
-            label="Add Note"
-            onPress={() => setIsEditingNotes(true)}
-            style={styles.addBtn}
+        <View style={styles.sectionRow}>
+          <DayNoteSection
+            initialNote={day.notes}
+            onSave={handleNoteSave}
           />
-        ) : isEditingNotes ? (
-          <View style={styles.noteEditWrapper}>
-            <NoteCreateCard
-              value={dayNotes}
-              onChange={setDayNotes}
-              onSave={handleNoteSave}
-              isSaving={notesBusy}
-            />
-          </View>
-        ) : (
-          <View style={[styles.noteCard, { backgroundColor: surface, borderColor: border }]}>
-            <View style={styles.noteCardRow}>
-              <AppText style={[styles.noteLabel, { color: secondary }]}>Note</AppText>
-              <TouchableOpacity onPress={() => setIsEditingNotes(true)} hitSlop={8}>
-                <Pencil size={15} color={secondary} strokeWidth={1.8} />
-              </TouchableOpacity>
-            </View>
-            <AppText style={[styles.noteText, { color: textColor }]} numberOfLines={4}>
-              {dayNotes}
-            </AppText>
-          </View>
-        )}
+        </View>
 
         {/* ── Activity list ──────────────────────────────────────────────── */}
         <DraggableFlatList
@@ -425,25 +392,29 @@ export function DaySection({
 
         {/* ── Pending new activity ───────────────────────────────────────── */}
         {isPendingNew && (
-          <ActivityEditCard
-            title="New Activity"
-            name={pendingName}
-            activityType={pendingActivityType}
-            timeValue={pendingTimeValue}
-            placeValue={pendingLocationText}
-            onChangeName={setPendingName}
-            onChangeActivityType={setPendingActivityType}
-            onPressTime={() => openTimePicker(true)}
-            onPressPlace={() => openLocationModal(null, true, pendingLocationText)}
-            onDelete={cancelPending}
-            onSave={handlePendingAdd}
-            onClose={cancelPending}
-          />
+          <View style={styles.activityButtonRow}>
+            <ActivityEditCard
+              title="New Activity"
+              name={pendingName}
+              activityType={pendingActivityType}
+              timeValue={pendingTimeValue}
+              placeValue={pendingLocationText}
+              onChangeName={setPendingName}
+              onChangeActivityType={setPendingActivityType}
+              onPressTime={() => openTimePicker(true)}
+              onPressPlace={() => openLocationModal(null, true, pendingLocationText)}
+              onDelete={cancelPending}
+              onSave={handlePendingAdd}
+              onClose={cancelPending}
+            />
+          </View>
         )}
 
-        {/* ── Add another activity button ────────────────────────────────── */}
+        {/* ── Add another activity button — 16px from last card ─────────── */}
         {!isPendingNew && (
-          <AddAnotherActivityButton onPress={() => setIsPendingNew(true)} />
+          <View style={styles.activityButtonRow}>
+            <AddAnotherActivityButton onPress={() => setIsPendingNew(true)} />
+          </View>
         )}
 
         {/* ── Time picker ───────────────────────────────────────────────── */}
@@ -533,23 +504,11 @@ const styles = StyleSheet.create({
   dayDragHandle: { marginRight: spacing.xs },
   spacer: { flex: 1 },
 
-  addBtn: { marginBottom: spacing.sm },
+  // Wrapper for accommodation and note rows — adds bottom spacing between sections
+  sectionRow: { marginBottom: spacing.sm },
 
-  noteEditWrapper: { marginBottom: spacing.md },
-  noteCard: {
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  noteCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  noteLabel: { ...typography.caption, fontWeight: typography.weights.medium },
-  noteText: { ...typography.sm },
+  // 16px top margin so the total gap from last ActivityCard to this button = 16px
+  activityButtonRow: { marginTop: spacing.lg },
 
   timePickerOverlay: {
     flex: 1,

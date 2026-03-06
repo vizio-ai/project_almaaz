@@ -3,15 +3,16 @@ import { StyleSheet } from 'react-native';
 import { PrimaryButton, spacing, radii, typography, useThemeColor } from '@shared/ui-kit';
 
 interface AddAnotherActivityButtonProps {
+  label?: string;
   onPress?: () => void;
 }
 
-export function AddAnotherActivityButton({ onPress }: AddAnotherActivityButtonProps) {
+export function AddAnotherActivityButton({ label = 'Add Another Activity', onPress }: AddAnotherActivityButtonProps) {
   const textColor = useThemeColor('text');
 
   return (
     <PrimaryButton
-      label="Add Another Activity"
+      label={label}
       variant="outline"
       onPress={onPress}
       style={styles.button}

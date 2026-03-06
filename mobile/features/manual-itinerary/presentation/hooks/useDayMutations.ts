@@ -4,7 +4,7 @@ import { AddDayUseCase } from '../../domain/usecases/AddDayUseCase';
 import { UpdateDayUseCase } from '../../domain/usecases/UpdateDayUseCase';
 import { RemoveDayUseCase } from '../../domain/usecases/RemoveDayUseCase';
 import { ReorderDaysUseCase } from '../../domain/usecases/ReorderDaysUseCase';
-import type { UpdateDayParams } from '../../domain/repository/ManualItineraryRepository';
+import type { AddDayParams, UpdateDayParams } from '../../domain/repository/ManualItineraryRepository';
 
 export function useDayMutations(itineraryId: string | null, refresh: () => void) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
@@ -26,9 +26,9 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
     [manualItineraryRepository],
   );
 
-  const addDay = useCallback(async () => {
+  const addDay = useCallback(async (params: AddDayParams = {}) => {
     if (!itineraryId) return { success: false as const };
-    const result = await addUseCase.execute(itineraryId);
+    const result = await addUseCase.execute(itineraryId, params);
     if (result.success) refresh();
     return result;
   }, [itineraryId, addUseCase, refresh]);
