@@ -36,7 +36,7 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
   const updateDay = useCallback(
     async (dayId: string, params: UpdateDayParams) => {
       const result = await updateUseCase.execute(dayId, params);
-      if (result.success) setTimeout(refresh, 300);
+      if (result.success) refresh();
       return result;
     },
     [updateUseCase, refresh],

@@ -310,6 +310,7 @@ export function WizardTravelInfoStep({
 }: WizardTravelInfoStepProps) {
   const border     = useThemeColor('border');
   const textColor  = useThemeColor('text');
+  const secondary  = useThemeColor('textSecondary');
   const background = useThemeColor('background');
   const surface    = useThemeColor('surface');
   const accent     = useThemeColor('accent');
@@ -370,11 +371,7 @@ export function WizardTravelInfoStep({
     ]);
   }
 
-  // Start with one empty card if no items
-  const displayItems = travelInfoItems.length === 0
-    ? [{ id: 'temp-empty', type: 'flight' as const, title: '', provider: null, detail: null, startDatetime: null, endDatetime: null }]
-    : travelInfoItems;
-  const isEmptyState = travelInfoItems.length === 0;
+  const isEmpty = travelInfoItems.length === 0;
 
   return (
     <KeyboardAvoidingView
@@ -387,37 +384,51 @@ export function WizardTravelInfoStep({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {displayItems.map((item, index) => (
-          <TransportCard
-            key={item.id}
-            item={item}
-            index={index}
-            canRemove={travelInfoItems.length > 1}
-            onChange={(updated) => {
-              if (isEmptyState) {
-                // First card submission - add it to the list
-                onTravelInfoChange([updated]);
-              } else {
-                updateItem(item.id, updated);
-              }
-            }}
-            onRemove={() => removeItem(item.id)}
-            onOpenStartPicker={(id, current) => openPicker(id, 'start', current)}
-            onOpenEndPicker={(id, current) => openPicker(id, 'end', current)}
-          />
-        ))}
-
-        {/* ── Add Another Transportation ──────────────────────────── */}
-        {travelInfoItems.length > 0 && (
-          <TouchableOpacity
-            onPress={addItem}
-            style={[styles.addBtn, { borderColor: border }]}
-          >
-            <Ionicons name="add-outline" size={16} color={textColor} />
-            <AppText style={[styles.addBtnLabel, { color: textColor }]}>
-              Add Another Transportation
+        {isEmpty ? (
+          /* ── Empty state: explicit add button, no ghost card ──────── */
+          <View style={styles.emptyState}>
+            <AppText style={[styles.emptyTitle, { color: textColor }]}>
+              Transportation & Bookings
             </AppText>
-          </TouchableOpacity>
+            <AppText style={[styles.emptyHint, { color: secondary }]}>
+              Add flights, rental cars, or other travel bookings. You can skip this step if not needed.
+            </AppText>
+            <TouchableOpacity
+              onPress={addItem}
+              style={[styles.addBtn, { borderColor: border }]}
+            >
+              <Ionicons name="add-outline" size={16} color={textColor} />
+              <AppText style={[styles.addBtnLabel, { color: textColor }]}>
+                Add Transportation
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {travelInfoItems.map((item, index) => (
+              <TransportCard
+                key={item.id}
+                item={item}
+                index={index}
+                canRemove={true}
+                onChange={(updated) => updateItem(item.id, updated)}
+                onRemove={() => removeItem(item.id)}
+                onOpenStartPicker={(id, current) => openPicker(id, 'start', current)}
+                onOpenEndPicker={(id, current) => openPicker(id, 'end', current)}
+              />
+            ))}
+
+            {/* ── Add Another Transportation ─────────────────────────── */}
+            <TouchableOpacity
+              onPress={addItem}
+              style={[styles.addBtn, { borderColor: border }]}
+            >
+              <Ionicons name="add-outline" size={16} color={textColor} />
+              <AppText style={[styles.addBtnLabel, { color: textColor }]}>
+                Add Another Transportation
+              </AppText>
+            </TouchableOpacity>
+          </>
         )}
       </ScrollView>
 
@@ -504,11 +515,20 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing['2xl'],
+    gap: spacing.md,
+  },
+  emptyTitle: {
+    ...typography.base,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   emptyHint: {
     ...typography.sm,
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
   },
 
   // Transport card

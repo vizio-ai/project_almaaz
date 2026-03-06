@@ -291,6 +291,25 @@ export const ManualItineraryScreen = React.forwardRef<
     await addDay({ date: newDateStr ?? undefined });
   }, [itineraryId, days, editEndDate, manualItineraryRepository, addDay]);
 
+  /**
+   * Removes a day and keeps the itinerary end date in sync.
+   * The new end date is the date of the last remaining dated day.
+   */
+  const handleRemoveDay = useCallback(async (dayId: string) => {
+    const result = await removeDay(dayId);
+    if (!result.success || !itineraryId) return;
+
+    const remainingDays = days.filter((d) => d.id !== dayId);
+    const lastDatedDay = remainingDays
+      .filter((d) => !!d.date)
+      .sort((a, b) => a.dayNumber - b.dayNumber)
+      .pop();
+
+    const newEndStr = lastDatedDay?.date ?? null;
+    await manualItineraryRepository.update(itineraryId, { endDate: newEndStr });
+    setEditEndDate(newEndStr ? new Date(newEndStr) : null);
+  }, [days, itineraryId, removeDay, manualItineraryRepository]);
+
   const effectiveDays: ItineraryDay[] = React.useMemo(
     () => (isNew ? buildDraftDays(draftStartDate, draftEndDate) : days),
     [isNew, draftStartDate, draftEndDate, days],
@@ -678,7 +697,7 @@ export const ManualItineraryScreen = React.forwardRef<
                 endDate={editEndDate}
                 onStartDate={setEditStartDate}
                 onEndDate={setEditEndDate}
-                displayText={formatDateRange(startDate, itinerary?.endDate ?? null)}
+                displayText={formatDateRange(startDate, editEndDate ? toISODate(editEndDate) : (itinerary?.endDate ?? null))}
               />
             )}
           </View>
@@ -741,7 +760,7 @@ export const ManualItineraryScreen = React.forwardRef<
           onEditActivity={updateActivity}
           onRemoveActivity={removeActivity}
           onUpdateDay={updateDay}
-          onRemoveDay={removeDay}
+          onRemoveDay={handleRemoveDay}
           onAddDay={handleAddDay}
           onUpdateActivityLocation={updateActivityLocation}
           onReorderActivities={reorderActivities}

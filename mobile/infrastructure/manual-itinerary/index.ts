@@ -55,11 +55,13 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         creatorAvatarUrl: profile?.avatar_url ?? null,
       };
 
-      const { data: daysData } = await supabase
+      const { data: daysData, error: daysError } = await supabase
         .from('itinerary_days')
         .select('id, day_number, date, notes, accommodation')
         .eq('itinerary_id', id)
         .order('day_number', { ascending: true });
+
+      if (daysError) throw new Error('Failed to load itinerary days');
 
       const days: ItineraryDay[] = (daysData ?? []).map((d) => ({
         id: d.id,
@@ -72,11 +74,13 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       const activities: Activity[] = [];
       const dayIds = days.map((d) => d.id);
       if (dayIds.length > 0) {
-        const { data: actsData } = await supabase
+        const { data: actsData, error: actsError } = await supabase
           .from('itinerary_activities')
           .select('id, day_id, sort_order, name, activity_type, start_time, location_text, latitude, longitude')
           .in('day_id', dayIds)
           .order('sort_order', { ascending: true });
+
+        if (actsError) throw new Error('Failed to load activities');
 
         (actsData ?? []).forEach((a) => {
           activities.push({
@@ -93,11 +97,13 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         });
       }
 
-      const { data: travelData } = await supabase
+      const { data: travelData, error: travelError } = await supabase
         .from('itinerary_travel_info')
         .select('id, type, title, provider, detail, start_datetime, end_datetime')
         .eq('itinerary_id', id)
         .order('created_at', { ascending: true });
+
+      if (travelError) throw new Error('Failed to load travel info');
 
       const travelInfo: TravelInfo[] = (travelData ?? []).map((t) => ({
         id: t.id,
@@ -215,16 +221,17 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
     },
 
     async reorderDays(itineraryId: string, orderedDayIds: string[]) {
-      const results = await Promise.all(
-        orderedDayIds.map((dayId, index) =>
-          supabase
-            .from('itinerary_days')
-            .update({ day_number: index + 1 })
-            .eq('id', dayId)
-            .eq('itinerary_id', itineraryId),
-        ),
-      );
-      return { success: results.every((r) => !r.error) };
+      const { error } = await supabase
+        .from('itinerary_days')
+        .upsert(
+          orderedDayIds.map((id, index) => ({
+            id,
+            itinerary_id: itineraryId,
+            day_number: index + 1,
+          })),
+          { onConflict: 'id' },
+        );
+      return { success: !error };
     },
 
     // ─── Activities ──────────────────────────────────────────────────────────
@@ -281,16 +288,17 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
     },
 
     async reorderActivities(dayId: string, orderedActivityIds: string[]) {
-      const results = await Promise.all(
-        orderedActivityIds.map((actId, index) =>
-          supabase
-            .from('itinerary_activities')
-            .update({ sort_order: index + 1 })
-            .eq('id', actId)
-            .eq('day_id', dayId),
-        ),
-      );
-      return { success: results.every((r) => !r.error) };
+      const { error } = await supabase
+        .from('itinerary_activities')
+        .upsert(
+          orderedActivityIds.map((id, index) => ({
+            id,
+            day_id: dayId,
+            sort_order: index + 1,
+          })),
+          { onConflict: 'id' },
+        );
+      return { success: !error };
     },
 
     // ─── Travel Info ─────────────────────────────────────────────────────────

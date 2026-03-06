@@ -60,7 +60,7 @@ export function useActivityMutations(refresh: () => void) {
       latitude: number | null,
       longitude: number | null,
     ) => {
-      const result = await manualItineraryRepository.updateActivity(activityId, {
+      const result = await updateUseCase.execute(activityId, {
         locationText,
         latitude,
         longitude,
@@ -68,7 +68,7 @@ export function useActivityMutations(refresh: () => void) {
       if (result.success) refresh();
       return result;
     },
-    [manualItineraryRepository, refresh],
+    [updateUseCase, refresh],
   );
 
   const reorderActivities = useCallback(

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Modal,
   Platform,
+  Alert,
 } from 'react-native';
 import { Trash2, GripVertical } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -299,7 +300,19 @@ export function DaySection({
           </TouchableOpacity>
         )}
         <View style={styles.spacer} />
-        <TouchableOpacity onPress={() => onRemoveDay(day.id)} hitSlop={8}>
+        <TouchableOpacity
+          onPress={() =>
+            Alert.alert(
+              'Delete day',
+              'This will permanently delete this day and all its activities.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => onRemoveDay(day.id) },
+              ],
+            )
+          }
+          hitSlop={8}
+        >
           <Trash2 size={16} color={secondary} strokeWidth={1.8} />
         </TouchableOpacity>
       </View>
@@ -310,8 +323,8 @@ export function DaySection({
         collapsed={isCollapsed}
         onToggle={onToggle}
       >
-        {/* ── Accommodation ─────────────────────────────────────────────── */}
-        <View style={styles.sectionRow}>
+        <View style={styles.dayBody}>
+          {/* ── Accommodation ─────────────────────────────────────────── */}
           {isEditingAccommodation ? (
             <AccommodationEditCard
               selectedName={accommodationText}
@@ -331,68 +344,66 @@ export function DaySection({
               onPress={() => setIsEditingAccommodation(true)}
             />
           )}
-        </View>
 
-        {/* ── Day note ──────────────────────────────────────────────────── */}
-        <View style={styles.sectionRow}>
+          {/* ── Day note ──────────────────────────────────────────────── */}
           <DayNoteSection
             initialNote={day.notes}
             onSave={handleNoteSave}
           />
-        </View>
 
-        {/* ── Activity list ──────────────────────────────────────────────── */}
-        <DraggableFlatList
-          data={orderedActivities}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          activationDistance={10}
-          contentContainerStyle={{ gap: spacing.sm }}
-          onDragEnd={({ data }) => {
-            setOrderedActivities(data);
-            onReorderActivities?.(day.id, data.map((a) => a.id));
-          }}
-          renderItem={({ item: act, drag }) =>
-            editingId === act.id ? (
-              <ScaleDecorator activeScale={1.02}>
-                <ActivityEditCard
-                  title={act.name || 'Edit Activity'}
-                  name={editingName}
-                  activityType={editingActivityType}
-                  timeValue={editingTimeValue}
-                  placeValue={editingLocationText}
-                  onChangeName={setEditingName}
-                  onChangeActivityType={setEditingActivityType}
-                  onPressTime={() => openTimePicker(false)}
-                  onPressPlace={() => openLocationModal(act.id, false, editingLocationText)}
-                  onDelete={async () => {
-                    await handleRemoveActivity(act.id);
-                    cancelEdit();
-                  }}
-                  onSave={handleEditSave}
-                  onClose={cancelEdit}
-                />
-              </ScaleDecorator>
-            ) : (
-              <ScaleDecorator activeScale={1.02}>
-                <ActivityCard
-                  title={act.name}
-                  tags={[
-                    ...(act.startTime ? [{ label: act.startTime, icon: 'time' as const }] : []),
-                    ...(act.locationText ? [{ label: act.locationText, icon: 'location' as const }] : []),
-                  ]}
-                  onPress={() => startEdit(act)}
-                  onPressEdit={() => startEdit(act)}
-                  onMoveDown={drag}
-                />
-              </ScaleDecorator>
-            )
-          }
-        />
+          {/* ── Activity list — only rendered when non-empty ───────────── */}
+          {orderedActivities.length > 0 && (
+            <DraggableFlatList
+              data={orderedActivities}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              activationDistance={10}
+              contentContainerStyle={{ gap: spacing.lg }}
+              onDragEnd={({ data }) => {
+                setOrderedActivities(data);
+                onReorderActivities?.(day.id, data.map((a) => a.id));
+              }}
+              renderItem={({ item: act, drag }) =>
+                editingId === act.id ? (
+                  <ScaleDecorator activeScale={1.02}>
+                    <ActivityEditCard
+                      title={act.name || 'Edit Activity'}
+                      name={editingName}
+                      activityType={editingActivityType}
+                      timeValue={editingTimeValue}
+                      placeValue={editingLocationText}
+                      onChangeName={setEditingName}
+                      onChangeActivityType={setEditingActivityType}
+                      onPressTime={() => openTimePicker(false)}
+                      onPressPlace={() => openLocationModal(act.id, false, editingLocationText)}
+                      onDelete={async () => {
+                        await handleRemoveActivity(act.id);
+                        cancelEdit();
+                      }}
+                      onSave={handleEditSave}
+                      onClose={cancelEdit}
+                    />
+                  </ScaleDecorator>
+                ) : (
+                  <ScaleDecorator activeScale={1.02}>
+                    <ActivityCard
+                      title={act.name}
+                      tags={[
+                        ...(act.startTime ? [{ label: act.startTime, icon: 'time' as const }] : []),
+                        ...(act.locationText ? [{ label: act.locationText, icon: 'location' as const }] : []),
+                      ]}
+                      onPress={() => startEdit(act)}
+                      onPressEdit={() => startEdit(act)}
+                      onMoveDown={drag}
+                    />
+                  </ScaleDecorator>
+                )
+              }
+            />
+          )}
 
-        {/* ── Pending new activity ───────────────────────────────────────── */}
-        {isPendingNew && (
-          <View style={styles.activityButtonRow}>
+          {/* ── Pending new activity ───────────────────────────────────── */}
+          {isPendingNew && (
             <ActivityEditCard
               title="New Activity"
               name={pendingName}
@@ -407,15 +418,13 @@ export function DaySection({
               onSave={handlePendingAdd}
               onClose={cancelPending}
             />
-          </View>
-        )}
+          )}
 
-        {/* ── Add another activity button — 16px from last card ─────────── */}
-        {!isPendingNew && (
-          <View style={styles.activityButtonRow}>
+          {/* ── Add another activity button ────────────────────────────── */}
+          {!isPendingNew && (
             <AddAnotherActivityButton onPress={() => setIsPendingNew(true)} />
-          </View>
-        )}
+          )}
+        </View>
 
         {/* ── Time picker ───────────────────────────────────────────────── */}
         {timePickerVisible &&
@@ -504,11 +513,8 @@ const styles = StyleSheet.create({
   dayDragHandle: { marginRight: spacing.xs },
   spacer: { flex: 1 },
 
-  // Wrapper for accommodation and note rows — adds bottom spacing between sections
-  sectionRow: { marginBottom: spacing.sm },
-
-  // 16px top margin so the total gap from last ActivityCard to this button = 16px
-  activityButtonRow: { marginTop: spacing.lg },
+  // 16px gap between all components inside the accordion body
+  dayBody: { gap: spacing.lg },
 
   timePickerOverlay: {
     flex: 1,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { AppText, useThemeColor, spacing, typography } from '@shared/ui-kit';
 import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider';
@@ -62,6 +62,9 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
 
   // ── Step navigation ───────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState(0);
+  // Tracks the date range used the last time we built wizard days.
+  // Days are only rebuilt when dates actually change — preserving edits on back/forward navigation.
+  const daysBuiltForRef = useRef<{ start: string; end: string } | null>(null);
 
   // ── Step 1 – Basic Details ────────────────────────────────────────────────
   const [coverUri,    setCoverUri]    = useState<string | null>(null);
@@ -100,19 +103,26 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
     setIsPublic(false);
     setIsClonable(false);
     setSaveError(null);
+    daysBuiltForRef.current = null;
   }, []);
 
   // ── Step navigation ───────────────────────────────────────────────────────
 
   const goToStep = useCallback(
     (next: number) => {
-      // Auto-populate days from date range when first entering Trip Plan
-      if (next === 2 && next > currentStep && startDate && endDate) {
-        setWizardDays(buildDaysFromRange(startDate, endDate));
+      if (next === 2 && startDate && endDate) {
+        const startStr = toISODate(startDate);
+        const endStr = toISODate(endDate);
+        const prev = daysBuiltForRef.current;
+        // Only rebuild days when the date range has changed — preserves edits on back/forward.
+        if (!prev || prev.start !== startStr || prev.end !== endStr) {
+          setWizardDays(buildDaysFromRange(startDate, endDate));
+          daysBuiltForRef.current = { start: startStr, end: endStr };
+        }
       }
       setCurrentStep(next);
     },
-    [currentStep, startDate, endDate],
+    [startDate, endDate],
   );
 
   const handleCancel = useCallback(() => {
@@ -159,7 +169,7 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
         }
       }
 
-      // 3. Save travel info items (Step 2) with full structured data
+      // 3. Save travel info items (Step 2) — non-fatal, skip on failure
       for (const ti of travelInfoItems) {
         if (ti.title.trim()) {
           await manualItineraryRepository.addTravelInfo(itineraryId, {
@@ -173,32 +183,31 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
         }
       }
 
-      // 4. Save days, accommodation, and activities (Step 3)
+      // 4. Save days, accommodation, and activities (Step 3).
+      // If any day fails, roll back by deleting the itinerary (CASCADE removes all children).
       for (const day of wizardDays) {
         const dayResult = await manualItineraryRepository.addDay(itineraryId, {
-          date: day.date ?? undefined,
+          date:          day.date ?? undefined,
+          accommodation: day.accommodation.trim() || null,
         });
-        if (!dayResult.success || !dayResult.id) continue;
-        const dayId = dayResult.id;
 
-        if (day.accommodation.trim()) {
-          await manualItineraryRepository.addTravelInfo(itineraryId, {
-            type:  'hotel',
-            title: day.accommodation.trim(),
-          });
+        if (!dayResult.success || !dayResult.id) {
+          await manualItineraryRepository.remove(itineraryId);
+          throw new Error('Failed to save trip days. Please try again.');
         }
 
+        const dayId = dayResult.id;
         let sortOrder = 0;
         for (const act of day.activities) {
           if (!act.name.trim()) continue;
-          const name = act.time.trim()
-            ? `[${act.time.trim()}] ${act.name.trim()}`
-            : act.name.trim();
+          // Activity failures are non-fatal — user can add them manually later.
           await manualItineraryRepository.addActivity(dayId, {
-            name,
-            locationText: act.place.trim() || null,
-            latitude:     act.latitude     ?? null,
-            longitude:    act.longitude    ?? null,
+            name:         act.name.trim(),
+            activityType: act.activityType ?? null,
+            startTime:    act.time.trim()   || null,
+            locationText: act.place.trim()  || null,
+            latitude:     act.latitude      ?? null,
+            longitude:    act.longitude     ?? null,
             sortOrder:    sortOrder++,
           });
         }
