@@ -72,14 +72,16 @@ export function TripDateRangeInput({
 
   function openPicker() {
     if (!editable) return;
-    setLocalDate(startDate ?? new Date());
+    const today = new Date();
+    setLocalDate(startDate instanceof Date && !isNaN(startDate.getTime()) ? startDate : today);
     setPickerStep('start');
   }
 
   function handleConfirm() {
     if (pickerStep === 'start') {
       onStartDate?.(localDate);
-      setLocalDate(endDate ?? localDate);
+      const next = endDate instanceof Date && !isNaN(endDate.getTime()) ? endDate : localDate;
+      setLocalDate(next);
       setPickerStep('end');
     } else if (pickerStep === 'end') {
       onEndDate?.(localDate);
@@ -116,6 +118,7 @@ export function TripDateRangeInput({
       {pickerStep !== null && (
         Platform.OS === 'android' ? (
           <DateTimePicker
+            key={pickerStep}
             value={localDate}
             mode="date"
             display="default"
@@ -149,6 +152,7 @@ export function TripDateRangeInput({
                   {showLabel}
                 </AppText>
                 <DateTimePicker
+                  key={pickerStep}
                   value={localDate}
                   mode="date"
                   display="spinner"

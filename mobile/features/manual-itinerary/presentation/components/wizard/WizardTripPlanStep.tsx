@@ -100,6 +100,7 @@ interface DayCardProps {
   onChange: (updated: WizardDraftDay) => void;
   onRemove: () => void;
   canRemove: boolean;
+  initialCollapsed?: boolean;
   onOpenPlaceModal: (activityId: string, currentPlace: string) => void;
   onOpenAccommodationModal: (dayId: string, currentAccommodation: string) => void;
   onOpenTimePicker: (activityId: string, currentTime: string) => void;
@@ -110,6 +111,7 @@ function DayCard({
   onChange,
   onRemove,
   canRemove,
+  initialCollapsed = false,
   onOpenPlaceModal,
   onOpenAccommodationModal,
   onOpenTimePicker,
@@ -118,7 +120,7 @@ function DayCard({
   const secondary  = useThemeColor('textSecondary');
   const borderMuted = useThemeColor('borderMuted');
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
 
   function addActivity() {
     const newAct: WizardDraftActivity = {
@@ -210,7 +212,7 @@ function DayCard({
               <AppInput
                 value={act.name}
                 onChangeText={(v) => updateActivity(act.id, { name: v })}
-                placeholder="John Doe"
+                placeholder="e. g. Visit the Eiffel Tower"
               />
 
               {/* Activity type */}
@@ -376,12 +378,20 @@ export function WizardTripPlanStep({
   }
 
   function addDay() {
+    const lastDay = days[days.length - 1];
+    let newDate: string | null = null;
+    if (lastDay?.date) {
+      const d = new Date(lastDay.date);
+      d.setUTCDate(d.getUTCDate() + 1);
+      newDate = d.toISOString().split('T')[0];
+    }
+
     onDaysChange([
       ...days,
       {
         id: `draft-day-${Date.now()}`,
         dayNumber: days.length + 1,
-        date: null,
+        date: newDate,
         accommodation: '',
         activities: [
           {
@@ -409,13 +419,14 @@ export function WizardTripPlanStep({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {days.map((day) => (
+        {days.map((day, index) => (
           <DayCard
             key={day.id}
             day={day}
             onChange={(updated) => updateDay(day.id, updated)}
             onRemove={() => removeDay(day.id)}
             canRemove={days.length > 1}
+            initialCollapsed={index > 0 && days.length > 1}
             onOpenPlaceModal={openPlaceModal}
             onOpenAccommodationModal={openAccommodationModal}
             onOpenTimePicker={openTimePicker}
@@ -521,7 +532,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     alignSelf: 'stretch',
-    marginVertical: spacing.lg,
+    marginTop: spacing.lg,
   },
 
   // Activity

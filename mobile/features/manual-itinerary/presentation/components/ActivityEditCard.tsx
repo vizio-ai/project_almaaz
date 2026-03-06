@@ -63,9 +63,10 @@ export function ActivityEditCard({
   const secondary = useThemeColor('textSecondary');
   const border    = useThemeColor('border');
   const surface   = useThemeColor('surface');
+  const background = useThemeColor('background');
 
   return (
-    <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
+    <View style={[styles.card, { backgroundColor: background, borderColor: border }]}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>

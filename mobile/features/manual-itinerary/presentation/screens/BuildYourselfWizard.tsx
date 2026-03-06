@@ -79,6 +79,20 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
   // ── Step 3 – Trip Plan ────────────────────────────────────────────────────
   const [wizardDays, setWizardDays] = useState<WizardDraftDay[]>([EMPTY_DAY]);
 
+  // ── Sync days ↔ dates ────────────────────────────────────────────────────
+  const handleDaysChange = useCallback((newDays: WizardDraftDay[]) => {
+    setWizardDays(newDays);
+    const datedDays = newDays.filter((d) => d.date != null);
+    if (datedDays.length > 0) {
+      const sorted = [...datedDays].sort((a, b) => a.date!.localeCompare(b.date!));
+      const newStart = new Date(sorted[0].date!);
+      const newEnd = new Date(sorted[sorted.length - 1].date!);
+      setStartDate(newStart);
+      setEndDate(newEnd);
+      daysBuiltForRef.current = { start: toISODate(newStart), end: toISODate(newEnd) };
+    }
+  }, []);
+
   // ── Step 4 – Confirmation settings ───────────────────────────────────────
   const [isPublic,   setIsPublic]   = useState(false);
   const [isClonable, setIsClonable] = useState(false);
@@ -273,7 +287,7 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
         {currentStep === 2 && (
           <WizardTripPlanStep
             days={wizardDays}
-            onDaysChange={setWizardDays}
+            onDaysChange={handleDaysChange}
             onBack={() => goToStep(1)}
             onNext={() => goToStep(3)}
           />

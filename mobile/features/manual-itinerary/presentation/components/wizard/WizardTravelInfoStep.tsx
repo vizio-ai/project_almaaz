@@ -122,13 +122,14 @@ function TransportCard({
   const border    = useThemeColor('border');
   const surface   = useThemeColor('surface');
   const accent    = useThemeColor('accent');
+  const background = useThemeColor('background');
 
   const [collapsed, setCollapsed] = useState(false);
 
   const showEndDate = item.type === 'rental_car';
 
   return (
-    <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
+    <View style={[styles.card, { backgroundColor: background, borderColor: border }]}>
       {/* ── Card header ─────────────────────────────────────────────── */}
       <TouchableOpacity
         style={styles.cardHeader}
@@ -546,7 +547,7 @@ const styles = StyleSheet.create({
 
   // Field wrapper (for date pickers with label)
   fieldWrap: { gap: 8 },
-  fieldLabel: { ...typography.sm, fontWeight: '500' as const, marginBottom: 8 },
+  fieldLabel: { ...typography.sm, fontWeight: '500' as const,},
 
   // Date button
   dateRow: {

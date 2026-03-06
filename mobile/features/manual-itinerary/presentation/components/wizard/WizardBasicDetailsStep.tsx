@@ -181,7 +181,6 @@ export function WizardBasicDetailsStep({
         {/* ── Destination ────────────────────────────────────────────── */}
         <View style={styles.fieldWrap}>
           <AppText style={[styles.fieldLabel, { color: textColor }]}>Destination</AppText>
-          <View style={{ height: 8 }} />
           <SelectTrigger
             value={destination}
             placeholder="Select a destination"
@@ -192,7 +191,6 @@ export function WizardBasicDetailsStep({
         {/* ── Set Your Dates ─────────────────────────────────────────── */}
         <View style={styles.fieldWrap}>
           <AppText style={[styles.fieldLabel, { color: textColor }]}>Set Your Dates</AppText>
-          <View style={{ height: 8 }} />
           <View style={[styles.inputBox, { borderColor: border }]}>
             <TripDateRangeInput
               startDate={startDate}
@@ -293,7 +291,6 @@ const styles = StyleSheet.create({
   fieldLabel: {
     ...typography.sm,
     fontWeight: '500',
-    marginBottom: 8,
   },
   inputBox: {
     flexDirection: 'row',
@@ -302,6 +299,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     minHeight: 40,
+    maxHeight: 400,
   },
   inputText: {
     ...typography.sm,
