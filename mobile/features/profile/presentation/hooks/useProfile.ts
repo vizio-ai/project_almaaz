@@ -37,13 +37,16 @@ export function useProfile(userId: string | undefined): UseProfileResult {
     if (!userId) return;
     setIsLoading(true);
     setError(null);
-    const result = await getProfileUseCaseRef.current.execute({ userId });
-    if (result.success) {
-      setProfile(result.data);
-    } else {
-      setError(formatErrorMessage(result.error.message));
+    try {
+      const result = await getProfileUseCaseRef.current.execute({ userId });
+      if (result.success) {
+        setProfile(result.data);
+      } else {
+        setError(formatErrorMessage(result.error.message));
+      }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [userId]);
 
   useEffect(() => {

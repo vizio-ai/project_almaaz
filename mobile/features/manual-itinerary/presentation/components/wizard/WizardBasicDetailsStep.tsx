@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -12,11 +11,10 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { AppText, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { AppText, AppInput, SelectTrigger, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import { WizardBottomActionBar } from './WizardBottomActionBar';
 import { TripDateRangeInput } from '../TripDateRangeInput';
 import { LocationMapModal } from '../LocationMapModal';
-import { Calendar, ChevronDown } from 'lucide-react-native';
 
 const PLACEHOLDER_IMAGE = require('../../../../../assets/images/card_photo.png');
 
@@ -172,44 +170,29 @@ export function WizardBasicDetailsStep({
         </View>
 
         {/* ── Trip Name ──────────────────────────────────────────────── */}
-        <View style={styles.fieldWrap}>
-          <AppText style={[styles.fieldLabel, { color: textColor }]}>Trip Name</AppText>
-          <View style={[styles.inputBox, { borderColor: border }]}>
-            <TextInput
-              style={[styles.inputText, { color: textColor }]}
-              placeholder="e.g. Summer in Japan"
-              placeholderTextColor={secondary}
-              value={tripName}
-              onChangeText={onTripNameChange}
-              returnKeyType="next"
-            />
-          </View>
-        </View>
+        <AppInput
+          label="Trip Name"
+          value={tripName}
+          onChangeText={onTripNameChange}
+          placeholder="e.g. Summer in Japan"
+          returnKeyType="next"
+        />
 
         {/* ── Destination ────────────────────────────────────────────── */}
         <View style={styles.fieldWrap}>
           <AppText style={[styles.fieldLabel, { color: textColor }]}>Destination</AppText>
-          <TouchableOpacity
-            style={[styles.inputBox, { borderColor: border }]}
+          <View style={{ height: 8 }} />
+          <SelectTrigger
+            value={destination}
+            placeholder="Select a destination"
             onPress={() => setLocationMapVisible(true)}
-            activeOpacity={0.7}
-          >
-            <AppText
-              style={[
-                styles.inputText,
-                { color: destination.trim() ? textColor : secondary, flex: 1 },
-              ]}
-              numberOfLines={1}
-            >
-              {destination.trim() || 'Select a destination'}
-            </AppText>
-            <ChevronDown size={16} color={secondary} />
-          </TouchableOpacity>
+          />
         </View>
 
         {/* ── Set Your Dates ─────────────────────────────────────────── */}
         <View style={styles.fieldWrap}>
           <AppText style={[styles.fieldLabel, { color: textColor }]}>Set Your Dates</AppText>
+          <View style={{ height: 8 }} />
           <View style={[styles.inputBox, { borderColor: border }]}>
             <TripDateRangeInput
               startDate={startDate}
@@ -221,21 +204,15 @@ export function WizardBasicDetailsStep({
         </View>
 
         {/* ── Trip Note ──────────────────────────────────────────────── */}
-        <View style={styles.fieldWrap}>
-          <AppText style={[styles.fieldLabel, { color: textColor }]}>Trip Note</AppText>
-          <View style={[styles.textareaBox, { borderColor: border }]}>
-            <TextInput
-              style={[styles.textareaInput, { color: textColor }]}
-              placeholder="Add notes about your trip..."
-              placeholderTextColor={secondary}
-              value={tripNote}
-              onChangeText={onTripNoteChange}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
+        <AppInput
+          label="Trip Note"
+          value={tripNote}
+          onChangeText={onTripNoteChange}
+          placeholder="Add notes about your trip..."
+          multiline
+          numberOfLines={4}
+          inputStyle={styles.textareaInputWrap}
+        />
 
         {/* ── Toggles ─────────────────────────────────────────────────── */}
         <ToggleRow
@@ -340,6 +317,9 @@ const styles = StyleSheet.create({
   textareaInput: {
     ...typography.sm,
     flex: 1,
+  },
+  textareaInputWrap: {
+    minHeight: 100,
   },
 
 });

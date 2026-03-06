@@ -261,13 +261,12 @@ export function EditProfileScreen({
 
           {/* Cancel, Save */}
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.cancelBtn}
+            <PrimaryButton
+              label="Cancel"
+              variant="outline"
               onPress={onBack}
-              activeOpacity={0.8}
-            >
-              <AppText style={styles.cancelText}>Cancel</AppText>
-            </TouchableOpacity>
+              style={styles.cancelBtn}
+            />
             <PrimaryButton
               label="Save"
               onPress={handleSave}
@@ -325,14 +324,7 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     width: 92,
-    height: 40,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  cancelText: { color: '#18181B', fontSize: 14, fontWeight: '500' },
   saveBtn: { flex: 1, height: 40, paddingVertical: 0, paddingHorizontal: 0, alignItems: 'center', justifyContent: 'center' },
   saveText: { color: '#FAFAFA', fontSize: 14, fontWeight: '500' },
   notifBtn: {

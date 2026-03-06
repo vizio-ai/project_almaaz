@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -11,7 +10,16 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import {
+  AppText,
+  AppInput,
+  FilterChipGroup,
+  useThemeColor,
+  spacing,
+  typography,
+  radii,
+  type FilterChipOption,
+} from '@shared/ui-kit';
 import { WizardBottomActionBar } from './WizardBottomActionBar';
 import type { TravelInfoType } from '../../../domain/entities/TravelInfo';
 
@@ -38,11 +46,7 @@ export interface WizardTravelInfoStepProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TYPE_OPTIONS: {
-  label: string;
-  value: TravelInfoType;
-  icon: 'airplane-outline' | 'car-outline' | 'document-text-outline';
-}[] = [
+const TYPE_OPTIONS: FilterChipOption<TravelInfoType>[] = [
   { label: 'Flight',      value: 'flight',     icon: 'airplane-outline'      },
   { label: 'Rental Car',  value: 'rental_car', icon: 'car-outline'           },
   { label: 'Other',       value: 'other',      icon: 'document-text-outline' },
@@ -158,75 +162,39 @@ function TransportCard({
       {!collapsed && (
         <View style={styles.cardBody}>
           {/* ── Type chips ─────────────────────────────────────────── */}
-          <View style={styles.typeRow}>
-            {TYPE_OPTIONS.map((opt) => {
-              const isSelected = item.type === opt.value;
-              return (
-                <TouchableOpacity
-                  key={opt.value}
-                  onPress={() => onChange({ ...item, type: opt.value })}
-                  style={[
-                    styles.typeChip,
-                    { borderColor: border },
-                    isSelected && { backgroundColor: textColor, borderColor: textColor },
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name={opt.icon} size={13} color={isSelected ? '#fff' : secondary} />
-                  <AppText style={[styles.typeChipLabel, { color: isSelected ? '#fff' : secondary }]}>
-                    {opt.label}
-                  </AppText>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <FilterChipGroup
+            options={TYPE_OPTIONS}
+            value={item.type}
+            onChange={(type) => type && onChange({ ...item, type })}
+            style={styles.typeRow}
+          />
 
           {/* ── Title ──────────────────────────────────────────────── */}
-          <View style={styles.fieldWrap}>
-            <AppText style={[styles.fieldLabel, { color: textColor }]}>Title *</AppText>
-            <View style={[styles.inputBox, { borderColor: border }]}>
-              <TextInput
-                style={[styles.inputText, { color: textColor }]}
-                placeholder={titlePlaceholder(item.type)}
-                placeholderTextColor={secondary}
-                value={item.title}
-                onChangeText={(v) => onChange({ ...item, title: v })}
-                returnKeyType="next"
-              />
-            </View>
-          </View>
+          <AppInput
+            label="Title *"
+            value={item.title}
+            onChangeText={(v) => onChange({ ...item, title: v })}
+            placeholder={titlePlaceholder(item.type)}
+            returnKeyType="next"
+          />
 
           {/* ── Provider ───────────────────────────────────────────── */}
-          <View style={styles.fieldWrap}>
-            <AppText style={[styles.fieldLabel, { color: textColor }]}>
-              {item.type === 'flight' ? 'Airline / Provider' : 'Provider'}
-            </AppText>
-            <View style={[styles.inputBox, { borderColor: border }]}>
-              <TextInput
-                style={[styles.inputText, { color: textColor }]}
-                placeholder={providerPlaceholder(item.type)}
-                placeholderTextColor={secondary}
-                value={item.provider ?? ''}
-                onChangeText={(v) => onChange({ ...item, provider: v || null })}
-                returnKeyType="next"
-              />
-            </View>
-          </View>
+          <AppInput
+            label={item.type === 'flight' ? 'Airline / Provider' : 'Provider'}
+            value={item.provider ?? ''}
+            onChangeText={(v) => onChange({ ...item, provider: v || null })}
+            placeholder={providerPlaceholder(item.type)}
+            returnKeyType="next"
+          />
 
           {/* ── Detail ─────────────────────────────────────────────── */}
-          <View style={styles.fieldWrap}>
-            <AppText style={[styles.fieldLabel, { color: textColor }]}>Reference / Detail</AppText>
-            <View style={[styles.inputBox, { borderColor: border }]}>
-              <TextInput
-                style={[styles.inputText, { color: textColor }]}
-                placeholder={detailPlaceholder(item.type)}
-                placeholderTextColor={secondary}
-                value={item.detail ?? ''}
-                onChangeText={(v) => onChange({ ...item, detail: v || null })}
-                returnKeyType="next"
-              />
-            </View>
-          </View>
+          <AppInput
+            label="Reference / Detail"
+            value={item.detail ?? ''}
+            onChangeText={(v) => onChange({ ...item, detail: v || null })}
+            placeholder={detailPlaceholder(item.type)}
+            returnKeyType="next"
+          />
 
           {/* ── Start date ─────────────────────────────────────────── */}
           <View style={styles.fieldWrap}>
@@ -575,29 +543,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
-  typeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderRadius: radii.full,
-    paddingVertical: 6,
-    paddingHorizontal: spacing.md,
-  },
-  typeChipLabel: { ...typography.caption, fontWeight: '500' },
 
-  // Fields – label to input 8px
+  // Field wrapper (for date pickers with label)
   fieldWrap: { gap: 8 },
-  fieldLabel: { ...typography.sm, fontWeight: '500', marginBottom: 8 },
-  inputBox: {
-    borderWidth: 1,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    height: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputText: { ...typography.sm, flex: 1 },
+  fieldLabel: { ...typography.sm, fontWeight: '500' as const, marginBottom: 8 },
 
   // Date button
   dateRow: {

@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppHeader,
+  AppText,
   PrimaryButton,
   AuthErrorSection,
   ScreenTitle,
@@ -37,7 +38,9 @@ export function OtpVerificationScreen({
   const [otpKey, setOtpKey] = useState(0);
   const [legalModal, setLegalModal] = useState<LegalModalType | null>(null);
 
-  const bgColor = useThemeColor('background');
+  const bgColor   = useThemeColor('background');
+  const textColor = useThemeColor('text');
+  const secondary = useThemeColor('textSecondary');
 
   const handleOtpChange = useCallback((newCode: string) => {
     setCode(newCode);
@@ -107,15 +110,15 @@ export function OtpVerificationScreen({
           />
 
           <View style={styles.legalRow}>
-            <Text style={styles.legalText}>By submitting the code, you agree to our </Text>
+            <AppText style={[styles.legalText, { color: secondary }]}>By submitting the code, you agree to our </AppText>
             <TouchableOpacity onPress={() => setLegalModal('terms')} activeOpacity={0.7}>
-              <Text style={styles.legalLink}>Terms</Text>
+              <AppText style={[styles.legalLink, { color: textColor }]}>Terms</AppText>
             </TouchableOpacity>
-            <Text style={styles.legalText}> and </Text>
+            <AppText style={[styles.legalText, { color: secondary }]}> and </AppText>
             <TouchableOpacity onPress={() => setLegalModal('privacy')} activeOpacity={0.7}>
-              <Text style={styles.legalLink}>Privacy Policy</Text>
+              <AppText style={[styles.legalLink, { color: textColor }]}>Privacy Policy</AppText>
             </TouchableOpacity>
-            <Text style={styles.legalText}>.</Text>
+            <AppText style={[styles.legalText, { color: secondary }]}>.</AppText>
           </View>
         </View>
         </ScrollView>
@@ -146,12 +149,10 @@ const styles = StyleSheet.create({
   legalText: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#71717A',
   },
   legalLink: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#0A0A0A',
     textDecorationLine: 'underline',
   },
 });

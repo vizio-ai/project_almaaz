@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Clipboard, ChevronRight, Plane, Waypoints, ListChecks } from 'lucide-react-native';
+import { Check, Clipboard, ChevronRight, Plane, Waypoints, ListChecks } from 'lucide-react-native';
 import { AppText, useThemeColor, spacing, typography } from '@shared/ui-kit';
 
 const STEP_ICONS = [Clipboard, Plane, Waypoints, ListChecks] as const;
@@ -43,7 +43,7 @@ export function WizardStepper({ currentStep }: WizardStepperProps) {
                 ]}
               >
                 {isCompleted ? (
-                  <ListChecks size={16} color={iconColor} />
+                  <Check size={16} color={"#16A34A"} />
                 ) : (
                   <StepIcon size={16} color={iconColor} />
                 )}

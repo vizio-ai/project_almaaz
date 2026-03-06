@@ -5,24 +5,37 @@ import {
   AppText,
   AppInput,
   PrimaryButton,
+  FilterChipGroup,
   spacing,
   radii,
   typography,
   useThemeColor,
   elevatedCard,
+  type FilterChipOption,
 } from '@shared/ui-kit';
+
+type ActivityType = 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach';
+
+const ACTIVITY_TYPE_OPTIONS: FilterChipOption<ActivityType>[] = [
+  { value: 'park',     label: 'Park' },
+  { value: 'museum',   label: 'Museum' },
+  { value: 'food',     label: 'Food & Drink' },
+  { value: 'shopping', label: 'Shopping' },
+  { value: 'historic', label: 'Historic place' },
+  { value: 'beach',    label: 'Beach' },
+];
 
 export interface ActivityEditCardProps {
   title?: string;
   name: string;
   /** Optional semantic activity type: controls first tag icon/label on the card. */
-  activityType?: 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach' | null;
+  activityType?: ActivityType | null;
   timeLabel?: string;
   placeLabel?: string;
   timeValue: string;
   placeValue: string;
   onChangeName: (value: string) => void;
-  onChangeActivityType?: (value: 'park' | 'museum' | 'food' | 'shopping' | 'historic' | 'beach') => void;
+  onChangeActivityType?: (value: ActivityType) => void;
   onPressTime?: () => void;
   onPressPlace?: () => void;
   onDelete?: () => void;
@@ -48,9 +61,11 @@ export function ActivityEditCard({
 }: ActivityEditCardProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
+  const border    = useThemeColor('border');
+  const surface   = useThemeColor('surface');
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -80,7 +95,7 @@ export function ActivityEditCard({
         <View style={styles.pickerColSmall}>
           <AppText style={[styles.pickerLabel, { color: textColor }]}>{timeLabel}</AppText>
           <TouchableOpacity
-            style={styles.pickerTrigger}
+            style={[styles.pickerTrigger, { backgroundColor: surface, borderColor: border }]}
             onPress={onPressTime}
             activeOpacity={0.8}
           >
@@ -94,7 +109,7 @@ export function ActivityEditCard({
         <View style={styles.pickerColLarge}>
           <AppText style={[styles.pickerLabel, { color: textColor }]}>{placeLabel}</AppText>
           <TouchableOpacity
-            style={styles.pickerTrigger}
+            style={[styles.pickerTrigger, { backgroundColor: surface, borderColor: border }]}
             onPress={onPressPlace}
             activeOpacity={0.8}
           >
@@ -109,45 +124,11 @@ export function ActivityEditCard({
       {/* Activity type selector (bottom row) */}
       <View style={styles.typeRow}>
         <AppText style={[styles.pickerLabel, { color: textColor }]}>Activity type</AppText>
-        <View style={styles.typeChips}>
-          {(['park', 'museum', 'food', 'shopping', 'historic', 'beach'] as const).map((type) => {
-            const isActive = activityType === type;
-            const label =
-              type === 'park'
-                ? 'Park'
-                : type === 'museum'
-                ? 'Museum'
-                : type === 'food'
-                ? 'Food & Drink'
-                : type === 'shopping'
-                ? 'Shopping'
-                : type === 'historic'
-                ? 'Historic place'
-                : 'Beach';
-            return (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.typeChip,
-                  isActive && { backgroundColor: textColor, borderColor: textColor },
-                ]}
-                activeOpacity={0.8}
-                onPress={() => onChangeActivityType?.(type)}
-              >
-                <AppText
-                  style={[
-                    styles.typeLabel,
-                    { color: isActive ? '#FAFAFA' : secondary },
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {label}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <FilterChipGroup
+          options={ACTIVITY_TYPE_OPTIONS}
+          value={activityType ?? null}
+          onChange={(type) => type && onChangeActivityType?.(type)}
+        />
       </View>
 
       {/* Footer buttons */}
@@ -191,9 +172,7 @@ const styles = StyleSheet.create({
     width: '100%',
     ...elevatedCard,
     borderRadius: 12,
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e4e4e7',
     padding: spacing.md,
     gap: spacing.sm,
     shadowColor: '#000',
@@ -250,24 +229,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     gap: spacing.xs,
   },
-  typeChips: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  typeChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#FFFFFF',
-  },
-  typeLabel: {
-    ...typography.xs,
-    fontWeight: '500',
-  },
   pickerColSmall: {
     width: 110,
     flexDirection: 'column',
@@ -286,9 +247,7 @@ const styles = StyleSheet.create({
   pickerTrigger: {
     height: 36,
     borderRadius: 6,
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e4e4e7',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -303,28 +262,6 @@ const styles = StyleSheet.create({
     flex: 1,
     ...typography.sm,
     lineHeight: 20,
-  },
-  dayPartRow: {
-    alignSelf: 'stretch',
-    marginTop: spacing.sm,
-    gap: spacing.xs,
-  },
-  dayPartChips: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  dayPartChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#FFFFFF',
-  },
-  dayPartLabel: {
-    ...typography.xs,
-    fontWeight: '500',
   },
   footerRow: {
     alignSelf: 'stretch',

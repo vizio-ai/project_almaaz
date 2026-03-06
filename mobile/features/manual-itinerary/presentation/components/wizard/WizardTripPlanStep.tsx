@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Modal,
   Alert,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import {
+  AppText,
+  AppInput,
+  SelectTrigger,
+  FilterChipGroup,
+  TimePickerBottomSheet,
+  useThemeColor,
+  spacing,
+  typography,
+  radii,
+  type FilterChipOption,
+} from '@shared/ui-kit';
 import { LocationMapModal } from '../LocationMapModal';
 import { WizardBottomActionBar } from './WizardBottomActionBar';
 
@@ -47,6 +55,17 @@ export interface WizardTripPlanStepProps {
   onNext: () => void;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const ACTIVITY_TYPE_OPTIONS: FilterChipOption<WizardActivityType>[] = [
+  { value: 'park',     label: 'Park' },
+  { value: 'museum',   label: 'Museum' },
+  { value: 'food',     label: 'Food & Drink' },
+  { value: 'shopping', label: 'Shopping' },
+  { value: 'historic', label: 'Historic place' },
+  { value: 'beach',    label: 'Beach' },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDayHeader(day: WizardDraftDay): string {
@@ -57,20 +76,24 @@ function formatDayHeader(day: WizardDraftDay): string {
   return `Day ${day.dayNumber} · ${dayName}, ${dateStr}`;
 }
 
-function activityTypeLabel(type: WizardActivityType): string {
-  switch (type) {
-    case 'museum': return 'Museum';
-    case 'food': return 'Food & Drink';
-    case 'shopping': return 'Shopping';
-    case 'historic': return 'Historic place';
-    case 'beach': return 'Beach';
-    default: return 'Park';
-  }
+function formatTimeLabel(date: Date): string {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
-const ACTIVITY_TYPES: WizardActivityType[] = ['park', 'museum', 'food', 'shopping', 'historic', 'beach'];
+function parseTimeString(timeStr: string, base: Date): Date | null {
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3]?.toUpperCase();
+  if (ampm === 'PM' && hours < 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  const result = new Date(base);
+  result.setHours(hours, minutes, 0, 0);
+  return result;
+}
 
-// ─── DayCard ─────────────────────────────────────────────────────────────────
+// ─── DayCard ──────────────────────────────────────────────────────────────────
 
 interface DayCardProps {
   day: WizardDraftDay;
@@ -91,7 +114,9 @@ function DayCard({
   onOpenAccommodationModal,
   onOpenTimePicker,
 }: DayCardProps) {
-  const secondary = useThemeColor('textSecondary');
+  const textColor  = useThemeColor('text');
+  const secondary  = useThemeColor('textSecondary');
+  const borderMuted = useThemeColor('borderMuted');
 
   const [collapsed, setCollapsed] = useState(false);
 
@@ -132,13 +157,13 @@ function DayCard({
 
   return (
     <View style={styles.dayCard}>
-      {/* ── Day header (Figma accordiontrigger) ─────────────────────── */}
+      {/* ── Day header ────────────────────────────────────────────────── */}
       <TouchableOpacity
         style={styles.dayHeader}
         onPress={() => setCollapsed((c) => !c)}
         activeOpacity={0.7}
       >
-        <AppText style={styles.dayTitle}>
+        <AppText style={[styles.dayTitle, { color: textColor }]}>
           {formatDayHeader(day)}
         </AppText>
         <View style={styles.dayHeaderRight}>
@@ -155,35 +180,26 @@ function DayCard({
         </View>
       </TouchableOpacity>
 
-      {/* ── Expanded body (Figma frameWrapper + selectParent) ───────── */}
+      {/* ── Expanded body ─────────────────────────────────────────────── */}
       {!collapsed && (
         <View style={styles.dayBody}>
-          {/* Accommodation (Figma selecttrigger) */}
-          <AppText style={styles.fieldLabel}>Accommodation</AppText>
-          <TouchableOpacity
-            style={styles.selectTrigger}
+          {/* Accommodation */}
+          <AppText style={[styles.fieldLabel, { color: textColor }]}>Accommodation</AppText>
+          <View style={{ height: 8 }} />
+          <SelectTrigger
+            value={day.accommodation}
+            placeholder="Choose an accommodation"
             onPress={() => onOpenAccommodationModal(day.id, day.accommodation)}
-            activeOpacity={0.7}
-          >
-            <AppText
-              style={[styles.placeholderText, day.accommodation && styles.placeholderTextFilled]}
-              numberOfLines={1}
-            >
-              {day.accommodation || 'Choose an accommodation'}
-            </AppText>
-            <Ionicons name="chevron-down" size={16} color={secondary} />
-          </TouchableOpacity>
+          />
 
           {/* Divider */}
-          <View style={{ paddingTop: 16 }}>
-            <View style={{ height: 1, backgroundColor: '#e5e5e5', alignSelf: 'stretch' }} />
-          </View>
+          <View style={[styles.divider, { backgroundColor: borderMuted }]} />
 
-          {/* ── Activities (Figma: Activity Name, Time, Place) ───────── */}
-          {day.activities.map((act, actIndex) => (
+          {/* ── Activities ────────────────────────────────────────────── */}
+          {day.activities.map((act) => (
             <View key={act.id} style={styles.activityBlock}>
               <View style={styles.activityHeaderRow}>
-                <AppText style={[styles.fieldLabel, styles.activityHeaderLabel]}>Activity Name</AppText>
+                <AppText style={[styles.fieldLabel, { color: textColor }]}>Activity Name</AppText>
                 {day.activities.length > 1 && (
                   <TouchableOpacity onPress={() => confirmRemoveActivity(act.id)} hitSlop={8}>
                     <Ionicons name="close" size={16} color={secondary} />
@@ -191,89 +207,60 @@ function DayCard({
                 )}
               </View>
               <View style={{ height: 8 }} />
-              <View style={styles.inputBox}>
-                <TextInput
-                  style={styles.inputText}
-                  placeholder="John Doe"
-                  placeholderTextColor="#71717a"
-                  value={act.name}
-                  onChangeText={(v) => updateActivity(act.id, { name: v })}
-                />
-              </View>
+              <AppInput
+                value={act.name}
+                onChangeText={(v) => updateActivity(act.id, { name: v })}
+                placeholder="John Doe"
+              />
 
-              {/* Activity type chips (kept per user) */}
+              {/* Activity type */}
               <View style={{ height: 16 }} />
-              <AppText style={styles.fieldLabel}>Activity type</AppText>
-              <View style={styles.typeChips}>
-                {ACTIVITY_TYPES.map((type) => {
-                  const isActive = act.activityType === type;
-                  return (
-                    <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.typeChip,
-                        isActive && styles.typeChipActive,
-                      ]}
-                      onPress={() => updateActivity(act.id, { activityType: isActive ? null : type })}
-                      activeOpacity={0.7}
-                    >
-                      <AppText
-                        style={[styles.typeChipLabel, isActive && styles.typeChipLabelActive]}
-                      >
-                        {activityTypeLabel(type)}
-                      </AppText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <AppText style={[styles.fieldLabel, { color: textColor }]}>Activity type</AppText>
+              <View style={{ height: 8 }} />
+              <FilterChipGroup
+                options={ACTIVITY_TYPE_OPTIONS}
+                value={act.activityType}
+                onChange={(type) => updateActivity(act.id, { activityType: type })}
+                allowDeselect
+              />
 
-              {/* Time + Place row (Figma datePickerParent) */}
+              {/* Time + Place */}
               <View style={{ height: 16 }} />
               <View style={styles.timeAndPlaceRow}>
-                <View style={styles.datePicker}>
-                  <AppText style={styles.fieldLabel}>Time</AppText>
-                  <TouchableOpacity
-                    style={styles.datePickerTrigger}
+                <View style={styles.timeCol}>
+                  <AppText style={[styles.fieldLabel, { color: textColor }]}>Time</AppText>
+                  <View style={{ height: 8 }} />
+                  <SelectTrigger
+                    value={act.time}
+                    placeholder="9:00 AM"
                     onPress={() => onOpenTimePicker(act.id, act.time)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="time-outline" size={16} color={secondary} />
-                    <AppText
-                      style={[styles.placeholderText, act.time && styles.placeholderTextFilled]}
-                      numberOfLines={1}
-                    >
-                      {act.time || '9:00 AM'}
-                    </AppText>
-                  </TouchableOpacity>
+                    leftIcon="time-outline"
+                    hideRightChevron
+                  />
                 </View>
-                <View style={styles.datePicker2}>
-                  <AppText style={styles.fieldLabel}>Place</AppText>
-                  <TouchableOpacity
-                    style={styles.datePickerTrigger2}
+                <View style={styles.placeCol}>
+                  <AppText style={[styles.fieldLabel, { color: textColor }]}>Place</AppText>
+                  <View style={{ height: 8 }} />
+                  <SelectTrigger
+                    value={act.place}
+                    placeholder="Pick a location"
                     onPress={() => onOpenPlaceModal(act.id, act.place)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="location-outline" size={16} color={secondary} />
-                    <AppText
-                      style={[styles.placeholderText, act.place && styles.placeholderTextFilled]}
-                      numberOfLines={1}
-                    >
-                      {act.place || 'Pick a location'}
-                    </AppText>
-                  </TouchableOpacity>
+                    leftIcon="location-outline"
+                    hideRightChevron
+                  />
                 </View>
               </View>
-              <View style={{ paddingTop: 16 }}>
-                <View style={{ height: 1, backgroundColor: '#e5e5e5', alignSelf: 'stretch' }} />
-              </View>
-            </View>
 
+              <View style={[styles.divider, { backgroundColor: borderMuted }]} />
+            </View>
           ))}
 
-          {/* Add Another Activity (Figma button6/7) */}
+          {/* Add Another Activity */}
           <View style={{ height: 16 }} />
-          <TouchableOpacity onPress={addActivity} style={styles.addActivityLink}>
-            <AppText style={styles.addActivityLabel}>Add Another Activity</AppText>
+          <TouchableOpacity onPress={addActivity} style={styles.addActivityBtn}>
+            <AppText style={[styles.addActivityLabel, { color: textColor }]}>
+              Add Another Activity
+            </AppText>
           </TouchableOpacity>
         </View>
       )}
@@ -289,9 +276,9 @@ export function WizardTripPlanStep({
   onBack,
   onNext,
 }: WizardTripPlanStepProps) {
-  const textColor = useThemeColor('text');
-  const surface = useThemeColor('surface');
-  const accent = useThemeColor('accent');
+  const background = useThemeColor('background');
+  const textColor  = useThemeColor('text');
+  const border     = useThemeColor('borderMuted');
 
   // ── Activity place picker ────────────────────────────────────────────────
   const [placeModalVisible, setPlaceModalVisible] = useState(false);
@@ -342,7 +329,9 @@ export function WizardTripPlanStep({
     if (!accommodationModalDayId) return;
     const targetDayId = accommodationModalDayId;
     onDaysChange(
-      days.map((day) => (day.id === targetDayId ? { ...day, accommodation: locationName } : day)),
+      days.map((day) =>
+        day.id === targetDayId ? { ...day, accommodation: locationName } : day,
+      ),
     );
     setAccommodationModalVisible(false);
     setAccommodationModalDayId(null);
@@ -351,7 +340,6 @@ export function WizardTripPlanStep({
   // ── Time picker handlers ─────────────────────────────────────────────────
 
   function openTimePicker(activityId: string, currentTime: string) {
-    // Pre-set picker to the existing time if parseable
     const defaultDate = new Date();
     if (currentTime) {
       const parsed = parseTimeString(currentTime, defaultDate);
@@ -362,9 +350,8 @@ export function WizardTripPlanStep({
     setTimePickerActivityId(activityId);
   }
 
-  function handleConfirmTime() {
-    if (!timePickerActivityId) return;
-    const label = formatTimeLabel(timePickerDate);
+  function handleConfirmTime(date: Date) {
+    const label = formatTimeLabel(date);
     const actId = timePickerActivityId;
     onDaysChange(
       days.map((day) => ({
@@ -417,7 +404,7 @@ export function WizardTripPlanStep({
       style={styles.root}
     >
       <ScrollView
-        style={styles.scrollView}
+        style={{ flex: 1, backgroundColor: background }}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -434,9 +421,13 @@ export function WizardTripPlanStep({
             onOpenTimePicker={openTimePicker}
           />
         ))}
-        {/* Add Another Day (Figma button8) */}
-        <TouchableOpacity onPress={addDay} style={styles.addDayBtn}>
-          <AppText style={styles.addDayLabel}>Add Another Day</AppText>
+
+        {/* Add Another Day */}
+        <TouchableOpacity
+          onPress={addDay}
+          style={[styles.addDayBtn, { borderColor: border, backgroundColor: background }]}
+        >
+          <AppText style={[styles.addDayLabel, { color: textColor }]}>Add Another Day</AppText>
         </TouchableOpacity>
       </ScrollView>
 
@@ -459,7 +450,7 @@ export function WizardTripPlanStep({
         allowPointPick
       />
 
-      {/* Accommodation location picker (name only, no point pick) */}
+      {/* Accommodation location picker (name only) */}
       <LocationMapModal
         visible={accommodationModalVisible}
         initialQuery={accommodationModalInitialQuery}
@@ -471,297 +462,101 @@ export function WizardTripPlanStep({
         allowPointPick={false}
       />
 
-      {/* Time picker – iOS spinner / Android default */}
-      {timePickerActivityId &&
-        (Platform.OS === 'android' ? (
-          <DateTimePicker
-            value={timePickerDate}
-            mode="time"
-            display="default"
-            onChange={(_, date) => {
-              if (!date) { setTimePickerActivityId(null); return; }
-              const label = formatTimeLabel(date);
-              const actId = timePickerActivityId;
-              onDaysChange(
-                days.map((day) => ({
-                  ...day,
-                  activities: day.activities.map((act) =>
-                    act.id === actId ? { ...act, time: label } : act,
-                  ),
-                })),
-              );
-              setTimePickerActivityId(null);
-            }}
-          />
-        ) : (
-          <Modal visible transparent animationType="none" onRequestClose={() => setTimePickerActivityId(null)}>
-            <View style={styles.timeOverlay}>
-              <TouchableOpacity
-                style={styles.timeScrim}
-                activeOpacity={1}
-                onPress={() => setTimePickerActivityId(null)}
-              />
-              <View style={[styles.timeSheet, { backgroundColor: surface }]}>
-                <AppText style={[styles.timeTitle, { color: textColor }]}>Select time</AppText>
-                <DateTimePicker
-                  value={timePickerDate}
-                  mode="time"
-                  display="spinner"
-                  onChange={(_, date) => {
-                    if (date) setTimePickerDate(date);
-                  }}
-                />
-                <View style={styles.timeActions}>
-                  <TouchableOpacity
-                    onPress={() => setTimePickerActivityId(null)}
-                    style={styles.timeCancelBtn}
-                  >
-                    <AppText style={[styles.timeCancelLabel, { color: textColor }]}>Cancel</AppText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleConfirmTime}
-                    style={[styles.timeConfirmBtn, { backgroundColor: accent }]}
-                  >
-                    <AppText style={styles.timeConfirmLabel}>Done</AppText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        ))}
+      {/* Time picker bottom sheet */}
+      <TimePickerBottomSheet
+        visible={!!timePickerActivityId}
+        value={timePickerDate}
+        onConfirm={handleConfirmTime}
+        onCancel={() => setTimePickerActivityId(null)}
+      />
     </KeyboardAvoidingView>
   );
-}
-
-// ─── Time helpers ─────────────────────────────────────────────────────────────
-
-function formatTimeLabel(date: Date): string {
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
-function parseTimeString(timeStr: string, base: Date): Date | null {
-  // Try to parse "9:00 AM" / "12:30 PM" style strings
-  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!match) return null;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const ampm = match[3]?.toUpperCase();
-  if (ampm === 'PM' && hours < 12) hours += 12;
-  if (ampm === 'AM' && hours === 12) hours = 0;
-  const result = new Date(base);
-  result.setHours(hours, minutes, 0, 0);
-  return result;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scrollView: { flex: 1, backgroundColor: '#fff' },
 
-  // Figma form9 – label↔input 8px, other vertical 16px
   content: {
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    gap: 16,
+    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing['2xl'],
+    gap: spacing.lg,
   },
 
-  // Section label (Figma tripPlan)
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#171717',
-  },
-
-  // Day card (Figma accordionAccordionitem)
+  // Day card
   dayCard: {
-    borderRadius: 8,
+    borderRadius: radii.sm,
     overflow: 'hidden',
   },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 8,
-    paddingHorizontal: 0,
+    paddingBottom: spacing.sm,
   },
   dayTitle: {
-    fontSize: 14,
+    ...typography.sm,
     fontWeight: '500',
-    color: '#18181b',
     flex: 1,
   },
-  dayHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  dayHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
 
-  // Day body (Figma frameWrapper)
+  // Day body
   dayBody: {
-    paddingVertical: 16,
-    paddingHorizontal: 0,
+    paddingVertical: spacing.lg,
   },
 
-  // Fields (Figma labelTypo – no lineHeight)
+  // Field label
   fieldLabel: {
-    fontSize: 14,
+    ...typography.sm,
     fontWeight: '500',
-    color: '#18181b',
-    marginBottom: 8,
-  },
-  subFieldLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#71717a',
-    marginBottom: 8,
   },
 
-  // Accommodation trigger (Figma selecttrigger)
-  selectTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#fff',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 6,
-    elevation: 2,
-    shadowColor: 'rgba(0, 0, 0, 0.05)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    shadowOpacity: 1,
-  },
-  placeholderText: {
-    fontSize: 14,
-    color: '#71717a',
-    flex: 1,
-  },
-  placeholderTextFilled: {
-    color: '#18181b',
+  // Divider
+  divider: {
+    height: 1,
+    alignSelf: 'stretch',
+    marginVertical: spacing.lg,
   },
 
-  // Activity name input (Figma input)
-  inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#fff',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 6,
-    elevation: 2,
-    shadowColor: 'rgba(0, 0, 0, 0.05)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    shadowOpacity: 1,
-  },
-  inputText: {
-    fontSize: 14,
-    color: '#18181b',
-    flex: 1,
-  },
-
-  // Activity type chips
-  typeChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  typeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-  },
-  typeChipActive: {
-    backgroundColor: '#18181b',
-    borderColor: '#18181b',
-  },
-  typeChipLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#71717a',
-  },
-  typeChipLabelActive: {
-    color: '#fafafa',
-  },
-
-  // Activity block
-  activityBlock: { paddingTop: 16 },
+  // Activity
+  activityBlock: { paddingTop: spacing.lg },
   activityHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  activityHeaderLabel: { marginBottom: 0 },
 
-  // Time + Place (Figma datePickerParent)
-  timeAndPlaceRow: { flexDirection: 'row', gap: 8 },
-  datePicker: { width: 105, },
-  datePicker2: { flex: 1, },
-  datePickerTrigger: {
+  // Time + Place row
+  timeAndPlaceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 8,
-    height: 36,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: 'rgba(0, 0, 0, 0.05)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    shadowOpacity: 1,
-    alignSelf: 'stretch',
+    gap: spacing.sm,
   },
-  datePickerTrigger2: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingLeft: 8,
-    paddingRight: 16,
-    paddingVertical: 8,
-    height: 36,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: 'rgba(0, 0, 0, 0.05)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    shadowOpacity: 1,
-    alignSelf: 'stretch',
-  },
+  timeCol: { width: 105 },
+  placeCol: { flex: 1 },
 
-  // Add Another Activity (Figma button6/7)
-  addActivityLink: {
+  // Add Another Activity link
+  addActivityBtn: {
     height: 32,
-    paddingVertical: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addActivityLabel: {
-    fontSize: 12,
+    ...typography.xs,
     fontWeight: '500',
-    color: '#0a0a0a',
   },
 
-  // Add Another Day (Figma button8)
+  // Add Another Day button
   addDayBtn: {
     height: 40,
-    paddingHorizontal: 32,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: spacing['3xl'],
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#e4e4e7',
-    backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -772,34 +567,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
   },
   addDayLabel: {
-    fontSize: 14,
+    ...typography.sm,
     fontWeight: '500',
-    color: '#18181b',
   },
-
-  // Time picker modal (iOS)
-  timeOverlay: { flex: 1, justifyContent: 'flex-end' },
-  timeScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
-  timeSheet: {
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    paddingBottom: 32,
-    paddingTop: spacing.lg,
-  },
-  timeTitle: { ...typography.sm, textAlign: 'center', marginBottom: spacing.xs },
-  timeActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
-  },
-  timeCancelBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  timeCancelLabel: { ...typography.base },
-  timeConfirmBtn: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.md,
-  },
-  timeConfirmLabel: { ...typography.base, fontWeight: '600', color: '#fff' },
 });
