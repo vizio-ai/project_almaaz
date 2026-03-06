@@ -8,11 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, PrimaryButton, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import { LocationMapModal } from '../LocationMapModal';
+import { WizardBottomActionBar } from './WizardBottomActionBar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,9 +91,7 @@ function DayCard({
   onOpenAccommodationModal,
   onOpenTimePicker,
 }: DayCardProps) {
-  const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
-  const border    = useThemeColor('border');
 
   const [collapsed, setCollapsed] = useState(false);
 
@@ -119,15 +119,26 @@ function DayCard({
     onChange({ ...day, activities: day.activities.filter((a) => a.id !== id) });
   }
 
+  function confirmRemoveActivity(actId: string) {
+    Alert.alert(
+      'Remove activity',
+      'Are you sure you want to remove this activity?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => removeActivity(actId) },
+      ],
+    );
+  }
+
   return (
-    <View style={[styles.dayCard, { borderColor: border }]}>
-      {/* ── Day header ─────────────────────────────────────────────── */}
+    <View style={styles.dayCard}>
+      {/* ── Day header (Figma accordiontrigger) ─────────────────────── */}
       <TouchableOpacity
         style={styles.dayHeader}
         onPress={() => setCollapsed((c) => !c)}
         activeOpacity={0.7}
       >
-        <AppText style={[styles.dayTitle, { color: textColor }]}>
+        <AppText style={styles.dayTitle}>
           {formatDayHeader(day)}
         </AppText>
         <View style={styles.dayHeaderRight}>
@@ -144,57 +155,50 @@ function DayCard({
         </View>
       </TouchableOpacity>
 
-      {/* ── Expanded body ───────────────────────────────────────────── */}
+      {/* ── Expanded body (Figma frameWrapper + selectParent) ───────── */}
       {!collapsed && (
         <View style={styles.dayBody}>
-          {/* Accommodation – tapping opens map with point pick */}
-          <AppText style={[styles.fieldLabel, { color: textColor }]}>Accommodation</AppText>
+          {/* Accommodation (Figma selecttrigger) */}
+          <AppText style={styles.fieldLabel}>Accommodation</AppText>
           <TouchableOpacity
-            style={[styles.inputBox, { borderColor: border }]}
+            style={styles.selectTrigger}
             onPress={() => onOpenAccommodationModal(day.id, day.accommodation)}
             activeOpacity={0.7}
           >
-            <Ionicons name="bed-outline" size={14} color={secondary} style={styles.inputIcon} />
             <AppText
-              style={[styles.inputText, { color: day.accommodation ? textColor : secondary, flex: 1 }]}
+              style={[styles.placeholderText, day.accommodation && styles.placeholderTextFilled]}
               numberOfLines={1}
             >
-              {day.accommodation || 'e.g. Hotel name or Airbnb'}
+              {day.accommodation || 'Choose an accommodation'}
             </AppText>
-            <Ionicons name="location-outline" size={14} color={secondary} />
+            <Ionicons name="chevron-down" size={16} color={secondary} />
           </TouchableOpacity>
 
-          {/* ── Activities ─────────────────────────────────────────── */}
+          {/* ── Activities (Figma: Activity Name, Time, Place) ───────── */}
           {day.activities.map((act, actIndex) => (
-            <View
-              key={act.id}
-              style={[styles.activityBlock, { borderTopColor: border }]}
-            >
-              {/* Activity header */}
+            <View key={act.id} style={styles.activityBlock}>
               <View style={styles.activityHeaderRow}>
-                <AppText style={[styles.fieldLabel, { color: textColor }]}>
-                  Activity {actIndex + 1}
-                </AppText>
+                <AppText style={[styles.fieldLabel, styles.activityHeaderLabel]}>Activity Name</AppText>
                 {day.activities.length > 1 && (
-                  <TouchableOpacity onPress={() => removeActivity(act.id)} hitSlop={8}>
+                  <TouchableOpacity onPress={() => confirmRemoveActivity(act.id)} hitSlop={8}>
                     <Ionicons name="close" size={16} color={secondary} />
                   </TouchableOpacity>
                 )}
               </View>
-
-              {/* Activity name */}
-              <View style={[styles.inputBox, { borderColor: border }]}>
+              <View style={{ height: 8 }} />
+              <View style={styles.inputBox}>
                 <TextInput
-                  style={[styles.inputText, { color: textColor, flex: 1 }]}
-                  placeholder="e.g. Visit museum"
-                  placeholderTextColor={secondary}
+                  style={styles.inputText}
+                  placeholder="John Doe"
+                  placeholderTextColor="#71717a"
                   value={act.name}
                   onChangeText={(v) => updateActivity(act.id, { name: v })}
                 />
               </View>
 
-              {/* Activity type chips */}
-              <AppText style={[styles.subFieldLabel, { color: secondary }]}>Activity type</AppText>
+              {/* Activity type chips (kept per user) */}
+              <View style={{ height: 16 }} />
+              <AppText style={styles.fieldLabel}>Activity type</AppText>
               <View style={styles.typeChips}>
                 {ACTIVITY_TYPES.map((type) => {
                   const isActive = act.activityType === type;
@@ -203,14 +207,13 @@ function DayCard({
                       key={type}
                       style={[
                         styles.typeChip,
-                        { borderColor: border },
-                        isActive && { backgroundColor: textColor, borderColor: textColor },
+                        isActive && styles.typeChipActive,
                       ]}
                       onPress={() => updateActivity(act.id, { activityType: isActive ? null : type })}
                       activeOpacity={0.7}
                     >
                       <AppText
-                        style={[styles.typeChipLabel, { color: isActive ? '#FAFAFA' : secondary }]}
+                        style={[styles.typeChipLabel, isActive && styles.typeChipLabelActive]}
                       >
                         {activityTypeLabel(type)}
                       </AppText>
@@ -219,56 +222,49 @@ function DayCard({
                 })}
               </View>
 
-              {/* Time + Place row */}
+              {/* Time + Place row (Figma datePickerParent) */}
+              <View style={{ height: 16 }} />
               <View style={styles.timeAndPlaceRow}>
-                {/* Time – tapping opens time picker */}
-                <TouchableOpacity
-                  style={[styles.inputBox, styles.timeBox, { borderColor: border }]}
-                  onPress={() => onOpenTimePicker(act.id, act.time)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="time-outline"
-                    size={13}
-                    color={secondary}
-                    style={styles.inputIcon}
-                  />
-                  <AppText
-                    style={[styles.inputText, { color: act.time ? textColor : secondary, flex: 1 }]}
-                    numberOfLines={1}
+                <View style={styles.datePicker}>
+                  <AppText style={styles.fieldLabel}>Time</AppText>
+                  <TouchableOpacity
+                    style={styles.datePickerTrigger}
+                    onPress={() => onOpenTimePicker(act.id, act.time)}
+                    activeOpacity={0.7}
                   >
-                    {act.time || '9:00 AM'}
-                  </AppText>
-                </TouchableOpacity>
-
-                {/* Place – tapping opens map picker */}
-                <TouchableOpacity
-                  style={[styles.inputBox, styles.placeBox, { borderColor: border }]}
-                  onPress={() => onOpenPlaceModal(act.id, act.place)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="location-outline"
-                    size={13}
-                    color={secondary}
-                    style={styles.inputIcon}
-                  />
-                  <AppText
-                    style={[styles.inputText, { color: act.place ? textColor : secondary, flex: 1 }]}
-                    numberOfLines={1}
+                    <Ionicons name="time-outline" size={16} color={secondary} />
+                    <AppText
+                      style={[styles.placeholderText, act.time && styles.placeholderTextFilled]}
+                      numberOfLines={1}
+                    >
+                      {act.time || '9:00 AM'}
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.datePicker2}>
+                  <AppText style={styles.fieldLabel}>Place</AppText>
+                  <TouchableOpacity
+                    style={styles.datePickerTrigger2}
+                    onPress={() => onOpenPlaceModal(act.id, act.place)}
+                    activeOpacity={0.7}
                   >
-                    {act.place || 'Pick a location'}
-                  </AppText>
-                </TouchableOpacity>
+                    <Ionicons name="location-outline" size={16} color={secondary} />
+                    <AppText
+                      style={[styles.placeholderText, act.place && styles.placeholderTextFilled]}
+                      numberOfLines={1}
+                    >
+                      {act.place || 'Pick a location'}
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))}
 
-          {/* Add another activity */}
+          {/* Add Another Activity (Figma button6/7) */}
+          <View style={{ height: 16 }} />
           <TouchableOpacity onPress={addActivity} style={styles.addActivityLink}>
-            <AppText style={[styles.addActivityLabel, { color: secondary }]}>
-              + Add Another Activity
-            </AppText>
+            <AppText style={styles.addActivityLabel}>Add Another Activity</AppText>
           </TouchableOpacity>
         </View>
       )}
@@ -284,11 +280,9 @@ export function WizardTripPlanStep({
   onBack,
   onNext,
 }: WizardTripPlanStepProps) {
-  const border     = useThemeColor('border');
-  const textColor  = useThemeColor('text');
-  const background = useThemeColor('background');
-  const surface    = useThemeColor('surface');
-  const accent     = useThemeColor('accent');
+  const textColor = useThemeColor('text');
+  const surface  = useThemeColor('surface');
+  const accent    = useThemeColor('accent');
 
   // ── Activity place picker ────────────────────────────────────────────────
   const [placeModalVisible,      setPlaceModalVisible]      = useState(false);
@@ -414,7 +408,7 @@ export function WizardTripPlanStep({
       style={styles.root}
     >
       <ScrollView
-        style={{ flex: 1, backgroundColor: background }}
+        style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -432,21 +426,18 @@ export function WizardTripPlanStep({
           />
         ))}
 
-        {/* Add Another Day */}
-        <TouchableOpacity
-          onPress={addDay}
-          style={[styles.addDayBtn, { borderColor: border }]}
-        >
-          <Ionicons name="add-outline" size={16} color={textColor} />
-          <AppText style={[styles.addDayLabel, { color: textColor }]}>Add Another Day</AppText>
+        {/* Add Another Day (Figma button8) */}
+        <TouchableOpacity onPress={addDay} style={styles.addDayBtn}>
+          <AppText style={styles.addDayLabel}>Add Another Day</AppText>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Bottom action bar */}
-      <View style={[styles.bottomBar, { borderTopColor: border, backgroundColor: background }]}>
-        <PrimaryButton variant="outline" label="Back" onPress={onBack} style={styles.actionBtn} />
-        <PrimaryButton label="Next" onPress={onNext} style={styles.actionBtn} />
-      </View>
+      <WizardBottomActionBar
+        leftLabel="Back"
+        onLeftPress={onBack}
+        rightLabel="Next"
+        onRightPress={onNext}
+      />
 
       {/* Activity place picker (exact point pick) */}
       <LocationMapModal
@@ -558,96 +549,227 @@ function parseTimeString(timeStr: string, base: Date): Date | null {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  scrollView: { flex: 1, backgroundColor: '#fff' },
 
+  // Figma form9 – label↔input 8px, other vertical 16px
   content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing['2xl'],
-    gap: spacing.md,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    gap: 16,
   },
 
-  // Day card
+  // Section label (Figma tripPlan)
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#171717',
+  },
+
+  // Day card (Figma accordionAccordionitem)
   dayCard: {
-    borderWidth: 1,
-    borderRadius: radii.lg,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: 8,
+    paddingHorizontal: 0,
   },
-  dayTitle: { ...typography.sm, fontWeight: '600', flex: 1 },
-  dayHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  dayTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#18181b',
+    flex: 1,
+  },
+  dayHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 
-  // Day body
-  dayBody: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md },
+  // Day body (Figma frameWrapper)
+  dayBody: {
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
 
-  // Fields
-  fieldLabel:    { ...typography.sm, fontWeight: '500', marginBottom: spacing.xs },
-  subFieldLabel: { ...typography.caption, marginBottom: 4 },
+  // Fields (Figma labelTypo – no lineHeight)
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#18181b',
+    marginBottom: 8,
+  },
+  subFieldLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#71717a',
+    marginBottom: 8,
+  },
+
+  // Accommodation trigger (Figma selecttrigger)
+  selectTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e4e4e7',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 6,
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: '#71717a',
+    flex: 1,
+  },
+  placeholderTextFilled: {
+    color: '#18181b',
+  },
+
+  // Activity name input (Figma input)
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    height: 40,
+    borderColor: '#e4e4e7',
+    backgroundColor: '#fff',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 6,
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
   },
-  inputIcon: { marginRight: spacing.xs },
-  inputText:  { ...typography.sm },
+  inputText: {
+    fontSize: 14,
+    color: '#18181b',
+    flex: 1,
+  },
 
   // Activity type chips
   typeChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
+    gap: 8,
+    marginBottom: 8,
   },
   typeChip: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: radii.full,
+    borderRadius: 999,
     borderWidth: 1,
+    borderColor: '#e4e4e7',
   },
-  typeChipLabel: { ...typography.xs, fontWeight: '500' },
+  typeChipActive: {
+    backgroundColor: '#18181b',
+    borderColor: '#18181b',
+  },
+  typeChipLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#71717a',
+  },
+  typeChipLabelActive: {
+    color: '#fafafa',
+  },
 
   // Activity block
-  activityBlock: { gap: spacing.sm, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
-  activityHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  activityBlock: { paddingTop: 16 },
+  activityHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  activityHeaderLabel: { marginBottom: 0 },
 
-  // Time + place row
-  timeAndPlaceRow: { flexDirection: 'row', gap: spacing.sm },
-  timeBox:  { flex: 1 },
-  placeBox: { flex: 2 },
+  // Time + Place (Figma datePickerParent)
+  timeAndPlaceRow: { flexDirection: 'row', gap: 8 },
+  datePicker: { width: 105, },
+  datePicker2: { flex: 1,  },
+  datePickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e4e4e7',
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
+    alignSelf: 'stretch',
+  },
+  datePickerTrigger2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 8,
+    paddingRight: 16,
+    paddingVertical: 8,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e4e4e7',
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
+    alignSelf: 'stretch',
+  },
 
-  // Add activity link
-  addActivityLink:  { paddingVertical: spacing.sm, alignItems: 'center' },
-  addActivityLabel: { ...typography.sm, textDecorationLine: 'underline' },
+  // Add Another Activity (Figma button6/7)
+  addActivityLink: {
+    height: 32,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addActivityLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#0a0a0a',
+  },
 
-  // Add another day button
+  // Add Another Day (Figma button8)
   addDayBtn: {
+    height: 40,
+    paddingHorizontal: 32,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e4e4e7',
+    backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
   },
-  addDayLabel: { ...typography.sm, fontWeight: '500' },
-
-  // Bottom bar
-  bottomBar: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  addDayLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#18181b',
   },
-  actionBtn: { flex: 1 },
 
   // Time picker modal (iOS)
   timeOverlay: { flex: 1, justifyContent: 'flex-end' },

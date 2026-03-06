@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, PrimaryButton, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { WizardBottomActionBar } from './WizardBottomActionBar';
 import type { TravelInfoType } from '../../../domain/entities/TravelInfo';
 
 // ─── Draft type ────────────────────────────────────────────────────────────────
@@ -432,11 +433,12 @@ export function WizardTravelInfoStep({
         )}
       </ScrollView>
 
-      {/* ── Bottom action bar ──────────────────────────────────────── */}
-      <View style={[styles.bottomBar, { borderTopColor: border, backgroundColor: background }]}>
-        <PrimaryButton variant="outline" label="Back" onPress={onBack} style={styles.actionBtn} />
-        <PrimaryButton label="Next" onPress={onNext} style={styles.actionBtn} />
-      </View>
+      <WizardBottomActionBar
+        leftLabel="Back"
+        onLeftPress={onBack}
+        rightLabel="Next"
+        onRightPress={onNext}
+      />
 
       {/* ── DateTime picker modal ───────────────────────────────────── */}
       {pickerVisible &&
@@ -512,13 +514,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing['2xl'],
-    gap: spacing.md,
+    gap: 16,
   },
 
   emptyState: {
     alignItems: 'center',
     paddingVertical: spacing['2xl'],
-    gap: spacing.md,
+    gap: 16,
   },
   emptyTitle: {
     ...typography.base,
@@ -564,7 +566,7 @@ const styles = StyleSheet.create({
   cardBody: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
-    gap: spacing.md,
+    gap: 16,
   },
 
   // Type chips
@@ -584,9 +586,9 @@ const styles = StyleSheet.create({
   },
   typeChipLabel: { ...typography.caption, fontWeight: '500' },
 
-  // Fields
-  fieldWrap: { gap: spacing.xs },
-  fieldLabel: { ...typography.sm, fontWeight: '500' },
+  // Fields – label to input 8px
+  fieldWrap: { gap: 8 },
+  fieldLabel: { ...typography.sm, fontWeight: '500', marginBottom: 8 },
   inputBox: {
     borderWidth: 1,
     borderRadius: radii.sm,
@@ -626,16 +628,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   addBtnLabel: { ...typography.sm, fontWeight: '500' },
-
-  // Bottom bar
-  bottomBar: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  actionBtn: { flex: 1 },
 
   // DateTime picker modal
   pickerOverlay: {

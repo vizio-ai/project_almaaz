@@ -12,7 +12,8 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { AppText, PrimaryButton, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { AppText, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { WizardBottomActionBar } from './WizardBottomActionBar';
 import { TripDateRangeInput } from '../TripDateRangeInput';
 import { LocationMapModal } from '../LocationMapModal';
 import { Calendar, ChevronDown } from 'lucide-react-native';
@@ -251,22 +252,12 @@ export function WizardBasicDetailsStep({
         />
       </ScrollView>
 
-      {/* ── Bottom action bar (Figma Frame158) ───────────────────────────── */}
-      <View style={styles.bottomBar}>
-        <PrimaryButton
-          variant="outline"
-          label="Cancel"
-          onPress={onCancel}
-          style={[styles.actionBtn, styles.cancelBtn]}
-          labelStyle={styles.cancelLabelStyle}
-        />
-        <PrimaryButton
-          label="Next"
-          onPress={onNext}
-          style={[styles.actionBtn, styles.nextBtn]}
-          labelStyle={styles.nextLabelStyle}
-        />
-      </View>
+      <WizardBottomActionBar
+        leftLabel="Cancel"
+        onLeftPress={onCancel}
+        rightLabel="Next"
+        onRightPress={onNext}
+      />
 
       {/* ── Location map picker modal ──────────────────────────────────── */}
       <LocationMapModal
@@ -289,7 +280,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing['2xl'],
-    gap: spacing.lg,
+    gap: 16,
   },
 
   // Photo row
@@ -320,12 +311,12 @@ const styles = StyleSheet.create({
     ...typography.sm,
   },
 
-  // Fields
-  fieldWrap: { gap: spacing.xs },
+  // Fields – label to input 8px
+  fieldWrap: { gap: 8 },
   fieldLabel: {
     ...typography.sm,
     fontWeight: '500',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   inputBox: {
     flexDirection: 'row',
@@ -351,54 +342,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Bottom bar (Figma Frame158)
-  bottomBar: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    borderTopWidth: 1,
-    borderTopColor: '#e4e4e7',
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  actionBtn: {
-    height: 40,
-    paddingVertical: 8,
-    paddingHorizontal: 32,
-    borderRadius: 999,
-  },
-  cancelBtn: {
-    width: 120,
-    backgroundColor: '#fff',
-    borderColor: '#e4e4e7',
-    borderWidth: 1,
-    elevation: 2,
-    shadowColor: 'rgba(0, 0, 0, 0.05)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    shadowOpacity: 1,
-  },
-  nextBtn: {
-    flex: 1,
-    borderColor: '#44ffff',
-    elevation: 3,
-    shadowColor: 'rgba(0, 0, 0, 0.1)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    shadowOpacity: 1,
-  },
-  cancelLabelStyle: {
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'left',
-    color: '#18181b',
-  },
-  nextLabelStyle: {
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'left',
-    color: '#fafafa',
-  },
 });

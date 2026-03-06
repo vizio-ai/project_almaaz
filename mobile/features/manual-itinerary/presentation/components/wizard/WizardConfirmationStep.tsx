@@ -9,7 +9,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {
   AppText,
-  PrimaryButton,
   ToggleRow,
   AccordionSection,
   CreatedByAuthor,
@@ -18,6 +17,7 @@ import {
   typography,
   radii,
 } from '@shared/ui-kit';
+import { WizardBottomActionBar } from './WizardBottomActionBar';
 import { AccommodationCard } from '../AccommodationCard';
 import { ActivityCard } from '../ActivityCard';
 import type { WizardDraftTravelInfo } from './WizardTravelInfoStep';
@@ -335,22 +335,14 @@ export function WizardConfirmationStep({
         </View>
       ) : null}
 
-      {/* ── Bottom action bar ──────────────────────────────────────── */}
-      <View style={[styles.bottomBar, { borderTopColor: border, backgroundColor: background }]}>
-        <PrimaryButton
-          variant="outline"
-          label="Back"
-          onPress={onBack}
-          disabled={isSaving}
-          style={styles.actionBtn}
-        />
-        <PrimaryButton
-          label="Save itinerary"
-          onPress={onSave}
-          isLoading={isSaving}
-          style={styles.actionBtn}
-        />
-      </View>
+      <WizardBottomActionBar
+        leftLabel="Back"
+        onLeftPress={onBack}
+        rightLabel="Save itinerary"
+        onRightPress={onSave}
+        rightLoading={isSaving}
+        rightDisabled={isSaving}
+      />
     </View>
   );
 }
@@ -511,13 +503,4 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
 
-  // Bottom bar
-  bottomBar: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  actionBtn: { flex: 1 },
 });
