@@ -33,10 +33,10 @@ export interface DetailedItineraryTabProps {
   // Edit mode props (Supabase-backed)
   collapsedDays?: Set<string>;
   onToggleDay?: (dayId: string) => void;
-  onAddActivity?: (dayId: string, name: string) => Promise<unknown>;
-  onEditActivity?: (activityId: string, name: string) => Promise<unknown>;
+  onAddActivity?: (dayId: string, params: import('../../domain/repository/ManualItineraryRepository').AddActivityParams) => Promise<unknown>;
+  onEditActivity?: (activityId: string, params: import('../../domain/repository/ManualItineraryRepository').UpdateActivityParams) => Promise<unknown>;
   onRemoveActivity?: (activityId: string) => Promise<unknown>;
-  onUpdateDay?: (dayId: string, notes: string | null) => Promise<unknown>;
+  onUpdateDay?: (dayId: string, params: import('../../domain/repository/ManualItineraryRepository').UpdateDayParams) => Promise<unknown>;
   onRemoveDay?: (dayId: string) => Promise<unknown>;
   onAddDay?: () => Promise<unknown>;
   onUpdateActivityLocation?: (

@@ -1,6 +1,6 @@
 import type { Itinerary } from '../entities/Itinerary';
 import type { ItineraryDay } from '../entities/ItineraryDay';
-import type { Activity } from '../entities/Activity';
+import type { Activity, ActivityType } from '../entities/Activity';
 import type { TravelInfo, TravelInfoType } from '../entities/TravelInfo';
 
 // ─── Itinerary ───────────────────────────────────────────────────────────────
@@ -42,13 +42,14 @@ export interface ItineraryWithDetails {
 export interface AddDayParams {
   /** ISO date string (YYYY-MM-DD). Optional — day may be dateless. */
   date?: string | null;
-  /** Optional free-form notes for this day (Figma: "Add a note"). */
   notes?: string | null;
+  accommodation?: string | null;
 }
 
 export interface UpdateDayParams {
   date?: string | null;
   notes?: string | null;
+  accommodation?: string | null;
 }
 
 // ─── Activity ─────────────────────────────────────────────────────────────────
@@ -57,6 +58,8 @@ export interface AddActivityParams {
   name: string;
   /** Omit to append at the end. */
   sortOrder?: number;
+  activityType?: ActivityType | null;
+  startTime?: string | null;
   locationText?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -65,6 +68,8 @@ export interface AddActivityParams {
 export interface UpdateActivityParams {
   name?: string;
   sortOrder?: number;
+  activityType?: ActivityType | null;
+  startTime?: string | null;
   locationText?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -88,7 +93,7 @@ export interface UpdateTravelInfoParams {
   provider?: string | null;
   detail?: string | null;
   startDatetime?: string | null;
-   /** Optional end datetime (hotel check-out, rental car drop-off, etc.). */
+  /** Optional end datetime (hotel check-out, rental car drop-off, etc.). */
   endDatetime?: string | null;
 }
 

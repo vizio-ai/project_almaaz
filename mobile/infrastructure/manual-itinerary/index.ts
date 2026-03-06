@@ -57,7 +57,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
       const { data: daysData } = await supabase
         .from('itinerary_days')
-        .select('id, day_number, date, notes')
+        .select('id, day_number, date, notes, accommodation')
         .eq('itinerary_id', id)
         .order('day_number', { ascending: true });
 
@@ -66,6 +66,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         dayNumber: d.day_number,
         date: d.date,
         notes: d.notes ?? null,
+        accommodation: d.accommodation ?? null,
       }));
 
       const activities: Activity[] = [];
@@ -73,7 +74,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       if (dayIds.length > 0) {
         const { data: actsData } = await supabase
           .from('itinerary_activities')
-          .select('id, day_id, sort_order, name, location_text, latitude, longitude')
+          .select('id, day_id, sort_order, name, activity_type, start_time, location_text, latitude, longitude')
           .in('day_id', dayIds)
           .order('sort_order', { ascending: true });
 
@@ -83,6 +84,8 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
             dayId: a.day_id,
             sortOrder: a.sort_order,
             name: a.name,
+            activityType: a.activity_type ?? null,
+            startTime: a.start_time ?? null,
             locationText: a.location_text,
             latitude: a.latitude,
             longitude: a.longitude,
@@ -185,6 +188,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
           day_number: nextDayNumber,
           date: params.date ?? null,
           notes: params.notes ?? null,
+          accommodation: params.accommodation ?? null,
         })
         .select('id')
         .single();
@@ -197,6 +201,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       const payload: Record<string, unknown> = {};
       if (params.date !== undefined) payload.date = params.date;
       if (params.notes !== undefined) payload.notes = params.notes;
+      if (params.accommodation !== undefined) payload.accommodation = params.accommodation;
       const { error } = await supabase
         .from('itinerary_days')
         .update(payload)
@@ -243,6 +248,8 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
           day_id: dayId,
           sort_order: sortOrder,
           name: params.name,
+          activity_type: params.activityType ?? null,
+          start_time: params.startTime ?? null,
           location_text: params.locationText ?? null,
           latitude: params.latitude ?? null,
           longitude: params.longitude ?? null,
@@ -258,6 +265,8 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       const payload: Record<string, unknown> = {};
       if (params.name !== undefined) payload.name = params.name;
       if (params.sortOrder !== undefined) payload.sort_order = params.sortOrder;
+      if (params.activityType !== undefined) payload.activity_type = params.activityType;
+      if (params.startTime !== undefined) payload.start_time = params.startTime;
       if (params.locationText !== undefined) payload.location_text = params.locationText;
       if (params.latitude !== undefined) payload.latitude = params.latitude;
       if (params.longitude !== undefined) payload.longitude = params.longitude;

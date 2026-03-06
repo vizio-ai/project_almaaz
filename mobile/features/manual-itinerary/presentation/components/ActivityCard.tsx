@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Goal, MapPin, Pencil, Clock2, GripVertical } from 'lucide-react-native';
+import { MapPin, Pencil, Clock2, GripVertical, RefreshCw } from 'lucide-react-native';
 import { AppText, spacing, radii, typography, useThemeColor, elevatedCard } from '@shared/ui-kit';
 
 export interface ActivityCardTag {
@@ -53,19 +53,13 @@ export function ActivityCard({
           </TouchableOpacity>
         </View>
 
-        {description ? (
-          <AppText style={[styles.description, { color: secondary }]} numberOfLines={3}>
-            {description}
-          </AppText>
-        ) : null}
-
         {tags.length > 0 && (
           <View style={styles.tagsRow}>
             {tags.map((tag, idx) => (
               <View key={`${tag.label}-${idx}`} style={styles.tag}>
                 <View style={styles.tagIconWrapper}>{renderTagIcon(tag, secondary)}</View>
                 <AppText
-                  style={[styles.tagLabel, { color: secondary }]}
+                  style={[styles.tagLabel, { color: textColor }]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
@@ -75,6 +69,12 @@ export function ActivityCard({
             ))}
           </View>
         )}
+
+        {description ? (
+          <AppText style={[styles.description, { color: secondary }]} numberOfLines={2}>
+            {description}
+          </AppText>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -99,6 +99,8 @@ const styles = StyleSheet.create({
     left: 0,
     width: 24,
     backgroundColor: '#fafafa',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -130,11 +132,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  description: {
-    ...typography.sm,
-    lineHeight: 20,
-    color: '#71717a',
-  },
   tagsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,14 +155,20 @@ const styles = StyleSheet.create({
   tagLabel: {
     ...typography.sm,
     lineHeight: 20,
-    maxWidth: 90,
+    maxWidth: 100,
     flexShrink: 1,
+  },
+  description: {
+    ...typography.sm,
+    lineHeight: 20,
+    color: '#71717a',
+    marginTop: spacing.xs,
   },
 });
 
 function renderTagIcon(tag: ActivityCardTag, color: string) {
   if (tag.icon === 'type') {
-    return <Goal width={12} height={12} color={color} strokeWidth={1.8} />;
+    return <RefreshCw width={12} height={12} color={color} strokeWidth={1.8} />;
   }
   if (tag.icon === 'location') {
     return <MapPin width={12} height={12} color={color} strokeWidth={1.8} />;
@@ -177,7 +180,7 @@ function renderTagIcon(tag: ActivityCardTag, color: string) {
   const lower = tag.label.toLowerCase();
 
   if (lower === 'park' || lower === 'goal') {
-    return <Goal width={12} height={12} color={color} strokeWidth={1.8} />;
+    return <RefreshCw width={12} height={12} color={color} strokeWidth={1.8} />;
   }
 
   if (lower.includes('nakano dori') || lower.includes('place')) {

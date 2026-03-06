@@ -3,4 +3,6 @@ export interface ItineraryDay {
   dayNumber: number;
   date: string | null;
   notes?: string | null;
+  /** Hotel / accommodation name for this day. */
+  accommodation?: string | null;
 }

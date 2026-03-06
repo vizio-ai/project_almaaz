@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, PrimaryButton, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import { TripDateRangeInput } from '../TripDateRangeInput';
-import { DestinationPickerModal } from './DestinationPickerModal';
+import { LocationMapModal } from '../LocationMapModal';
 
 const PLACEHOLDER_IMAGE = require('../../../../../assets/images/card_photo.png');
 
@@ -71,7 +71,7 @@ export function WizardBasicDetailsStep({
   const border     = useThemeColor('border');
   const background = useThemeColor('background');
 
-  const [destinationPickerVisible, setDestinationPickerVisible] = useState(false);
+  const [locationMapVisible, setLocationMapVisible] = useState(false);
 
   // ── Photo helpers ─────────────────────────────────────────────────────────
 
@@ -190,7 +190,7 @@ export function WizardBasicDetailsStep({
           <AppText style={[styles.fieldLabel, { color: textColor }]}>Destination</AppText>
           <TouchableOpacity
             style={[styles.inputBox, { borderColor: border }]}
-            onPress={() => setDestinationPickerVisible(true)}
+            onPress={() => setLocationMapVisible(true)}
             activeOpacity={0.7}
           >
             <Ionicons name="location-outline" size={14} color={secondary} />

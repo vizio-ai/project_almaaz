@@ -1,18 +1,37 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  Modal,
+  Platform,
 } from 'react-native';
-import { Trash2, ChevronDown, ChevronUp, Pencil, X, MapPin, Check, GripVertical } from 'lucide-react-native';
-import { AppText, PrimaryButton, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { Trash2, GripVertical, Pencil } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  AppText,
+  AccordionSection,
+  PrimaryButton,
+  useThemeColor,
+  typography,
+  spacing,
+  radii,
+} from '@shared/ui-kit';
 import { NoteCreateCard } from './NoteCreateCard';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
-import type { Activity } from '../../domain/entities/Activity';
+import type { Activity, ActivityType } from '../../domain/entities/Activity';
+import type {
+  AddActivityParams,
+  UpdateActivityParams,
+  UpdateDayParams,
+} from '../../domain/repository/ManualItineraryRepository';
 import { LocationMapModal } from './LocationMapModal';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import { ActivityCard } from './ActivityCard';
+import { ActivityEditCard } from './ActivityEditCard';
+import { AccommodationCard } from './AccommodationCard';
+import { AccommodationEditCard } from './AccommodationEditCard';
+import { AddAnotherActivityButton } from './AddAnotherActivityButton';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
@@ -32,25 +51,20 @@ export interface DaySectionProps {
   dayActivities: Activity[];
   isCollapsed: boolean;
   onToggle: () => void;
-  onAddActivity: (dayId: string, name: string) => Promise<unknown>;
-  onEditActivity: (activityId: string, name: string) => Promise<unknown>;
+  onAddActivity: (dayId: string, params: AddActivityParams) => Promise<unknown>;
+  onEditActivity: (activityId: string, params: UpdateActivityParams) => Promise<unknown>;
   onRemoveActivity: (activityId: string) => Promise<unknown>;
-  onUpdateDay: (dayId: string, notes: string | null) => Promise<unknown>;
+  onUpdateDay: (dayId: string, params: UpdateDayParams) => Promise<unknown>;
   onRemoveDay: (dayId: string) => Promise<unknown>;
-  /** Called when user picks / clears a location for an activity. */
   onUpdateActivityLocation?: (
     activityId: string,
     locationText: string | null,
     latitude: number | null,
     longitude: number | null,
   ) => Promise<unknown>;
-  /** Called after a drag-and-drop reorder. Receives the new ordered IDs. */
   onReorderActivities?: (dayId: string, orderedIds: string[]) => Promise<unknown>;
-  /** Long-press handler from the parent DraggableFlatList — activates day drag. */
   onDragDay?: () => void;
-  /** True while this day is being actively dragged. */
   isDraggingDay?: boolean;
-  /** Base trip location used to seed the location search query. */
   baseLocation?: string;
 }
 
@@ -74,95 +88,145 @@ export function DaySection({
   const secondary = useThemeColor('textSecondary');
   const surface = useThemeColor('surface');
   const border = useThemeColor('border');
-  const accent = useThemeColor('accent');
 
-  // ── Activity state ─────────────────────────────────────────────────────────
+  // ── Activity list state ────────────────────────────────────────────────────
   const [orderedActivities, setOrderedActivities] = useState(dayActivities);
-  const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [editingActivityType, setEditingActivityType] = useState<ActivityType>('park');
+  const [editingTimeValue, setEditingTimeValue] = useState('');
+  const [editingLocationText, setEditingLocationText] = useState('');
+  const [activityBusy, setActivityBusy] = useState(false);
 
-  // Keep local order in sync when parent refreshes (e.g. after add/remove)
-  useEffect(() => {
-    setOrderedActivities(dayActivities);
-  }, [dayActivities]);
+  // ── Pending new activity state ─────────────────────────────────────────────
+  const [isPendingNew, setIsPendingNew] = useState(false);
+  const [pendingName, setPendingName] = useState('');
+  const [pendingActivityType, setPendingActivityType] = useState<ActivityType>('park');
+  const [pendingTimeValue, setPendingTimeValue] = useState('');
+  const [pendingLocationText, setPendingLocationText] = useState('');
 
-  // ── Location modal state ────────────────────────────────────────────────────
+  // ── Time picker state ──────────────────────────────────────────────────────
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [timePickerDate, setTimePickerDate] = useState(new Date());
+  const [timePickerForPending, setTimePickerForPending] = useState(false);
+
+  // ── Location modal state ───────────────────────────────────────────────────
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [locationModalActivityId, setLocationModalActivityId] = useState<string | null>(null);
+  const [locationModalForPending, setLocationModalForPending] = useState(false);
   const [locationModalInitialQuery, setLocationModalInitialQuery] = useState('');
+
+  // ── Accommodation state ────────────────────────────────────────────────────
+  const [accommodationText, setAccommodationText] = useState(day.accommodation ?? '');
+  const [isEditingAccommodation, setIsEditingAccommodation] = useState(false);
+  const [accommodationLocationModalVisible, setAccommodationLocationModalVisible] = useState(false);
+  const [accommodationBusy, setAccommodationBusy] = useState(false);
 
   // ── Day note state ─────────────────────────────────────────────────────────
   const [dayNotes, setDayNotes] = useState(day.notes ?? '');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesBusy, setNotesBusy] = useState(false);
 
-  const handleAdd = useCallback(async () => {
-    if (!newName.trim() || busy) return;
-    setBusy(true);
-    try {
-      await onAddActivity(day.id, newName.trim());
-      setNewName('');
-    } finally {
-      setBusy(false);
-    }
-  }, [newName, busy, day.id, onAddActivity]);
+  useEffect(() => {
+    setOrderedActivities(dayActivities);
+  }, [dayActivities]);
 
-  const handleEdit = useCallback(async () => {
-    if (!editingId || !editingName.trim() || busy) return;
-    setBusy(true);
+  // ── Activity handlers ──────────────────────────────────────────────────────
+
+  const startEdit = (act: Activity) => {
+    setEditingId(act.id);
+    setEditingName(act.name);
+    setEditingActivityType(act.activityType ?? 'park');
+    setEditingTimeValue(act.startTime ?? '');
+    setEditingLocationText(act.locationText ?? '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingName('');
+    setEditingActivityType('park');
+    setEditingTimeValue('');
+    setEditingLocationText('');
+  };
+
+  const handleEditSave = useCallback(async () => {
+    if (!editingId || activityBusy) return;
+    setActivityBusy(true);
     try {
-      await onEditActivity(editingId, editingName.trim());
-      setEditingId(null);
-      setEditingName('');
+      await onEditActivity(editingId, {
+        name: editingName.trim() || undefined,
+        activityType: editingActivityType,
+        startTime: editingTimeValue || null,
+        locationText: editingLocationText || null,
+      });
+      cancelEdit();
     } finally {
-      setBusy(false);
+      setActivityBusy(false);
     }
-  }, [editingId, editingName, busy, onEditActivity]);
+  }, [editingId, editingName, editingActivityType, editingTimeValue, editingLocationText, activityBusy, onEditActivity]);
 
   const handleRemoveActivity = useCallback(
     async (activityId: string) => {
-      if (busy) return;
-      setBusy(true);
+      if (activityBusy) return;
+      setActivityBusy(true);
       try {
         await onRemoveActivity(activityId);
       } finally {
-        setBusy(false);
+        setActivityBusy(false);
       }
     },
-    [busy, onRemoveActivity],
+    [activityBusy, onRemoveActivity],
   );
+
+  const handlePendingAdd = useCallback(async () => {
+    if (activityBusy) return;
+    setActivityBusy(true);
+    try {
+      await onAddActivity(day.id, {
+        name: pendingName.trim() || 'Activity',
+        activityType: pendingActivityType,
+        startTime: pendingTimeValue || null,
+        locationText: pendingLocationText || null,
+      });
+      setIsPendingNew(false);
+      setPendingName('');
+      setPendingActivityType('park');
+      setPendingTimeValue('');
+      setPendingLocationText('');
+    } finally {
+      setActivityBusy(false);
+    }
+  }, [activityBusy, day.id, onAddActivity, pendingName, pendingActivityType, pendingTimeValue, pendingLocationText]);
+
+  const cancelPending = () => {
+    setIsPendingNew(false);
+    setPendingName('');
+    setPendingActivityType('park');
+    setPendingTimeValue('');
+    setPendingLocationText('');
+  };
+
+  // ── Note handlers ──────────────────────────────────────────────────────────
 
   const handleNoteSave = useCallback(async () => {
     if (notesBusy) return;
     setNotesBusy(true);
     try {
-      await onUpdateDay(day.id, dayNotes.trim() || null);
+      await onUpdateDay(day.id, { notes: dayNotes.trim() || null });
       setIsEditingNotes(false);
     } finally {
       setNotesBusy(false);
     }
   }, [day.id, dayNotes, notesBusy, onUpdateDay]);
 
-  const startEdit = (act: Activity) => {
-    setEditingId(act.id);
-    setEditingName(act.name);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingName('');
-  };
-
-  // ── Location modal handlers ─────────────────────────────────────────────────
+  // ── Location modal handlers ────────────────────────────────────────────────
 
   const openLocationModal = useCallback(
-    (act: Activity) => {
-      const current = act.locationText ?? '';
+    (actId: string | null, forPending: boolean, currentText: string) => {
       const fallback = baseLocation && baseLocation !== '—' ? baseLocation : '';
-      setLocationModalActivityId(act.id);
-      setLocationModalInitialQuery(current || fallback);
+      setLocationModalActivityId(actId);
+      setLocationModalForPending(forPending);
+      setLocationModalInitialQuery(currentText || fallback);
       setLocationModalVisible(true);
     },
     [baseLocation],
@@ -170,20 +234,70 @@ export function DaySection({
 
   const handleSelectLocation = useCallback(
     async (name: string, lat?: number | null, lng?: number | null) => {
-      const actId = locationModalActivityId;
       setLocationModalVisible(false);
+      if (locationModalForPending) {
+        setPendingLocationText(name || '');
+        return;
+      }
+      const actId = locationModalActivityId;
       setLocationModalActivityId(null);
-      if (!actId || !onUpdateActivityLocation) return;
+      if (!actId) return;
+      if (actId === editingId) {
+        setEditingLocationText(name || '');
+        return;
+      }
+      if (!onUpdateActivityLocation) return;
       await onUpdateActivityLocation(actId, name || null, lat ?? null, lng ?? null);
     },
-    [locationModalActivityId, onUpdateActivityLocation],
+    [locationModalForPending, locationModalActivityId, editingId, onUpdateActivityLocation],
   );
+
+  // ── Accommodation handlers ─────────────────────────────────────────────────
+
+  const handleAccommodationSave = useCallback(async () => {
+    if (accommodationBusy) return;
+    setAccommodationBusy(true);
+    try {
+      await onUpdateDay(day.id, { accommodation: accommodationText || null });
+      setIsEditingAccommodation(false);
+    } finally {
+      setAccommodationBusy(false);
+    }
+  }, [accommodationBusy, day.id, accommodationText, onUpdateDay]);
+
+  const handleAccommodationDelete = useCallback(async () => {
+    if (accommodationBusy) return;
+    setAccommodationBusy(true);
+    try {
+      await onUpdateDay(day.id, { accommodation: null });
+      setAccommodationText('');
+      setIsEditingAccommodation(false);
+    } finally {
+      setAccommodationBusy(false);
+    }
+  }, [accommodationBusy, day.id, onUpdateDay]);
+
+  // ── Time picker helpers ────────────────────────────────────────────────────
+
+  const openTimePicker = (forPending: boolean) => {
+    setTimePickerForPending(forPending);
+    setTimePickerDate(new Date());
+    setTimePickerVisible(true);
+  };
+
+  const applyPickedTime = (date: Date) => {
+    const formatted = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (timePickerForPending) {
+      setPendingTimeValue(formatted);
+    } else {
+      setEditingTimeValue(formatted);
+    }
+  };
 
   return (
     <View style={[styles.daySection, isDraggingDay && styles.daySectionDragging]}>
-      {/* ── Day header ──────────────────────────────────────────────────── */}
-      <TouchableOpacity style={styles.dayHeader} onPress={onToggle} activeOpacity={0.7}>
-        {/* Day drag handle — long-press to reorder days */}
+      {/* ── Controls row: drag handle + delete ──────────────────────────── */}
+      <View style={styles.controlsRow}>
         {onDragDay && (
           <TouchableOpacity
             onLongPress={onDragDay}
@@ -194,197 +308,192 @@ export function DaySection({
             <GripVertical size={18} color={secondary} strokeWidth={1.5} />
           </TouchableOpacity>
         )}
-        <AppText style={[styles.dayTitle, { color: textColor }]}>
-          {formatDayLabel(day.date, day.dayNumber)}
-        </AppText>
-        <View style={styles.dayHeaderRight}>
-          <TouchableOpacity onPress={() => onRemoveDay(day.id)} hitSlop={8}>
-            <Trash2 size={16} color={secondary} strokeWidth={1.8} />
-          </TouchableOpacity>
-          {isCollapsed ? (
-            <ChevronDown size={20} color={secondary} strokeWidth={1.8} />
-          ) : (
-            <ChevronUp size={20} color={secondary} strokeWidth={1.8} />
-          )}
-        </View>
-      </TouchableOpacity>
+        <View style={styles.spacer} />
+        <TouchableOpacity onPress={() => onRemoveDay(day.id)} hitSlop={8}>
+          <Trash2 size={16} color={secondary} strokeWidth={1.8} />
+        </TouchableOpacity>
+      </View>
 
-      {/* ── Expanded body ───────────────────────────────────────────────── */}
-      {!isCollapsed && (
-        <>
-          {/* ── Note section ──────────────────────────────────────────── */}
-          {!dayNotes && !isEditingNotes ? (
-            /* State 1: No note → Add Note button */
-            <PrimaryButton
-              variant="outline"
-              label="Add Note"
-              onPress={() => setIsEditingNotes(true)}
-              style={styles.addNoteBtn}
-            />
-          ) : isEditingNotes ? (
-            /* State 2: Creating or editing → NoteCreateCard */
-            <View style={{ marginBottom: spacing.md }}>
-              <NoteCreateCard
-                value={dayNotes}
-                onChange={setDayNotes}
-                onSave={handleNoteSave}
-                isSaving={notesBusy}
-              />
-            </View>
-          ) : (
-            /* State 3: Has note, viewing → NoteCard */
-            <View style={[styles.noteCard, { backgroundColor: surface, borderColor: border }]}>
-              <View style={styles.noteCardRow}>
-                <AppText style={[styles.noteLabel, { color: secondary }]}>Note</AppText>
-                <TouchableOpacity onPress={() => setIsEditingNotes(true)} hitSlop={8}>
-                  <Pencil size={15} color={secondary} strokeWidth={1.8} />
-                </TouchableOpacity>
-              </View>
-              <AppText style={[styles.noteText, { color: textColor }]} numberOfLines={4}>
-                {dayNotes}
-              </AppText>
-            </View>
-          )}
-
-          {/* ── Activity list ──────────────────────────────────────────── */}
-          <DraggableFlatList
-            data={orderedActivities}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            activationDistance={10}
-            onDragEnd={({ data }) => {
-              setOrderedActivities(data);
-              onReorderActivities?.(day.id, data.map((a) => a.id));
-            }}
-            renderItem={({ item: act, drag, isActive }) => (
-              <ScaleDecorator activeScale={1.02}>
-                {editingId === act.id ? (
-                  /* ── Inline edit card ───────────────────────────────── */
-                  <View style={[styles.editCard, { backgroundColor: surface, borderColor: accent }]}>
-                    <View style={styles.editCardHeader}>
-                      <AppText style={[styles.editCardTitle, { color: textColor }]}>
-                        {act.name}
-                      </AppText>
-                      <TouchableOpacity onPress={cancelEdit} hitSlop={8}>
-                        <X size={18} color={secondary} strokeWidth={1.8} />
-                      </TouchableOpacity>
-                    </View>
-                    <TextInput
-                      style={[styles.editCardInput, { color: textColor, borderColor: border }]}
-                      placeholder="Activity name"
-                      placeholderTextColor={secondary}
-                      value={editingName}
-                      onChangeText={setEditingName}
-                      autoFocus
-                      returnKeyType="done"
-                      onSubmitEditing={handleEdit}
-                      selectTextOnFocus
-                    />
-                    {onUpdateActivityLocation && (
-                      <TouchableOpacity
-                        style={[styles.locationRow, { borderColor: border }]}
-                        onPress={() => openLocationModal(act)}
-                        hitSlop={4}
-                      >
-                        <MapPin size={14} color={act.locationText ? accent : secondary} strokeWidth={1.8} />
-                        <AppText
-                          style={[styles.locationLabel, { color: act.locationText ? textColor : secondary }]}
-                          numberOfLines={1}
-                        >
-                          {act.locationText || 'Add location'}
-                        </AppText>
-                      </TouchableOpacity>
-                    )}
-                    <View style={styles.editCardActions}>
-                      <TouchableOpacity
-                        onPress={() => handleRemoveActivity(act.id)}
-                        disabled={busy}
-                        style={styles.deleteBtn}
-                      >
-                        <AppText style={styles.deleteBtnLabel}>Delete</AppText>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={handleEdit}
-                        disabled={busy || !editingName.trim()}
-                        style={[styles.saveBtn, { backgroundColor: textColor }]}
-                      >
-                        {busy ? (
-                          <ActivityIndicator size="small" color={surface} />
-                        ) : (
-                          <AppText style={[styles.saveBtnLabel, { color: surface }]}>Save</AppText>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  /* ── Activity info card ─────────────────────────────── */
-                  <View
-                    style={[
-                      styles.activityCard,
-                      { backgroundColor: surface, borderColor: isActive ? accent : border },
-                    ]}
-                  >
-                    {/* Drag handle — long-press to activate drag */}
-                    <TouchableOpacity
-                      onLongPress={drag}
-                      delayLongPress={200}
-                      disabled={editingId !== null}
-                      style={styles.dragHandle}
-                      hitSlop={4}
-                    >
-                      <GripVertical size={16} color={border} strokeWidth={1.5} />
-                    </TouchableOpacity>
-
-                    <View style={styles.activityContent}>
-                      <AppText style={[styles.activityName, { color: textColor }]}>
-                        {act.name}
-                      </AppText>
-                      {act.locationText ? (
-                        <View style={styles.tagsRow}>
-                          <View style={[styles.tag, { backgroundColor: border }]}>
-                            <MapPin size={11} color={secondary} strokeWidth={1.8} />
-                            <AppText style={[styles.tagLabel, { color: secondary }]}>
-                              {act.locationText}
-                            </AppText>
-                          </View>
-                        </View>
-                      ) : null}
-                    </View>
-
-                    <TouchableOpacity onPress={() => startEdit(act)} hitSlop={8}>
-                      <Pencil size={16} color={secondary} strokeWidth={1.8} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </ScaleDecorator>
-            )}
+      {/* ── AccordionSection wraps the day body ─────────────────────────── */}
+      <AccordionSection
+        title={formatDayLabel(day.date, day.dayNumber)}
+        collapsed={isCollapsed}
+        onToggle={onToggle}
+      >
+        {/* ── Accommodation ─────────────────────────────────────────────── */}
+        {isEditingAccommodation ? (
+          <AccommodationEditCard
+            selectedName={accommodationText}
+            onPressSelect={() => setAccommodationLocationModalVisible(true)}
+            onClose={() => setIsEditingAccommodation(false)}
+            onDelete={handleAccommodationDelete}
+            onSave={handleAccommodationSave}
           />
+        ) : accommodationText ? (
+          <AccommodationCard
+            title={accommodationText}
+            onPress={() => setIsEditingAccommodation(true)}
+          />
+        ) : (
+          <PrimaryButton
+            variant="outline"
+            label="Add Accommodation"
+            onPress={() => setIsEditingAccommodation(true)}
+            style={styles.addBtn}
+          />
+        )}
 
-          {/* ── Inline add activity input (always visible) ─────────────── */}
-          <View style={[styles.addActivityRow, { borderColor: border }]}>
-            <TextInput
-              style={[styles.addActivityInput, { color: textColor }]}
-              placeholder="Activity Name (Optional)"
-              placeholderTextColor={secondary}
-              value={newName}
-              onChangeText={setNewName}
-              returnKeyType="done"
-              onSubmitEditing={handleAdd}
+        {/* ── Day note ──────────────────────────────────────────────────── */}
+        {!dayNotes && !isEditingNotes ? (
+          <PrimaryButton
+            variant="outline"
+            label="Add Note"
+            onPress={() => setIsEditingNotes(true)}
+            style={styles.addBtn}
+          />
+        ) : isEditingNotes ? (
+          <View style={styles.noteEditWrapper}>
+            <NoteCreateCard
+              value={dayNotes}
+              onChange={setDayNotes}
+              onSave={handleNoteSave}
+              isSaving={notesBusy}
             />
-            {newName.trim().length > 0 && (
-              <TouchableOpacity onPress={handleAdd} disabled={busy} hitSlop={8}>
-                {busy ? (
-                  <ActivityIndicator size="small" color={accent} />
-                ) : (
-                  <Check size={20} color={accent} strokeWidth={1.8} />
-                )}
-              </TouchableOpacity>
-            )}
           </View>
-        </>
-      )}
+        ) : (
+          <View style={[styles.noteCard, { backgroundColor: surface, borderColor: border }]}>
+            <View style={styles.noteCardRow}>
+              <AppText style={[styles.noteLabel, { color: secondary }]}>Note</AppText>
+              <TouchableOpacity onPress={() => setIsEditingNotes(true)} hitSlop={8}>
+                <Pencil size={15} color={secondary} strokeWidth={1.8} />
+              </TouchableOpacity>
+            </View>
+            <AppText style={[styles.noteText, { color: textColor }]} numberOfLines={4}>
+              {dayNotes}
+            </AppText>
+          </View>
+        )}
 
-      {/* ── Location map modal ──────────────────────────────────────────── */}
+        {/* ── Activity list ──────────────────────────────────────────────── */}
+        <DraggableFlatList
+          data={orderedActivities}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+          activationDistance={10}
+          contentContainerStyle={{ gap: spacing.sm }}
+          onDragEnd={({ data }) => {
+            setOrderedActivities(data);
+            onReorderActivities?.(day.id, data.map((a) => a.id));
+          }}
+          renderItem={({ item: act, drag }) =>
+            editingId === act.id ? (
+              <ScaleDecorator activeScale={1.02}>
+                <ActivityEditCard
+                  title={act.name || 'Edit Activity'}
+                  name={editingName}
+                  activityType={editingActivityType}
+                  timeValue={editingTimeValue}
+                  placeValue={editingLocationText}
+                  onChangeName={setEditingName}
+                  onChangeActivityType={setEditingActivityType}
+                  onPressTime={() => openTimePicker(false)}
+                  onPressPlace={() => openLocationModal(act.id, false, editingLocationText)}
+                  onDelete={async () => {
+                    await handleRemoveActivity(act.id);
+                    cancelEdit();
+                  }}
+                  onSave={handleEditSave}
+                  onClose={cancelEdit}
+                />
+              </ScaleDecorator>
+            ) : (
+              <ScaleDecorator activeScale={1.02}>
+                <ActivityCard
+                  title={act.name}
+                  tags={[
+                    ...(act.startTime ? [{ label: act.startTime, icon: 'time' as const }] : []),
+                    ...(act.locationText ? [{ label: act.locationText, icon: 'location' as const }] : []),
+                  ]}
+                  onPress={() => startEdit(act)}
+                  onPressEdit={() => startEdit(act)}
+                  onMoveDown={drag}
+                />
+              </ScaleDecorator>
+            )
+          }
+        />
+
+        {/* ── Pending new activity ───────────────────────────────────────── */}
+        {isPendingNew && (
+          <ActivityEditCard
+            title="New Activity"
+            name={pendingName}
+            activityType={pendingActivityType}
+            timeValue={pendingTimeValue}
+            placeValue={pendingLocationText}
+            onChangeName={setPendingName}
+            onChangeActivityType={setPendingActivityType}
+            onPressTime={() => openTimePicker(true)}
+            onPressPlace={() => openLocationModal(null, true, pendingLocationText)}
+            onDelete={cancelPending}
+            onSave={handlePendingAdd}
+            onClose={cancelPending}
+          />
+        )}
+
+        {/* ── Add another activity button ────────────────────────────────── */}
+        {!isPendingNew && (
+          <AddAnotherActivityButton onPress={() => setIsPendingNew(true)} />
+        )}
+
+        {/* ── Time picker ───────────────────────────────────────────────── */}
+        {timePickerVisible &&
+          (Platform.OS === 'android' ? (
+            <DateTimePicker
+              value={timePickerDate}
+              mode="time"
+              display="default"
+              onChange={(_, date) => {
+                setTimePickerVisible(false);
+                if (date) applyPickedTime(date);
+              }}
+            />
+          ) : (
+            <Modal
+              transparent
+              animationType="fade"
+              onRequestClose={() => setTimePickerVisible(false)}
+            >
+              <TouchableOpacity
+                style={styles.timePickerOverlay}
+                activeOpacity={1}
+                onPress={() => setTimePickerVisible(false)}
+              >
+                <View style={styles.timePickerSheet}>
+                  <DateTimePicker
+                    value={timePickerDate}
+                    mode="time"
+                    display="spinner"
+                    onChange={(_, date) => {
+                      if (date) setTimePickerDate(date);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.timePickerConfirm}
+                    onPress={() => {
+                      applyPickedTime(timePickerDate);
+                      setTimePickerVisible(false);
+                    }}
+                  >
+                    <AppText style={styles.timePickerConfirmLabel}>Done</AppText>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          ))}
+      </AccordionSection>
+
+      {/* ── Activity location map modal ──────────────────────────────────── */}
       <LocationMapModal
         visible={locationModalVisible}
         initialQuery={locationModalInitialQuery}
@@ -392,7 +501,20 @@ export function DaySection({
         onClose={() => {
           setLocationModalVisible(false);
           setLocationModalActivityId(null);
+          setLocationModalForPending(false);
         }}
+        allowPointPick
+      />
+
+      {/* ── Accommodation location map modal ─────────────────────────────── */}
+      <LocationMapModal
+        visible={accommodationLocationModalVisible}
+        initialQuery={baseLocation ?? ''}
+        onSelect={(name) => {
+          setAccommodationText(name || '');
+          setAccommodationLocationModalVisible(false);
+        }}
+        onClose={() => setAccommodationLocationModalVisible(false)}
         allowPointPick
       />
     </View>
@@ -403,21 +525,17 @@ const styles = StyleSheet.create({
   daySection: { marginBottom: spacing.xl },
   daySectionDragging: { opacity: 0.9 },
 
-  // ── Day header ─────────────────────────────────────────────────────────────
-  dayDragHandle: { marginRight: spacing.xs },
-  dayHeader: {
+  controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  dayHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  dayTitle: { ...typography.base, fontWeight: typography.weights.semibold, flex: 1 },
+  dayDragHandle: { marginRight: spacing.xs },
+  spacer: { flex: 1 },
 
-  // ── Note section ───────────────────────────────────────────────────────────
-  addNoteBtn: {
-    marginBottom: spacing.sm,
-  },
+  addBtn: { marginBottom: spacing.sm },
+
+  noteEditWrapper: { marginBottom: spacing.md },
   noteCard: {
     borderWidth: 1,
     borderRadius: radii.md,
@@ -432,93 +550,25 @@ const styles = StyleSheet.create({
   },
   noteLabel: { ...typography.caption, fontWeight: typography.weights.medium },
   noteText: { ...typography.sm },
-  // ── Edit card ──────────────────────────────────────────────────────────────
-  editCard: {
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  editCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  editCardTitle: { ...typography.sm, fontWeight: typography.weights.semibold },
-  editCardInput: {
-    borderWidth: 1,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    ...typography.sm,
-    marginBottom: spacing.md,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  locationLabel: {
-    ...typography.caption,
+
+  timePickerOverlay: {
     flex: 1,
-  },
-  editCardActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
-  deleteBtn: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.sm,
+  timePickerSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 32,
   },
-  deleteBtnLabel: { ...typography.sm, color: '#EF4444', fontWeight: typography.weights.medium },
-  saveBtn: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.sm,
-  },
-  saveBtnLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-
-  // ── Activity card ──────────────────────────────────────────────────────────
-  activityCard: {
-    flexDirection: 'row',
+  timePickerConfirm: {
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
   },
-  dragHandle: { width: 20, alignItems: 'center', justifyContent: 'center' },
-  activityContent: { flex: 1 },
-  activityName: { ...typography.sm, fontWeight: typography.weights.medium },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radii.sm,
+  timePickerConfirmLabel: {
+    ...typography.base,
+    fontWeight: typography.weights.semibold,
+    color: '#007AFF',
   },
-  tagLabel: { ...typography.caption },
-
-  // ── Inline add activity row ────────────────────────────────────────────────
-  addActivityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  addActivityInput: { flex: 1, ...typography.sm },
 });

@@ -460,7 +460,7 @@ export function WizardTripPlanStep({
         allowPointPick
       />
 
-      {/* Accommodation location picker (also allows pin) */}
+      {/* Accommodation location picker (name only, no point pick) */}
       <LocationMapModal
         visible={accommodationModalVisible}
         initialQuery={accommodationModalInitialQuery}
@@ -469,7 +469,7 @@ export function WizardTripPlanStep({
           setAccommodationModalVisible(false);
           setAccommodationModalDayId(null);
         }}
-        allowPointPick
+        allowPointPick={false}
       />
 
       {/* Time picker – iOS spinner / Android default */}

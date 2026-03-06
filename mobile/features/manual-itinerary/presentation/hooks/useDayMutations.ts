@@ -4,6 +4,7 @@ import { AddDayUseCase } from '../../domain/usecases/AddDayUseCase';
 import { UpdateDayUseCase } from '../../domain/usecases/UpdateDayUseCase';
 import { RemoveDayUseCase } from '../../domain/usecases/RemoveDayUseCase';
 import { ReorderDaysUseCase } from '../../domain/usecases/ReorderDaysUseCase';
+import type { UpdateDayParams } from '../../domain/repository/ManualItineraryRepository';
 
 export function useDayMutations(itineraryId: string | null, refresh: () => void) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
@@ -33,10 +34,8 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
   }, [itineraryId, addUseCase, refresh]);
 
   const updateDay = useCallback(
-    async (dayId: string, notes: string | null) => {
-      const result = await updateUseCase.execute(dayId, notes);
-      // Delayed refresh: avoids stealing TextInput focus while keeping state in sync
-      // with subsequent activity add/remove operations.
+    async (dayId: string, params: UpdateDayParams) => {
+      const result = await updateUseCase.execute(dayId, params);
       if (result.success) setTimeout(refresh, 300);
       return result;
     },

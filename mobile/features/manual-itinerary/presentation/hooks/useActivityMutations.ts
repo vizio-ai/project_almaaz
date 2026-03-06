@@ -4,6 +4,7 @@ import { AddActivityUseCase } from '../../domain/usecases/AddActivityUseCase';
 import { UpdateActivityUseCase } from '../../domain/usecases/UpdateActivityUseCase';
 import { RemoveActivityUseCase } from '../../domain/usecases/RemoveActivityUseCase';
 import { ReorderActivitiesUseCase } from '../../domain/usecases/ReorderActivitiesUseCase';
+import type { AddActivityParams, UpdateActivityParams } from '../../domain/repository/ManualItineraryRepository';
 
 export function useActivityMutations(refresh: () => void) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
@@ -26,8 +27,8 @@ export function useActivityMutations(refresh: () => void) {
   );
 
   const addActivity = useCallback(
-    async (dayId: string, name: string) => {
-      const result = await addUseCase.execute(dayId, name);
+    async (dayId: string, params: AddActivityParams) => {
+      const result = await addUseCase.execute(dayId, params);
       if (result.success) refresh();
       return result;
     },
@@ -35,8 +36,8 @@ export function useActivityMutations(refresh: () => void) {
   );
 
   const updateActivity = useCallback(
-    async (activityId: string, name: string) => {
-      const result = await updateUseCase.execute(activityId, name);
+    async (activityId: string, params: UpdateActivityParams) => {
+      const result = await updateUseCase.execute(activityId, params);
       if (result.success) refresh();
       return result;
     },
