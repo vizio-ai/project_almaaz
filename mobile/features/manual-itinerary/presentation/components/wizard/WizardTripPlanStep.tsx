@@ -59,12 +59,12 @@ function formatDayHeader(day: WizardDraftDay): string {
 
 function activityTypeLabel(type: WizardActivityType): string {
   switch (type) {
-    case 'museum':   return 'Museum';
-    case 'food':     return 'Food & Drink';
+    case 'museum': return 'Museum';
+    case 'food': return 'Food & Drink';
     case 'shopping': return 'Shopping';
     case 'historic': return 'Historic place';
-    case 'beach':    return 'Beach';
-    default:         return 'Park';
+    case 'beach': return 'Beach';
+    default: return 'Park';
   }
 }
 
@@ -174,6 +174,11 @@ function DayCard({
             <Ionicons name="chevron-down" size={16} color={secondary} />
           </TouchableOpacity>
 
+          {/* Divider */}
+          <View style={{ paddingTop: 16 }}>
+            <View style={{ height: 1, backgroundColor: '#e5e5e5', alignSelf: 'stretch' }} />
+          </View>
+
           {/* ── Activities (Figma: Activity Name, Time, Place) ───────── */}
           {day.activities.map((act, actIndex) => (
             <View key={act.id} style={styles.activityBlock}>
@@ -258,7 +263,11 @@ function DayCard({
                   </TouchableOpacity>
                 </View>
               </View>
+              <View style={{ paddingTop: 16 }}>
+                <View style={{ height: 1, backgroundColor: '#e5e5e5', alignSelf: 'stretch' }} />
+              </View>
             </View>
+
           ))}
 
           {/* Add Another Activity (Figma button6/7) */}
@@ -281,22 +290,22 @@ export function WizardTripPlanStep({
   onNext,
 }: WizardTripPlanStepProps) {
   const textColor = useThemeColor('text');
-  const surface  = useThemeColor('surface');
-  const accent    = useThemeColor('accent');
+  const surface = useThemeColor('surface');
+  const accent = useThemeColor('accent');
 
   // ── Activity place picker ────────────────────────────────────────────────
-  const [placeModalVisible,      setPlaceModalVisible]      = useState(false);
-  const [placeModalActivityId,   setPlaceModalActivityId]   = useState<string | null>(null);
+  const [placeModalVisible, setPlaceModalVisible] = useState(false);
+  const [placeModalActivityId, setPlaceModalActivityId] = useState<string | null>(null);
   const [placeModalInitialQuery, setPlaceModalInitialQuery] = useState('');
 
   // ── Accommodation location picker ────────────────────────────────────────
-  const [accommodationModalVisible,      setAccommodationModalVisible]      = useState(false);
-  const [accommodationModalDayId,        setAccommodationModalDayId]        = useState<string | null>(null);
+  const [accommodationModalVisible, setAccommodationModalVisible] = useState(false);
+  const [accommodationModalDayId, setAccommodationModalDayId] = useState<string | null>(null);
   const [accommodationModalInitialQuery, setAccommodationModalInitialQuery] = useState('');
 
   // ── Time picker ──────────────────────────────────────────────────────────
   const [timePickerActivityId, setTimePickerActivityId] = useState<string | null>(null);
-  const [timePickerDate,       setTimePickerDate]       = useState<Date>(new Date());
+  const [timePickerDate, setTimePickerDate] = useState<Date>(new Date());
 
   // ── Location handlers ────────────────────────────────────────────────────
 
@@ -425,7 +434,6 @@ export function WizardTripPlanStep({
             onOpenTimePicker={openTimePicker}
           />
         ))}
-
         {/* Add Another Day (Figma button8) */}
         <TouchableOpacity onPress={addDay} style={styles.addDayBtn}>
           <AppText style={styles.addDayLabel}>Add Another Day</AppText>
@@ -589,8 +597,6 @@ const styles = StyleSheet.create({
   dayBody: {
     paddingVertical: 16,
     paddingHorizontal: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
   },
 
   // Fields (Figma labelTypo – no lineHeight)
@@ -696,7 +702,7 @@ const styles = StyleSheet.create({
   // Time + Place (Figma datePickerParent)
   timeAndPlaceRow: { flexDirection: 'row', gap: 8 },
   datePicker: { width: 105, },
-  datePicker2: { flex: 1,  },
+  datePicker2: { flex: 1, },
   datePickerTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -773,14 +779,14 @@ const styles = StyleSheet.create({
 
   // Time picker modal (iOS)
   timeOverlay: { flex: 1, justifyContent: 'flex-end' },
-  timeScrim:   { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+  timeScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   timeSheet: {
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
     paddingBottom: 32,
     paddingTop: spacing.lg,
   },
-  timeTitle:  { ...typography.sm, textAlign: 'center', marginBottom: spacing.xs },
+  timeTitle: { ...typography.sm, textAlign: 'center', marginBottom: spacing.xs },
   timeActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -788,8 +794,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
   },
-  timeCancelBtn:    { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  timeCancelLabel:  { ...typography.base },
+  timeCancelBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  timeCancelLabel: { ...typography.base },
   timeConfirmBtn: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
