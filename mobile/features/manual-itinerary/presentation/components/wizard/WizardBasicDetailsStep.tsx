@@ -12,10 +12,10 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
 import { AppText, PrimaryButton, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import { TripDateRangeInput } from '../TripDateRangeInput';
 import { LocationMapModal } from '../LocationMapModal';
+import { Calendar, ChevronDown } from 'lucide-react-native';
 
 const PLACEHOLDER_IMAGE = require('../../../../../assets/images/card_photo.png');
 
@@ -193,7 +193,6 @@ export function WizardBasicDetailsStep({
             onPress={() => setLocationMapVisible(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="location-outline" size={14} color={secondary} />
             <AppText
               style={[
                 styles.inputText,
@@ -203,7 +202,7 @@ export function WizardBasicDetailsStep({
             >
               {destination.trim() || 'Select a destination'}
             </AppText>
-            <Ionicons name="chevron-forward" size={16} color={secondary} />
+            <ChevronDown size={16} color={secondary} />
           </TouchableOpacity>
         </View>
 
@@ -252,18 +251,20 @@ export function WizardBasicDetailsStep({
         />
       </ScrollView>
 
-      {/* ── Bottom action bar ──────────────────────────────────────────── */}
-      <View style={[styles.bottomBar, { borderTopColor: border, backgroundColor: background }]}>
+      {/* ── Bottom action bar (Figma Frame158) ───────────────────────────── */}
+      <View style={styles.bottomBar}>
         <PrimaryButton
           variant="outline"
           label="Cancel"
           onPress={onCancel}
-          style={styles.actionBtn}
+          style={[styles.actionBtn, styles.cancelBtn]}
+          labelStyle={styles.cancelLabelStyle}
         />
         <PrimaryButton
           label="Next"
           onPress={onNext}
-          style={styles.actionBtn}
+          style={[styles.actionBtn, styles.nextBtn]}
+          labelStyle={styles.nextLabelStyle}
         />
       </View>
 
@@ -350,13 +351,54 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Bottom bar
+  // Bottom bar (Figma Frame158)
   bottomBar: {
     flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    borderTopWidth: 1,
+    borderTopColor: '#e4e4e7',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
-  actionBtn: { flex: 1 },
+  actionBtn: {
+    height: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 32,
+    borderRadius: 999,
+  },
+  cancelBtn: {
+    width: 120,
+    backgroundColor: '#fff',
+    borderColor: '#e4e4e7',
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
+  },
+  nextBtn: {
+    flex: 1,
+    borderColor: '#44ffff',
+    elevation: 3,
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    shadowOpacity: 1,
+  },
+  cancelLabelStyle: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'left',
+    color: '#18181b',
+  },
+  nextLabelStyle: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'left',
+    color: '#fafafa',
+  },
 });

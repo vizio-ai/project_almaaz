@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { AppText, useThemeColor, spacing, typography } from '@shared/ui-kit';
+import { AppHeader, useThemeColor } from '@shared/ui-kit';
 import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider';
 import { WizardStepper } from '../components/wizard/WizardStepper';
 import { WizardBasicDetailsStep } from '../components/wizard/WizardBasicDetailsStep';
@@ -57,7 +57,6 @@ const EMPTY_DAY: WizardDraftDay = {
 export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatarUrl, onDone }: BuildYourselfWizardProps) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
 
-  const textColor  = useThemeColor('text');
   const background = useThemeColor('background');
 
   // ── Step navigation ───────────────────────────────────────────────────────
@@ -232,14 +231,9 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const screenTitle = currentStep === 0 ? 'Plan a trip from scratch' : 'Build Your Own Itinerary';
-
   return (
     <View style={[styles.root, { backgroundColor: background }]}>
-      <View style={styles.titleRow}>
-        <AppText style={[styles.title, { color: textColor }]}>{screenTitle}</AppText>
-      </View>
-
+      <AppHeader variant="wizard" onBack={handleCancel} />
       <WizardStepper currentStep={currentStep} />
 
       <View style={styles.stepContent}>
@@ -316,14 +310,5 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  titleRow: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xs,
-  },
-  title: {
-    ...typography['2xl'],
-    fontWeight: '700',
-  },
   stepContent: { flex: 1 },
 });

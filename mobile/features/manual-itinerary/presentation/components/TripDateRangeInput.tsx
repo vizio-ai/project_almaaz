@@ -9,6 +9,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { Calendar } from 'lucide-react-native';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,14 +98,14 @@ export function TripDateRangeInput({
     <View style={styles.row}>
       {editable ? (
         <TouchableOpacity onPress={openPicker} activeOpacity={0.7} style={styles.rowTouchable}>
-          <Ionicons name="calendar-outline" size={14} color={secondary} />
+          <Calendar size={16} color={secondary} />
           <AppText style={[styles.label, { color: (startDate || endDate) ? textColor : secondary }]}>
             {label}
           </AppText>
         </TouchableOpacity>
       ) : (
         <>
-          <Ionicons name="calendar-outline" size={14} color={secondary} />
+          <Calendar size={16} color={secondary} />
           <AppText style={[styles.label, { color: secondary }]} numberOfLines={1}>
             {label}
           </AppText>

@@ -36,30 +36,30 @@ export default function CreateScreen() {
 
   return (
     <View style={styles.root}>
-        <AppHeader
-          variant="dark"
-          right={
-            <View style={styles.headerRight}>
-              <TouchableOpacity
-                onPress={handleToggleManualEntry}
-                activeOpacity={0.8}
-                style={styles.headerPrimaryBtn}
-              >
-                <Ionicons
-                  name={showManualEntry ? 'sparkles-outline' : 'map-outline'}
-                  size={16}
-                  color={HEADER_ICON_COLOR}
-                />
-                <AppText style={styles.headerPrimaryLabel}>
-                  {showManualEntry ? 'Go back to chat' : 'Itinerary'}
-                </AppText>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleHistoryPress} activeOpacity={0.8} style={styles.headerIconBtn}>
-                <ChatHistorySvg width={16} height={16} color={HEADER_ICON_COLOR} />
-              </TouchableOpacity>
-            </View>
-          }
-        />
+        {!showManualEntry && (
+          <AppHeader
+            variant="dark"
+            right={
+              <View style={styles.headerRight}>
+                <TouchableOpacity
+                  onPress={handleToggleManualEntry}
+                  activeOpacity={0.8}
+                  style={styles.headerPrimaryBtn}
+                >
+                  <Ionicons
+                    name="map-outline"
+                    size={16}
+                    color={HEADER_ICON_COLOR}
+                  />
+                  <AppText style={styles.headerPrimaryLabel}>Itinerary</AppText>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleHistoryPress} activeOpacity={0.8} style={styles.headerIconBtn}>
+                  <ChatHistorySvg width={16} height={16} color={HEADER_ICON_COLOR} />
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        )}
         <View style={styles.content}>
           <View style={{ flex: 1, display: showManualEntry ? 'flex' : 'none' }}>
             <ManualItineraryScreen
