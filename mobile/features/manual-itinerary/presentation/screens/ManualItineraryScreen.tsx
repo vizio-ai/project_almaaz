@@ -24,6 +24,7 @@ import {
   radii,
 } from '@shared/ui-kit';
 import { useGetItinerary } from '../hooks/useGetItinerary';
+import { BuildYourselfWizard } from './BuildYourselfWizard';
 import { useActivityMutations } from '../hooks/useActivityMutations';
 import { useDayMutations } from '../hooks/useDayMutations';
 import { useTravelInfoMutations } from '../hooks/useTravelInfoMutations';
@@ -436,7 +437,11 @@ export const ManualItineraryScreen = React.forwardRef<
     );
   }, [onBack, hasUnsavedChanges, handleSave]);
 
-  useImperativeHandle(ref, () => ({ requestClose: handleBack }), [handleBack]);
+  useImperativeHandle(
+    ref,
+    () => ({ requestClose: isNew ? (onBack ?? (() => {})) : handleBack }),
+    [isNew, onBack, handleBack],
+  );
 
   // ── Share ─────────────────────────────────────────────────────────────────
 
@@ -539,6 +544,18 @@ export const ManualItineraryScreen = React.forwardRef<
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  // Create mode → hand off entirely to the multi-step wizard
+  if (isNew) {
+    return (
+      <BuildYourselfWizard
+        userId={userId}
+        currentUserName={currentUserName}
+        currentUserAvatarUrl={currentUserAvatarUrl}
+        onDone={onBack ?? (() => {})}
+      />
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: background }]}>
