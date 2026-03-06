@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -106,7 +107,7 @@ export function EditProfileScreen({
     if (success) onBack();
   };
 
-  const handleAvatarPress = async () => {
+  const pickAndUploadAvatar = async () => {
     const { launchImageLibraryAsync } = await import('expo-image-picker');
     const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -137,6 +138,33 @@ export function EditProfileScreen({
     } finally {
       setIsUploadingAvatar(false);
     }
+  };
+
+  const removeAvatar = async () => {
+    setAvatarUrl(null);
+    await onSave({
+      name: name.trim(),
+      surname: surname.trim(),
+      email: email.trim() || null,
+      username: profile.username?.trim() || null,
+      avatar_url: null,
+      bio: profile.bio?.trim() || null,
+      pace,
+      interests,
+      journaling,
+      companionship,
+    });
+  };
+
+  const handleAvatarPress = () => {
+    const buttons: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [
+      { text: 'Change Photo', onPress: pickAndUploadAvatar },
+    ];
+    if (avatarUrl) {
+      buttons.push({ text: 'Remove Photo', onPress: removeAvatar, style: 'destructive' });
+    }
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert('Profile Photo', undefined, buttons);
   };
 
   const initials =
@@ -202,6 +230,7 @@ export function EditProfileScreen({
                   value={name}
                   onChangeText={setName}
                   placeholder={name ? undefined : '-'}
+                  maxLength={50}
                 />
               </View>
               <View style={styles.gap} />
@@ -212,6 +241,7 @@ export function EditProfileScreen({
                   value={surname}
                   onChangeText={setSurname}
                   placeholder={surname ? undefined : '-'}
+                  maxLength={50}
                 />
               </View>
             </View>

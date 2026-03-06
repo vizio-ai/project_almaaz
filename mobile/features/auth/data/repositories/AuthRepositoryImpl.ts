@@ -1,9 +1,32 @@
-import { Result, ok, fail, networkError, appError } from '@shared/kernel';
+import { Result, ok, fail, networkError, timeoutError, appError } from '@shared/kernel';
 import { AuthRepository, VerifyOtpData } from '../../domain/repositories/AuthRepository';
 import { User } from '../../domain/entities/User';
 import { AuthRemoteDataSource } from '../datasources/AuthRemoteDataSource';
 import { AuthTokenMapper } from '../mappers/AuthTokenMapper';
 import { UserMapper } from '../mappers/UserMapper';
+
+function isNetworkOrTimeoutError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (error instanceof Error) {
+    if (error.name === 'AbortError') return true;
+    const msg = error.message.toLowerCase();
+    if (msg.includes('network request failed')) return true;
+    if (msg.includes('failed to fetch')) return true;
+    if (msg.includes('load failed')) return true;
+  }
+  return false;
+}
+
+function classifyError(error: unknown) {
+  if (error instanceof Error && error.name === 'AbortError') {
+    return fail(timeoutError(error));
+  }
+  if (isNetworkOrTimeoutError(error)) {
+    return fail(networkError(error));
+  }
+  const msg = error instanceof Error ? error.message : String(error);
+  return fail(appError('API_ERROR', msg, error));
+}
 
 export class AuthRepositoryImpl implements AuthRepository {
   private readonly tokenMapper = new AuthTokenMapper();
@@ -17,9 +40,7 @@ export class AuthRepositoryImpl implements AuthRepository {
       return ok(undefined);
     } catch (error) {
       console.error('[AuthRepository] sendOtp error:', error);
-      if (error instanceof TypeError) return fail(networkError(error));
-      const msg = error instanceof Error ? error.message : String(error);
-      return fail(appError('API_ERROR', msg, error));
+      return classifyError(error);
     }
   }
 
@@ -32,9 +53,7 @@ export class AuthRepositoryImpl implements AuthRepository {
       });
     } catch (error) {
       console.error('[AuthRepository] verifyOtp error:', error);
-      if (error instanceof TypeError) return fail(networkError(error));
-      const msg = error instanceof Error ? error.message : String(error);
-      return fail(appError('API_ERROR', msg, error));
+      return classifyError(error);
     }
   }
 

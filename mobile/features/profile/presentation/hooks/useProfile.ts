@@ -85,8 +85,11 @@ export function useProfile(userId: string | undefined): UseProfileResult {
 
   const formatErrorMessage = useCallback((msg: string): string => {
     const lower = msg.toLowerCase();
-    if (lower.includes('network request failed')) {
+    if (lower.includes('network request failed') || lower.includes('failed to fetch') || lower.includes('load failed')) {
       return 'Connection error. Please check your internet connection and try again.';
+    }
+    if (lower.includes('aborted') || lower.includes('timed out') || lower.includes('timeout')) {
+      return 'Request timed out. Please check your connection and try again.';
     }
     if (lower.includes('bucket') && (lower.includes('not found') || lower.includes('exist'))) {
       return 'Storage unavailable. Please try again later or contact support.';

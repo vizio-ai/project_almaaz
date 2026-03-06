@@ -430,14 +430,16 @@ export default function AdminDashboardScreen() {
 
   if (!session || isLoading || profile === null) return null;
 
-  return <AdminDashboardContent screenWidth={screenWidth} />;
+  return <AdminDashboardContent screenWidth={screenWidth} currentUserId={session.user.id} />;
 }
 
 // Split out so useAdminDashboard is only called after the guard passes
 function AdminDashboardContent({
   screenWidth,
+  currentUserId,
 }: {
   screenWidth: number;
+  currentUserId: string;
 }) {
   const router = useRouter();
   const {
@@ -451,7 +453,7 @@ function AdminDashboardContent({
     setDateRange,
     goToPage,
     toggleUserActive,
-  } = useAdminDashboard();
+  } = useAdminDashboard(currentUserId);
 
   const [pendingUser, setPendingUser] = useState<AdminUser | null>(null);
   const [showRangePicker, setShowRangePicker] = useState(false);
@@ -747,7 +749,9 @@ function AdminDashboardContent({
               style={{ marginVertical: spacing.lg }}
             />
           ) : (
-            users.map((user, index) => (
+            users.map((user, index) => {
+              const isProtected = user.role === 'admin' || user.id === currentUserId;
+              return (
               <React.Fragment key={user.id}>
                 {index > 0 && <View style={styles.separator} />}
                 <View style={styles.userRow}>
@@ -756,6 +760,11 @@ function AdminDashboardContent({
                       <AppText style={styles.userName}>
                         {user.displayId} {user.name}
                       </AppText>
+                      {user.role === 'admin' && (
+                        <View style={styles.adminBadge}>
+                          <AppText style={styles.adminBadgeText}>Admin</AppText>
+                        </View>
+                      )}
                       <TouchableOpacity
                         activeOpacity={0.7}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -774,13 +783,14 @@ function AdminDashboardContent({
                     <Switch
                       value={user.isActive}
                       onValueChange={() => setPendingUser(user)}
+                      disabled={isProtected}
                       trackColor={{
                         true: colors.light.mainText,
                         false: colors.light.borderMuted,
                       }}
                       thumbColor={colors.light.background}
                       ios_backgroundColor={colors.light.borderMuted}
-                      style={{ backgroundColor: colors.light.background }}
+                      style={{ backgroundColor: colors.light.background, opacity: isProtected ? 0.4 : 1 }}
                     />
                     <AppText
                       style={[
@@ -793,7 +803,8 @@ function AdminDashboardContent({
                   </View>
                 </View>
               </React.Fragment>
-            ))
+              );
+            })
           )}
 
           {/* Pagination */}
@@ -1001,6 +1012,17 @@ const styles = StyleSheet.create({
     ...typography.xs,
     color: colors.light.userJoinedText,
     fontWeight: typography.weights.regular,
+  },
+  adminBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radii.full,
+  },
+  adminBadgeText: {
+    ...typography.xs,
+    fontWeight: typography.weights.medium,
+    color: '#2563EB',
   },
   userToggleCol: {
     alignItems: 'center',

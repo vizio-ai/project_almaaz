@@ -35,3 +35,7 @@ export function validationError(message: string): AppError {
 export function unauthorizedError(message = 'Unauthorized'): AppError {
   return appError('UNAUTHORIZED', message);
 }
+
+export function timeoutError(cause?: unknown): AppError {
+  return appError('TIMEOUT', 'Request timed out. Please check your connection and try again.', cause);
+}

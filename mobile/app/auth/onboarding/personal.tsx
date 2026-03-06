@@ -145,6 +145,7 @@ export default function PersonalScreen() {
                 placeholder="John"
                 returnKeyType="next"
                 autoFocus
+                maxLength={50}
                 hasError={showErrors && !name.trim()}
               />
             </View>
@@ -157,6 +158,7 @@ export default function PersonalScreen() {
                 onChangeText={(v) => { setSurname(v); setShowErrors(false); }}
                 placeholder="Doe"
                 returnKeyType="next"
+                maxLength={50}
                 hasError={showErrors && !surname.trim()}
               />
             </View>
@@ -214,7 +216,7 @@ export default function PersonalScreen() {
       <Modal
         visible={showDatePicker}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={() => setShowDatePicker(false)}
       >
         <TouchableOpacity
@@ -250,7 +252,7 @@ export default function PersonalScreen() {
       <Modal
         visible={showLocationPicker}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => setShowLocationPicker(false)}
       >
         <TouchableOpacity

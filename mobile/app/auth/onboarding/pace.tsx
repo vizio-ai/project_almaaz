@@ -58,6 +58,7 @@ export default function PaceScreen() {
       selected={[selected]}
       onSelect={setSelected}
       multiSelect={false}
+      optional
       onNext={handleNext}
       onBack={() => router.back()}
       onFinishLater={handleFinishLater}

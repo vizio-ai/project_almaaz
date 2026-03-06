@@ -64,6 +64,7 @@ export default function InterestsScreen() {
       selected={selected}
       onSelect={toggle}
       multiSelect
+      optional
       onNext={handleNext}
       onBack={() => router.back()}
       onFinishLater={handleFinishLater}

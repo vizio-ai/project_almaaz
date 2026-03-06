@@ -57,6 +57,7 @@ export default function JournalingScreen() {
       selected={[selected]}
       onSelect={setSelected}
       multiSelect={false}
+      optional
       onNext={handleNext}
       onBack={() => router.back()}
       onFinishLater={handleFinishLater}

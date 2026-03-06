@@ -4,7 +4,7 @@ export { ok, fail, isOk, isFail } from './types/Result';
 
 // Error
 export type { AppError } from './types/AppError';
-export { appError, unknownError, networkError, validationError, unauthorizedError } from './types/AppError';
+export { appError, unknownError, networkError, validationError, unauthorizedError, timeoutError } from './types/AppError';
 
 // Base types
 export type { UseCase } from './types/UseCase';
