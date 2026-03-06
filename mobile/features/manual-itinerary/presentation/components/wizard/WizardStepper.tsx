@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { Clipboard, ChevronRight, Plane, Waypoints, ListChecks } from 'lucide-react-native';
+import { AppText, useThemeColor, spacing, typography } from '@shared/ui-kit';
+
+const STEP_ICONS = [Clipboard, Plane, Waypoints, ListChecks] as const;
 
 const STEPS = [
-  { label: 'Basic Details',       icon: 'document-text-outline' as const },
-  { label: 'Travel Information',  icon: 'car-outline'            as const },
-  { label: 'Trip Plan',           icon: 'map-outline'            as const },
-  { label: 'Confirmation',        icon: 'checkmark-circle-outline' as const },
+  { label: 'Basic Details' },
+  { label: 'Travel Information' },
+  { label: 'Trip Plan' },
+  { label: 'Confirmation' },
 ] as const;
 
 interface WizardStepperProps {
@@ -15,33 +17,35 @@ interface WizardStepperProps {
 }
 
 export function WizardStepper({ currentStep }: WizardStepperProps) {
-  const secondary   = useThemeColor('textSecondary');
-  const borderColor = useThemeColor('border');
+  const secondary = useThemeColor('textSecondary');
 
   return (
     <View style={styles.wrapper}>
-      {/* Step pills */}
       <View style={styles.row}>
         {STEPS.map((step, index) => {
           const isCompleted = index < currentStep;
-          const isActive    = index === currentStep;
+          const isActive = index === currentStep;
+          const StepIcon = STEP_ICONS[index];
+          const iconColor = isActive ? '#18181b' : secondary;
 
           return (
             <React.Fragment key={step.label}>
               {index > 0 && (
-                <View style={[styles.connector, { backgroundColor: borderColor }]} />
+                <View style={styles.connector}>
+                  <ChevronRight size={16} color={secondary} />
+                </View>
               )}
               <View
                 style={[
                   styles.pill,
-                  { borderColor },
+                  !isActive && styles.pillInactive,
                   isActive && styles.pillActive,
                 ]}
               >
                 {isCompleted ? (
-                  <Ionicons name="checkmark" size={12} color={isActive ? '#fff' : secondary} />
+                  <ListChecks size={16} color={iconColor} />
                 ) : (
-                  <Ionicons name={step.icon} size={12} color={isActive ? '#fff' : secondary} />
+                  <StepIcon size={16} color={iconColor} />
                 )}
                 {isActive && (
                   <AppText style={styles.pillLabel}>{step.label}</AppText>
@@ -67,32 +71,47 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   row: {
+    backgroundColor: '#f4f4f5',
+    padding: 2,
+    gap: 4,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
   },
   pill: {
+    height: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    paddingVertical: 5,
-    paddingHorizontal: 9,
+    justifyContent: 'center',
+    borderRadius: 6,
     backgroundColor: 'transparent',
   },
+  pillInactive: {
+    width: 36,
+  },
   pillActive: {
-    backgroundColor: '#18181B',
-    borderColor: '#18181B',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#e4e4e7',
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 1,
   },
   pillLabel: {
-    ...typography.caption,
+    fontSize: 12,
     fontWeight: '500',
-    color: '#fff',
+    color: '#18181b',
+    textAlign: 'left',
   },
   connector: {
-    height: 1,
-    width: 14,
-    marginHorizontal: 3,
+    justifyContent: 'center',
   },
   sectionLabel: {
     ...typography.caption,
