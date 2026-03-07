@@ -116,6 +116,8 @@ export function DaySection({
 
   // ── Accommodation state ────────────────────────────────────────────────────
   const [accommodationText, setAccommodationText] = useState(day.accommodation ?? '');
+  const [accommodationLat, setAccommodationLat] = useState<number | null>(day.accommodationLatitude ?? null);
+  const [accommodationLng, setAccommodationLng] = useState<number | null>(day.accommodationLongitude ?? null);
   // Open AccommodationEditCard by default on a new day (no accommodation yet).
   // After the user closes or deletes it, isEditingAccommodation becomes false
   // and the "Add Accommodation" button is shown instead.
@@ -241,19 +243,25 @@ export function DaySection({
     if (accommodationBusy) return;
     setAccommodationBusy(true);
     try {
-      await onUpdateDay(day.id, { accommodation: accommodationText || null });
+      await onUpdateDay(day.id, {
+        accommodation: accommodationText || null,
+        accommodationLatitude: accommodationLat,
+        accommodationLongitude: accommodationLng,
+      });
       setIsEditingAccommodation(false);
     } finally {
       setAccommodationBusy(false);
     }
-  }, [accommodationBusy, day.id, accommodationText, onUpdateDay]);
+  }, [accommodationBusy, day.id, accommodationText, accommodationLat, accommodationLng, onUpdateDay]);
 
   const handleAccommodationDelete = useCallback(async () => {
     if (accommodationBusy) return;
     setAccommodationBusy(true);
     try {
-      await onUpdateDay(day.id, { accommodation: null });
+      await onUpdateDay(day.id, { accommodation: null, accommodationLatitude: null, accommodationLongitude: null });
       setAccommodationText('');
+      setAccommodationLat(null);
+      setAccommodationLng(null);
       setIsEditingAccommodation(false);
     } finally {
       setAccommodationBusy(false);
@@ -489,8 +497,10 @@ export function DaySection({
       <LocationMapModal
         visible={accommodationLocationModalVisible}
         initialQuery={baseLocation ?? ''}
-        onSelect={(name) => {
+        onSelect={(name, lat, lng) => {
           setAccommodationText(name || '');
+          setAccommodationLat(lat ?? null);
+          setAccommodationLng(lng ?? null);
           setAccommodationLocationModalVisible(false);
         }}
         onClose={() => setAccommodationLocationModalVisible(false)}

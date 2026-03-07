@@ -38,7 +38,7 @@ export interface ItineraryViewTabsProps {
   onDraftActivitiesChange?: (
     byDraftDayId: Record<string, { name: string; locationText: string | null }[]>,
   ) => void;
-  onDraftAccommodationChange?: (accommodation: Record<string, string | null>) => void;
+  onDraftAccommodationChange?: (accommodation: Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>) => void;
   onReorderDays?: (orderedDayIds: string[]) => Promise<unknown>;
 }
 

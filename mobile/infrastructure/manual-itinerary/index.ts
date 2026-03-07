@@ -57,7 +57,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
       const { data: daysData, error: daysError } = await supabase
         .from('itinerary_days')
-        .select('id, day_number, date, notes, accommodation')
+        .select('id, day_number, date, notes, accommodation, accommodation_latitude, accommodation_longitude')
         .eq('itinerary_id', id)
         .order('day_number', { ascending: true });
 
@@ -69,6 +69,8 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         date: d.date,
         notes: d.notes ?? null,
         accommodation: d.accommodation ?? null,
+        accommodationLatitude: d.accommodation_latitude ?? null,
+        accommodationLongitude: d.accommodation_longitude ?? null,
       }));
 
       const activities: Activity[] = [];
@@ -195,6 +197,8 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
           date: params.date ?? null,
           notes: params.notes ?? null,
           accommodation: params.accommodation ?? null,
+          accommodation_latitude: params.accommodationLatitude ?? null,
+          accommodation_longitude: params.accommodationLongitude ?? null,
         })
         .select('id')
         .single();
@@ -208,6 +212,8 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       if (params.date !== undefined) payload.date = params.date;
       if (params.notes !== undefined) payload.notes = params.notes;
       if (params.accommodation !== undefined) payload.accommodation = params.accommodation;
+      if (params.accommodationLatitude !== undefined) payload.accommodation_latitude = params.accommodationLatitude;
+      if (params.accommodationLongitude !== undefined) payload.accommodation_longitude = params.accommodationLongitude;
       const { error } = await supabase
         .from('itinerary_days')
         .update(payload)

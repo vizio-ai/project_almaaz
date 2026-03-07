@@ -28,6 +28,8 @@ interface MarkerData {
   dayNumber: number;
   /** Index into DAY_COLORS */
   dayIndex: number;
+  /** 'activity' (default) or 'accommodation' */
+  markerType?: 'activity' | 'accommodation';
 }
 
 function buildItineraryMapHtml(markers: MarkerData[]): string {
@@ -49,6 +51,12 @@ function buildItineraryMapHtml(markers: MarkerData[]): string {
       font-size:11px;font-weight:700;color:#fff;
       box-shadow:0 2px 6px rgba(0,0,0,.35);
       font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+    }
+    .dm-acc{
+      width:28px;height:28px;border-radius:6px;
+      border:2.5px solid #fff;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 6px rgba(0,0,0,.35);
     }
     .leaflet-popup-content-wrapper{
       border-radius:8px;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.1);
@@ -77,15 +85,25 @@ function buildItineraryMapHtml(markers: MarkerData[]): string {
     var SVG_TYPE='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
     var SVG_LOC='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
     var SVG_TIME='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 15"/></svg>';
+    var SVG_BED='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>';
 
     var bounds=[];
     data.forEach(function(m){
       var c=COLORS[m.dayIndex%COLORS.length];
-      var icon=L.divIcon({
-        className:'',
-        html:'<div class="dm" style="background:'+c+'">'+m.dayNumber+'</div>',
-        iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-28]
-      });
+      var icon;
+      if(m.markerType==='accommodation'){
+        icon=L.divIcon({
+          className:'',
+          html:'<div class="dm-acc" style="background:'+c+'">'+SVG_BED+'</div>',
+          iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-30]
+        });
+      }else{
+        icon=L.divIcon({
+          className:'',
+          html:'<div class="dm" style="background:'+c+'">'+m.dayNumber+'</div>',
+          iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-28]
+        });
+      }
       var mk=L.marker([m.lat,m.lng],{icon:icon}).addTo(map);
 
       var rows='';
@@ -131,18 +149,40 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
   const surface = useThemeColor('surface');
   const borderMuted = useThemeColor('borderMuted');
 
-  // Separate activities into those with and without coordinates
+  // Separate activities into those with and without coordinates, and add accommodation markers
   const { markers, unmapped } = useMemo(() => {
     const markers: MarkerData[] = [];
     const unmapped: { name: string; dayNumber: number }[] = [];
 
     days.forEach((day, dayIndex) => {
+      const dateLabel = day.date
+        ? new Date(day.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : null;
+
+      // Accommodation marker
+      if (
+        day.accommodation &&
+        day.accommodationLatitude != null &&
+        day.accommodationLongitude != null
+      ) {
+        markers.push({
+          lat: day.accommodationLatitude,
+          lng: day.accommodationLongitude,
+          name: day.accommodation,
+          locationText: null,
+          activityType: null,
+          startTime: null,
+          dateLabel,
+          dayNumber: day.dayNumber,
+          dayIndex,
+          markerType: 'accommodation',
+        });
+      }
+
+      // Activity markers
       const acts = activitiesByDay[day.id] ?? [];
       acts.forEach((act) => {
         if (act.latitude != null && act.longitude != null) {
-          const dateLabel = day.date
-            ? new Date(day.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            : null;
           markers.push({
             lat: act.latitude,
             lng: act.longitude,
@@ -153,6 +193,7 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
             dateLabel,
             dayNumber: day.dayNumber,
             dayIndex,
+            markerType: 'activity',
           });
         } else {
           unmapped.push({ name: act.name, dayNumber: day.dayNumber });
@@ -224,20 +265,33 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
         </AppText>
       </TouchableOpacity>
 
-      {/* Mapped activity legend */}
+      {/* Mapped marker legend */}
       {markers.map((m, i) => (
         <View
           key={i}
           style={[styles.legendRow, { borderBottomColor: borderMuted }]}
         >
-          <View style={[styles.dot, { backgroundColor: DAY_COLORS[m.dayIndex % DAY_COLORS.length] }]}>
-            <AppText style={styles.dotLabel}>{m.dayNumber}</AppText>
+          <View
+            style={[
+              m.markerType === 'accommodation' ? styles.dotSquare : styles.dot,
+              { backgroundColor: DAY_COLORS[m.dayIndex % DAY_COLORS.length] },
+            ]}
+          >
+            {m.markerType === 'accommodation' ? (
+              <Ionicons name="bed-outline" size={13} color="#fff" />
+            ) : (
+              <AppText style={styles.dotLabel}>{m.dayNumber}</AppText>
+            )}
           </View>
           <View style={styles.legendText}>
             <AppText style={[styles.legendName, { color: textColor }]} numberOfLines={1}>
               {m.name}
             </AppText>
-            {m.locationText ? (
+            {m.markerType === 'accommodation' ? (
+              <AppText style={[styles.legendLocation, { color: secondary }]} numberOfLines={1}>
+                Day {m.dayNumber} · Accommodation
+              </AppText>
+            ) : m.locationText ? (
               <AppText style={[styles.legendLocation, { color: secondary }]} numberOfLines={1}>
                 {m.locationText}
               </AppText>
@@ -329,6 +383,14 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  dotSquare: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

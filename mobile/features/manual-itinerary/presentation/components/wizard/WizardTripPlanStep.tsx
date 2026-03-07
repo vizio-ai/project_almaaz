@@ -43,6 +43,8 @@ export interface WizardDraftDay {
   dayNumber: number;
   date: string | null;
   accommodation: string;
+  accommodationLatitude: number | null;
+  accommodationLongitude: number | null;
   activities: WizardDraftActivity[];
 }
 
@@ -328,12 +330,14 @@ export function WizardTripPlanStep({
     setAccommodationModalVisible(true);
   }
 
-  function handleSelectAccommodation(locationName: string) {
+  function handleSelectAccommodation(locationName: string, lat?: number | null, lng?: number | null) {
     if (!accommodationModalDayId) return;
     const targetDayId = accommodationModalDayId;
     onDaysChange(
       days.map((day) =>
-        day.id === targetDayId ? { ...day, accommodation: locationName } : day,
+        day.id === targetDayId
+          ? { ...day, accommodation: locationName, accommodationLatitude: lat ?? null, accommodationLongitude: lng ?? null }
+          : day,
       ),
     );
     setAccommodationModalVisible(false);
@@ -394,6 +398,8 @@ export function WizardTripPlanStep({
         dayNumber: days.length + 1,
         date: newDate,
         accommodation: '',
+        accommodationLatitude: null,
+        accommodationLongitude: null,
         activities: [
           {
             id: `draft-act-${Date.now()}`,
@@ -462,7 +468,7 @@ export function WizardTripPlanStep({
         allowPointPick
       />
 
-      {/* Accommodation location picker (name only) */}
+      {/* Accommodation location picker (with point pick) */}
       <LocationMapModal
         visible={accommodationModalVisible}
         initialQuery={accommodationModalInitialQuery}
@@ -471,7 +477,7 @@ export function WizardTripPlanStep({
           setAccommodationModalVisible(false);
           setAccommodationModalDayId(null);
         }}
-        allowPointPick={false}
+        allowPointPick
       />
 
       {/* Time picker bottom sheet */}

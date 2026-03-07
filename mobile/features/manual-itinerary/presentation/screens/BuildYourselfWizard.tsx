@@ -36,6 +36,8 @@ function buildDaysFromRange(start: Date, end: Date): WizardDraftDay[] {
       dayNumber: index,
       date: toISODate(d),
       accommodation: '',
+      accommodationLatitude: null,
+      accommodationLongitude: null,
       activities: [
         { id: `draft-act-${index}-1`, name: '', time: '', place: '', latitude: null, longitude: null, activityType: null },
       ],
@@ -49,6 +51,8 @@ const EMPTY_DAY: WizardDraftDay = {
   dayNumber: 1,
   date: null,
   accommodation: '',
+  accommodationLatitude: null,
+  accommodationLongitude: null,
   activities: [{ id: 'draft-act-1-1', name: '', time: '', place: '', latitude: null, longitude: null, activityType: null }],
 };
 
@@ -202,6 +206,8 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
         const dayResult = await manualItineraryRepository.addDay(itineraryId, {
           date:          day.date ?? undefined,
           accommodation: day.accommodation.trim() || null,
+          accommodationLatitude:  day.accommodationLatitude ?? null,
+          accommodationLongitude: day.accommodationLongitude ?? null,
         });
 
         if (!dayResult.success || !dayResult.id) {

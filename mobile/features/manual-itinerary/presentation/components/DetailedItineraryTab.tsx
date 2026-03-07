@@ -64,7 +64,7 @@ export interface DetailedItineraryTabProps {
     byDraftDayId: Record<string, { name: string; locationText: string | null }[]>,
   ) => void;
   /** Called whenever draft accommodation changes so the parent can persist them on save. */
-  onDraftAccommodationChange?: (accommodation: Record<string, string | null>) => void;
+  onDraftAccommodationChange?: (accommodation: Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>) => void;
 }
 
 function formatDraftDate(dateStr: string | null): string {
@@ -115,6 +115,8 @@ export function DetailedItineraryTab({
       string,
       {
         name: string | null;
+        latitude?: number | null;
+        longitude?: number | null;
       }
     >
   >({});
@@ -211,9 +213,9 @@ export function DetailedItineraryTab({
   // Notify parent of draft accommodation changes so it can save them on submit.
   React.useEffect(() => {
     if (mode !== 'create' || !onDraftAccommodationChange) return;
-    const result: Record<string, string | null> = {};
+    const result: Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }> = {};
     for (const [dayId, acc] of Object.entries(draftAccommodationByDay)) {
-      result[dayId] = acc.name ?? null;
+      result[dayId] = { name: acc.name ?? null, latitude: acc.latitude ?? null, longitude: acc.longitude ?? null };
     }
     onDraftAccommodationChange(result);
   }, [mode, draftAccommodationByDay, onDraftAccommodationChange]);
@@ -361,9 +363,16 @@ export function DetailedItineraryTab({
     setAccommodationLocationModalVisible(true);
   };
 
-  const handleSelectAccommodationLocation = (locationName: string) => {
+  const handleSelectAccommodationLocation = (locationName: string, lat?: number | null, lng?: number | null) => {
     if (accommodationLocationDayId) {
-      updateDraftAccommodationName(accommodationLocationDayId, locationName);
+      setDraftAccommodationByDay((prev) => ({
+        ...prev,
+        [accommodationLocationDayId]: {
+          name: locationName,
+          latitude: lat ?? null,
+          longitude: lng ?? null,
+        },
+      }));
     }
     setAccommodationLocationModalVisible(false);
     setAccommodationLocationDayId(null);
@@ -609,6 +618,7 @@ export function DetailedItineraryTab({
           setAccommodationLocationModalVisible(false);
           setAccommodationLocationDayId(null);
         }}
+        allowPointPick
       />
     </>
   );

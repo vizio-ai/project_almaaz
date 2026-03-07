@@ -44,12 +44,16 @@ export interface AddDayParams {
   date?: string | null;
   notes?: string | null;
   accommodation?: string | null;
+  accommodationLatitude?: number | null;
+  accommodationLongitude?: number | null;
 }
 
 export interface UpdateDayParams {
   date?: string | null;
   notes?: string | null;
   accommodation?: string | null;
+  accommodationLatitude?: number | null;
+  accommodationLongitude?: number | null;
 }
 
 // ─── Activity ─────────────────────────────────────────────────────────────────

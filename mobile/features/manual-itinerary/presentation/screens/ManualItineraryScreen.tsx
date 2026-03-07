@@ -154,7 +154,7 @@ export const ManualItineraryScreen = React.forwardRef<
   const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
   const [draftDayNotes, setDraftDayNotes] = useState<Record<string, string>>({});
   const draftActivitiesRef = useRef<Record<string, { name: string; locationText: string | null }[]>>({});
-  const draftAccommodationRef = useRef<Record<string, string | null>>({});
+  const draftAccommodationRef = useRef<Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>>({});
 
   // ── Shared state (create + edit) ──────────────────────────────────────────
   const [isPublic, setIsPublic] = useState(false);
@@ -356,9 +356,13 @@ export const ManualItineraryScreen = React.forwardRef<
             const draftDays = buildDraftDays(draftStartDate, draftEndDate);
             for (const day of draftDays) {
               const note = draftDayNotes[day.id]?.trim() || null;
+              const accData = draftAccommodationRef.current[day.id];
               const dayResult = await manualItineraryRepository.addDay(result.id, {
                 date: day.date,
                 notes: note,
+                accommodation: accData?.name?.trim() || null,
+                accommodationLatitude: accData?.latitude ?? null,
+                accommodationLongitude: accData?.longitude ?? null,
               });
               if (dayResult.success && dayResult.id) {
                 const acts = draftActivitiesRef.current[day.id] ?? [];
@@ -375,11 +379,11 @@ export const ManualItineraryScreen = React.forwardRef<
 
             // Save draft accommodations as hotel TravelInfo items
             for (const day of draftDays) {
-              const hotelName = draftAccommodationRef.current[day.id];
-              if (hotelName?.trim()) {
+              const accData = draftAccommodationRef.current[day.id];
+              if (accData?.name?.trim()) {
                 await manualItineraryRepository.addTravelInfo(result.id, {
                   type: 'hotel',
-                  title: hotelName.trim(),
+                  title: accData.name.trim(),
                 });
               }
             }
