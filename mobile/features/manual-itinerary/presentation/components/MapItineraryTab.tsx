@@ -1,7 +1,8 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { ExternalLink } from 'lucide-react-native';
 import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
@@ -164,6 +165,23 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
 
   const mapHtml = useMemo(() => buildItineraryMapHtml(markers), [markers]);
 
+  const handleShowOnMap = useCallback(() => {
+    if (markers.length === 1) {
+      const m = markers[0];
+      const url = `https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`;
+      Linking.openURL(url);
+      return;
+    }
+    const origin = `${markers[0].lat},${markers[0].lng}`;
+    const dest = `${markers[markers.length - 1].lat},${markers[markers.length - 1].lng}`;
+    const waypoints = markers
+      .slice(1, -1)
+      .map((m) => `${m.lat},${m.lng}`)
+      .join('|');
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypoints ? `&waypoints=${waypoints}` : ''}`;
+    Linking.openURL(url);
+  }, [markers]);
+
   // ── Empty state ─────────────────────────────────────────────────────────────
 
   if (markers.length === 0) {
@@ -193,6 +211,18 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
           domStorageEnabled
         />
       </View>
+
+      {/* Show on Map button */}
+      <TouchableOpacity
+        style={[styles.showOnMapButton, { borderColor: borderMuted }]}
+        activeOpacity={0.7}
+        onPress={handleShowOnMap}
+      >
+        <ExternalLink size={14} color={textColor} strokeWidth={2} />
+        <AppText style={[styles.showOnMapLabel, { color: textColor }]}>
+          Show on Map ({markers.length})
+        </AppText>
+      </TouchableOpacity>
 
       {/* Mapped activity legend */}
       {markers.map((m, i) => (
@@ -269,6 +299,22 @@ const styles = StyleSheet.create({
   webView: {
     flex: 1,
     backgroundColor: '#e8e8e8',
+  },
+
+  // Show on Map button
+  showOnMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
+  },
+  showOnMapLabel: {
+    ...typography.sm,
+    fontWeight: typography.weights.medium,
   },
 
   // Legend rows
