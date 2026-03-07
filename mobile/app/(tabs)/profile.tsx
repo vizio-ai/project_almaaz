@@ -60,6 +60,7 @@ export default function ProfileTab() {
         onSave={updateProfile}
         onUploadAvatar={uploadAvatar}
         onBack={() => setIsEditing(false)}
+        onPhoneChanged={refresh}
       />
     );
   }

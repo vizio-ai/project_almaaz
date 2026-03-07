@@ -25,6 +25,7 @@ import {
   useThemeColor,
 } from '@shared/ui-kit';
 import { Profile } from '../../domain/entities/Profile';
+import { ChangePhoneModal } from '../components/ChangePhoneModal';
 import { PersonaSelect, PersonaMultiSelect } from '../components/PersonaSelect';
 import {
   PACE_OPTIONS,
@@ -119,6 +120,8 @@ interface EditProfileScreenProps {
   }) => Promise<boolean>;
   onUploadAvatar: (fileUri: string) => Promise<string | null>;
   onBack: () => void;
+  /** Called after phone number has been successfully changed */
+  onPhoneChanged?: () => void;
 }
 
 export function EditProfileScreen({
@@ -129,6 +132,7 @@ export function EditProfileScreen({
   onSave,
   onUploadAvatar,
   onBack,
+  onPhoneChanged,
 }: EditProfileScreenProps) {
   const [name, setName] = useState(profile.name ?? '');
   const [surname, setSurname] = useState(profile.surname ?? '');
@@ -156,6 +160,9 @@ export function EditProfileScreen({
   // Location picker state
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [placeSearch, setPlaceSearch] = useState('');
+
+  // Phone change modal state
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const bg = useThemeColor('background');
   const text = useThemeColor('text');
@@ -335,6 +342,26 @@ export function EditProfileScreen({
               keyboardType="email-address"
               autoCapitalize="none"
             />
+
+            {/* Phone Number */}
+            <View style={styles.fieldSpacing}>
+              <AppText style={[styles.fieldLabel, { color: text }]}>Phone Number</AppText>
+              <View style={[styles.phoneFieldRow]}>
+                <View style={[styles.pickerRow, { borderColor: border, backgroundColor: bg, flex: 1 }]}>
+                  <Ionicons name="call-outline" size={14} color={subText} style={styles.pickerIcon} />
+                  <AppText style={[styles.pickerText, { color: profile.phone ? text : subText }]}>
+                    {profile.phone || 'No phone number'}
+                  </AppText>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowPhoneModal(true)}
+                  activeOpacity={0.7}
+                  style={styles.changePhoneBtn}
+                >
+                  <AppText style={styles.changePhoneBtnText}>Change</AppText>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* Birthday */}
             <View style={styles.fieldSpacing}>
@@ -520,6 +547,17 @@ export function EditProfileScreen({
           )}
         </View>
       </Modal>
+
+      {/* ── Change Phone Modal ── */}
+      <ChangePhoneModal
+        visible={showPhoneModal}
+        currentPhone={profile.phone}
+        onClose={() => setShowPhoneModal(false)}
+        onSuccess={() => {
+          setShowPhoneModal(false);
+          onPhoneChanged?.();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -567,6 +605,22 @@ const styles = StyleSheet.create({
   },
   pickerIcon: { marginRight: 10 },
   pickerText: { fontSize: 12 },
+  phoneFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  changePhoneBtn: {
+    backgroundColor: '#18181B',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  changePhoneBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   personaSection: {
     marginBottom: 24,
   },
