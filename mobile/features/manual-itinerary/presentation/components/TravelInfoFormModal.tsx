@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { AppText, PrimaryButton, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
 import airports from 'airports';
 import { Country, City } from 'country-state-city';
 import type { TravelInfo, TravelInfoType } from '../../domain/entities/TravelInfo';
@@ -59,10 +59,10 @@ export function TravelInfoFormModal({
   const secondary = useThemeColor('textSecondary');
   const surface = useThemeColor('surface');
   const border = useThemeColor('border');
-  const accent = useThemeColor('accent');
 
   const [type, setType] = useState<TravelInfoType>('flight');
   const [title, setTitle] = useState('');
+  const [titleError, setTitleError] = useState(false);
   const [provider, setProvider] = useState('');
   const [detail, setDetail] = useState('');
   const [busy, setBusy] = useState(false);
@@ -240,10 +240,12 @@ export function TravelInfoFormModal({
       setLocalEndDate(new Date());
     }
     setBusy(false);
+    setTitleError(false);
   }, [visible, editingItem]);
 
   const handleSave = async () => {
-    if (!title.trim() || busy) return;
+    if (busy) return;
+    if (!title.trim()) { setTitleError(true); return; }
     setBusy(true);
     try {
       const params = {
@@ -271,7 +273,8 @@ export function TravelInfoFormModal({
   };
 
   const handleSaveAndAddAnother = async () => {
-    if (editingItem || !title.trim() || busy) return;
+    if (editingItem || busy) return;
+    if (!title.trim()) { setTitleError(true); return; }
     setBusy(true);
     try {
       const params = {
@@ -313,8 +316,6 @@ export function TravelInfoFormModal({
       setBusy(false);
     }
   };
-
-  const canSave = title.trim().length > 0 && !busy;
 
   const effectiveDateValue = startDatetime ?? editingItem?.startDatetime ?? null;
   const formattedDateLabel = formatDateTimeLabel(effectiveDateValue);
@@ -359,7 +360,7 @@ export function TravelInfoFormModal({
                     style={[
                       styles.typeChip,
                       { borderColor: border },
-                      isSelected && { backgroundColor: accent, borderColor: accent },
+                      isSelected && { backgroundColor: textColor, borderColor: textColor },
                     ]}
                   >
                     <Ionicons
@@ -381,7 +382,7 @@ export function TravelInfoFormModal({
             <FieldInput
               label="Title *"
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(v) => { setTitle(v); if (titleError) setTitleError(false); }}
               placeholder={
                 type === 'flight'
                   ? 'e.g. New York → London'
@@ -394,8 +395,9 @@ export function TravelInfoFormModal({
               textColor={textColor}
               secondary={secondary}
               border={border}
+              error={titleError}
             />
-            {type === 'flight' && (
+          {/*   {type === 'flight' && (
               <View style={fieldStyles.wrap}>
                 <AppText style={[fieldStyles.label, { color: secondary }]}>Departure location</AppText>
                 <TouchableOpacity
@@ -464,7 +466,7 @@ export function TravelInfoFormModal({
                   placeholderTextColor={secondary}
                 />
               </View>
-            )}
+            )} */}
             <FieldInput
               label={type === 'flight' ? 'Airline / Provider' : 'Provider'}
               value={provider}
@@ -583,33 +585,20 @@ export function TravelInfoFormModal({
                 </TouchableOpacity>
               )}
               {!editingItem && (
-                <TouchableOpacity
+                <PrimaryButton
+                  label="Add another"
+                  variant="outline"
                   onPress={handleSaveAndAddAnother}
-                  disabled={!canSave}
-                  style={[
-                    styles.addAnotherBtn,
-                    { borderColor: accent },
-                    !canSave && styles.saveBtnDisabled,
-                  ]}
-                >
-                  <AppText style={[styles.addAnotherLabel, { color: accent }]}>
-                    Add another
-                  </AppText>
-                </TouchableOpacity>
+                  disabled={busy}
+                  style={styles.addAnotherBtn}
+                />
               )}
-              <TouchableOpacity
+              <PrimaryButton
+                label={editingItem ? 'Update' : 'Add'}
                 onPress={handleSave}
-                disabled={!canSave}
-                style={[
-                  styles.saveBtn,
-                  { backgroundColor: accent },
-                  !canSave && styles.saveBtnDisabled,
-                ]}
-              >
-                <AppText style={styles.saveBtnLabel}>
-                  {editingItem ? 'Update' : 'Add'}
-                </AppText>
-              </TouchableOpacity>
+                disabled={busy}
+                style={styles.saveBtn}
+              />
             </View>
           </ScrollView>
 
@@ -650,7 +639,7 @@ export function TravelInfoFormModal({
                       setStartDatetime(localDate.toISOString());
                       setShowDatePicker(false);
                     }}
-                    style={[styles.dateConfirm, { backgroundColor: accent }]}
+                    style={[styles.dateConfirm, { backgroundColor: '#171717' }]}
                   >
                     <AppText style={styles.dateConfirmLabel}>Done</AppText>
                   </TouchableOpacity>
@@ -699,7 +688,7 @@ export function TravelInfoFormModal({
                       setEndDatetime(localEndDate.toISOString());
                       setShowEndDatePicker(false);
                     }}
-                    style={[styles.dateConfirm, { backgroundColor: accent }]}
+                    style={[styles.dateConfirm, { backgroundColor: '#171717' }]}
                   >
                     <AppText style={styles.dateConfirmLabel}>Done</AppText>
                   </TouchableOpacity>
@@ -939,6 +928,7 @@ function FieldInput({
   textColor,
   secondary,
   border,
+  error = false,
 }: {
   label: string;
   value: string;
@@ -947,12 +937,13 @@ function FieldInput({
   textColor: string;
   secondary: string;
   border: string;
+  error?: boolean;
 }) {
   return (
     <View style={fieldStyles.wrap}>
-      <AppText style={[fieldStyles.label, { color: secondary }]}>{label}</AppText>
+      <AppText style={[fieldStyles.label, { color: error ? '#EF4444' : secondary }]}>{label}</AppText>
       <TextInput
-        style={[fieldStyles.input, { color: textColor, borderColor: border }]}
+        style={[fieldStyles.input, { color: textColor, borderColor: error ? '#EF4444' : border }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -1057,29 +1048,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addAnotherBtn: {
-    height: 46,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: '#E0E0E0',
+    width: 120,
   },
   saveBtn: {
     flex: 1,
-    height: 46,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnDisabled: { opacity: 0.45 },
-  saveBtnLabel: {
-    ...typography.base,
-    fontWeight: typography.weights.semibold,
-    color: '#fff',
-  },
-  addAnotherLabel: {
-    ...typography.base,
-    fontWeight: typography.weights.semibold,
   },
   dateOverlay: {
     flex: 1,

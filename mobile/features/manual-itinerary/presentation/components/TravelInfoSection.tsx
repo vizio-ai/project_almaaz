@@ -14,7 +14,7 @@ export interface TravelInfoSectionProps {
 export function TravelInfoSection({ items, onAddPress, onEditItem }: TravelInfoSectionProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
-  const surface = useThemeColor('surface');
+  const surface = useThemeColor('background');
   const border = useThemeColor('border');
 
   const sections = React.useMemo(
