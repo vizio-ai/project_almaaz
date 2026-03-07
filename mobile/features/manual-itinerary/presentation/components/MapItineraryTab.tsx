@@ -20,6 +20,10 @@ interface MarkerData {
   lng: number;
   name: string;
   locationText: string | null;
+  activityType: string | null;
+  startTime: string | null;
+  /** Formatted date string for the day, e.g. "04.02.2026" */
+  dateLabel: string | null;
   dayNumber: number;
   /** Index into DAY_COLORS */
   dayIndex: number;
@@ -45,6 +49,19 @@ function buildItineraryMapHtml(markers: MarkerData[]): string {
       box-shadow:0 2px 6px rgba(0,0,0,.35);
       font-family:-apple-system,BlinkMacSystemFont,sans-serif;
     }
+    .leaflet-popup-content-wrapper{
+      border-radius:8px;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.1);
+      border:1px solid #e4e4e7;
+    }
+    .leaflet-popup-content{margin:0;min-width:180px;}
+    .leaflet-popup-tip{border-top-color:#fff;}
+    .pc{padding:8px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;}
+    .pc-title{font-size:12px;font-weight:600;color:#09090b;line-height:16px;margin-bottom:6px;}
+    .pc-rows{display:flex;flex-direction:column;gap:4px;}
+    .pc-row{display:flex;align-items:center;gap:4px;}
+    .pc-icon{width:12px;height:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .pc-icon svg{width:12px;height:12px;}
+    .pc-label{font-size:12px;color:#18181b;line-height:14px;}
   </style>
 </head>
 <body>
@@ -56,6 +73,10 @@ function buildItineraryMapHtml(markers: MarkerData[]): string {
     var map=L.map('map',{zoomControl:true,attributionControl:false});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+    var SVG_TYPE='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
+    var SVG_LOC='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+    var SVG_TIME='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 15"/></svg>';
+
     var bounds=[];
     data.forEach(function(m){
       var c=COLORS[m.dayIndex%COLORS.length];
@@ -65,8 +86,22 @@ function buildItineraryMapHtml(markers: MarkerData[]): string {
         iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-28]
       });
       var mk=L.marker([m.lat,m.lng],{icon:icon}).addTo(map);
-      var popup='<b>'+m.name+'</b>'+(m.locationText?'<br><small>'+m.locationText+'</small>':'');
-      mk.bindPopup(popup);
+
+      var rows='';
+      if(m.activityType){
+        rows+='<div class="pc-row"><div class="pc-icon">'+SVG_TYPE+'</div><span class="pc-label">'+m.activityType.charAt(0).toUpperCase()+m.activityType.slice(1)+'</span></div>';
+      }
+      if(m.locationText){
+        rows+='<div class="pc-row"><div class="pc-icon">'+SVG_LOC+'</div><span class="pc-label">'+m.locationText+'</span></div>';
+      }
+      if(m.dateLabel||m.startTime){
+        var timeStr=m.dateLabel||'';
+        if(m.startTime){timeStr+=(timeStr?' - ':'')+m.startTime;}
+        rows+='<div class="pc-row"><div class="pc-icon">'+SVG_TIME+'</div><span class="pc-label">'+timeStr+'</span></div>';
+      }
+
+      var popup='<div class="pc"><div class="pc-title">'+m.name+'</div>'+(rows?'<div class="pc-rows">'+rows+'</div>':'')+'</div>';
+      mk.bindPopup(popup,{closeButton:false});
       bounds.push([m.lat,m.lng]);
     });
 
@@ -104,11 +139,17 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
       const acts = activitiesByDay[day.id] ?? [];
       acts.forEach((act) => {
         if (act.latitude != null && act.longitude != null) {
+          const dateLabel = day.date
+            ? new Date(day.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : null;
           markers.push({
             lat: act.latitude,
             lng: act.longitude,
             name: act.name,
             locationText: act.locationText ?? null,
+            activityType: act.activityType ?? null,
+            startTime: act.startTime ?? null,
+            dateLabel,
             dayNumber: day.dayNumber,
             dayIndex,
           });
