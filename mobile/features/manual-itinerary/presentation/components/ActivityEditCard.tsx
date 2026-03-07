@@ -44,7 +44,7 @@ export interface ActivityEditCardProps {
 }
 
 export function ActivityEditCard({
-  title = 'Visit Nakano Dori',
+  title = 'New Activity',
   name,
   activityType = 'park',
   timeLabel = 'Time',
@@ -96,13 +96,13 @@ export function ActivityEditCard({
         <View style={styles.pickerColSmall}>
           <AppText style={[styles.pickerLabel, { color: textColor }]}>{timeLabel}</AppText>
           <TouchableOpacity
-            style={[styles.pickerTrigger, { backgroundColor: surface, borderColor: border }]}
+            style={[styles.pickerTrigger, { backgroundColor: background, borderColor: border }]}
             onPress={onPressTime}
             activeOpacity={0.8}
           >
             <Clock2 size={16} color={secondary} strokeWidth={1.8} />
-            <AppText style={[styles.pickerText, { color: textColor }]} numberOfLines={1}>
-              {timeValue || '9:00 AM'}
+            <AppText style={[styles.pickerText, { color: timeValue ? textColor : secondary }]} numberOfLines={1}>
+              {timeValue || 'Add time'}
             </AppText>
           </TouchableOpacity>
         </View>
@@ -110,13 +110,13 @@ export function ActivityEditCard({
         <View style={styles.pickerColLarge}>
           <AppText style={[styles.pickerLabel, { color: textColor }]}>{placeLabel}</AppText>
           <TouchableOpacity
-            style={[styles.pickerTrigger, { backgroundColor: surface, borderColor: border }]}
+            style={[styles.pickerTrigger, { backgroundColor: background, borderColor: border }]}
             onPress={onPressPlace}
             activeOpacity={0.8}
           >
             <MapPin size={16} color={secondary} strokeWidth={1.8} />
-            <AppText style={[styles.pickerText, { color: textColor }]} numberOfLines={1}>
-              {placeValue || 'Nakano Dori, Tokyo, Japan'}
+            <AppText style={[styles.pickerText, { color: placeValue ? textColor : secondary }]} numberOfLines={1}>
+              {placeValue || 'Add location'}
             </AppText>
           </TouchableOpacity>
         </View>

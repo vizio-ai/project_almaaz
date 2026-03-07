@@ -12,6 +12,8 @@ export interface AccordionSectionProps {
   /** Controlled collapsed state. If undefined, component manages its own state. */
   collapsed?: boolean;
   onToggle?: () => void;
+  /** Extra content rendered to the left of the chevron in the header row. */
+  headerRight?: ReactNode;
 }
 
 export function AccordionSection({
@@ -20,6 +22,7 @@ export function AccordionSection({
   children,
   collapsed,
   onToggle,
+  headerRight,
 }: AccordionSectionProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -48,6 +51,7 @@ export function AccordionSection({
             <AppText style={[styles.subtitle, { color: secondary }]}>{subtitle}</AppText>
           ) : null}
         </View>
+        {headerRight}
         <Ionicons
           name={isCollapsed ? 'chevron-down' : 'chevron-up'}
           size={16}

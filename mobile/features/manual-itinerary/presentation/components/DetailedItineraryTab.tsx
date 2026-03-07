@@ -162,7 +162,7 @@ export function DetailedItineraryTab({
             {
               id: `${baseId}1`,
               name: '',
-              activityType: 'park',
+              activityType: null,
               locationText: null,
               timeValue: null,
             },
@@ -273,7 +273,7 @@ export function DetailedItineraryTab({
       const id = `draft-activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const next = [
         ...existing,
-        { id, name: '', activityType: 'park' as const, locationText: null, timeValue: null },
+        { id, name: '', activityType: null, locationText: null, timeValue: null },
       ];
       return { ...prev, [dayId]: next };
     });
@@ -473,7 +473,7 @@ export function DetailedItineraryTab({
                     return (
                       <ActivityEditCard
                         key={id}
-                        title={act?.name ?? 'Visit Nakano Dori'}
+                        title={act?.name || undefined}
                         name={act?.name ?? ''}
                         activityType={act?.activityType ?? 'park'}
                         timeValue={act?.timeValue ?? ''}
@@ -493,26 +493,26 @@ export function DetailedItineraryTab({
                     <ScaleDecorator>
                       <ActivityCard
                         key={id}
-                        title={act.name || 'Visit Nakano Dori'}
+                        title={act.name || 'New Activity'}
                         tags={[
-                          {
-                            label:
-                              act.activityType === 'museum'
-                                ? 'Museum'
-                                : act.activityType === 'food'
-                                ? 'Food & Drink'
-                                : act.activityType === 'shopping'
-                                ? 'Shopping'
-                                : act.activityType === 'historic'
-                                ? 'Historic place'
-                                : act.activityType === 'beach'
-                                ? 'Beach'
-                                : 'Park',
-                            icon: 'type',
-                          },
-                          // Seçilen konum (yoksa placeholder)
+                          ...(act.activityType
+                            ? [{
+                                label:
+                                  act.activityType === 'museum'
+                                    ? 'Museum'
+                                    : act.activityType === 'food'
+                                    ? 'Food & Drink'
+                                    : act.activityType === 'shopping'
+                                    ? 'Shopping'
+                                    : act.activityType === 'historic'
+                                    ? 'Historic place'
+                                    : act.activityType === 'beach'
+                                    ? 'Beach'
+                                    : 'Park',
+                                icon: 'type' as const,
+                              }]
+                            : []),
                           { label: act.locationText || 'Add location', icon: 'location' },
-                          // Seçilen zaman (yoksa placeholder)
                           { label: act.timeValue || 'Add time', icon: 'time' },
                         ]}
                         onPress={() => setEditingActivityId(id)}

@@ -84,6 +84,7 @@ export function DaySection({
   baseLocation,
 }: DaySectionProps) {
   const secondary = useThemeColor('textSecondary');
+  const danger = useThemeColor('danger');
 
   // ── Activity list state ────────────────────────────────────────────────────
   const [orderedActivities, setOrderedActivities] = useState(dayActivities);
@@ -287,41 +288,39 @@ export function DaySection({
 
   return (
     <View style={[styles.daySection, isDraggingDay && styles.daySectionDragging]}>
-      {/* ── Controls row: drag handle + delete ──────────────────────────── */}
-      <View style={styles.controlsRow}>
-        {onDragDay && (
-          <TouchableOpacity
-            onLongPress={onDragDay}
-            delayLongPress={200}
-            hitSlop={6}
-            style={styles.dayDragHandle}
-          >
-            <GripVertical size={18} color={secondary} strokeWidth={1.5} />
-          </TouchableOpacity>
-        )}
-        <View style={styles.spacer} />
-        <TouchableOpacity
-          onPress={() =>
-            Alert.alert(
-              'Delete day',
-              'This will permanently delete this day and all its activities.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => onRemoveDay(day.id) },
-              ],
-            )
-          }
-          hitSlop={8}
-        >
-          <Trash2 size={16} color={secondary} strokeWidth={1.8} />
-        </TouchableOpacity>
-      </View>
-
       {/* ── AccordionSection wraps the day body ─────────────────────────── */}
       <AccordionSection
         title={formatDayLabel(day.date, day.dayNumber)}
         collapsed={isCollapsed}
         onToggle={onToggle}
+        headerRight={
+          <View style={styles.headerActions}>
+            {onDragDay && (
+              <TouchableOpacity
+                onLongPress={onDragDay}
+                delayLongPress={200}
+                hitSlop={6}
+              >
+                <GripVertical size={18} color={secondary} strokeWidth={1.5} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  'Delete day',
+                  'This will permanently delete this day and all its activities.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => onRemoveDay(day.id) },
+                  ],
+                )
+              }
+              hitSlop={8}
+            >
+              <Trash2 size={16} color={danger} strokeWidth={1.8} />
+            </TouchableOpacity>
+          </View>
+        }
       >
         <View style={styles.dayBody}>
           {/* ── Accommodation ─────────────────────────────────────────── */}
@@ -509,6 +508,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xs,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
   },
   dayDragHandle: { marginRight: spacing.xs },
   spacer: { flex: 1 },
