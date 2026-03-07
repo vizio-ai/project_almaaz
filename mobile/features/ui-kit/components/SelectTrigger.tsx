@@ -20,6 +20,8 @@ export interface SelectTriggerProps {
   /** Set true to hide the default right chevron */
   hideRightChevron?: boolean;
   disabled?: boolean;
+  /** When true, shows red border for validation error */
+  hasError?: boolean;
 }
 
 export function SelectTrigger({
@@ -31,17 +33,19 @@ export function SelectTrigger({
   leftIcon,
   hideRightChevron = false,
   disabled,
+  hasError = false,
 }: SelectTriggerProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
   const border = useThemeColor('border');
+  const errorColor = useThemeColor('error');
   const background = useThemeColor('background');
 
   const hasValue = !!value?.trim();
 
   return (
     <TouchableOpacity
-      style={[styles.trigger, { borderColor: border, backgroundColor: background }, style]}
+      style={[styles.trigger, { borderColor: hasError ? errorColor : border, backgroundColor: background }, style]}
       onPress={onPress}
       activeOpacity={0.7}
       disabled={disabled}

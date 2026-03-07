@@ -68,9 +68,36 @@ export function WizardBasicDetailsStep({
   const textColor  = useThemeColor('text');
   const secondary  = useThemeColor('textSecondary');
   const border     = useThemeColor('border');
+  const errorColor = useThemeColor('error');
   const background = useThemeColor('background');
 
   const [locationMapVisible, setLocationMapVisible] = useState(false);
+
+  // ── Validation ──────────────────────────────────────────────────────────
+  const [errors, setErrors] = useState<{ tripName?: string; destination?: string }>({});
+
+  function validate(): boolean {
+    const next: typeof errors = {};
+    if (!tripName.trim()) next.tripName = 'Trip name is required';
+    if (!destination.trim()) next.destination = 'Destination is required';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  function handleNext() {
+    if (validate()) onNext();
+  }
+
+  // Clear individual field errors as the user fills them in
+  function handleTripNameChange(v: string) {
+    if (errors.tripName && v.trim()) setErrors((prev) => ({ ...prev, tripName: undefined }));
+    onTripNameChange(v);
+  }
+
+  function handleDestinationChange(v: string) {
+    if (errors.destination && v.trim()) setErrors((prev) => ({ ...prev, destination: undefined }));
+    onDestinationChange(v);
+  }
 
   // ── Photo helpers ─────────────────────────────────────────────────────────
 
@@ -170,13 +197,19 @@ export function WizardBasicDetailsStep({
         </View>
 
         {/* ── Trip Name ──────────────────────────────────────────────── */}
-        <AppInput
-          label="Trip Name"
-          value={tripName}
-          onChangeText={onTripNameChange}
-          placeholder="e.g. Summer in Japan"
-          returnKeyType="next"
-        />
+        <View>
+          <AppInput
+            label="Trip Name"
+            value={tripName}
+            onChangeText={handleTripNameChange}
+            placeholder="e.g. Summer in Japan"
+            returnKeyType="next"
+            hasError={!!errors.tripName}
+          />
+          {errors.tripName ? (
+            <AppText style={[styles.errorText, { color: errorColor }]}>{errors.tripName}</AppText>
+          ) : null}
+        </View>
 
         {/* ── Destination ────────────────────────────────────────────── */}
         <View style={styles.fieldWrap}>
@@ -185,7 +218,11 @@ export function WizardBasicDetailsStep({
             value={destination}
             placeholder="Select a destination"
             onPress={() => setLocationMapVisible(true)}
+            hasError={!!errors.destination}
           />
+          {errors.destination ? (
+            <AppText style={[styles.errorText, { color: errorColor }]}>{errors.destination}</AppText>
+          ) : null}
         </View>
 
         {/* ── Set Your Dates ─────────────────────────────────────────── */}
@@ -231,13 +268,13 @@ export function WizardBasicDetailsStep({
         leftLabel="Cancel"
         onLeftPress={onCancel}
         rightLabel="Next"
-        onRightPress={onNext}
+        onRightPress={handleNext}
       />
 
       {/* ── Location picker modal ────────────────────────────────────── */}
       <LocationPickerModal
         visible={locationMapVisible}
-        onSelect={onDestinationChange}
+        onSelect={handleDestinationChange}
         onClose={() => setLocationMapVisible(false)}
       />
     </KeyboardAvoidingView>
@@ -316,6 +353,10 @@ const styles = StyleSheet.create({
   },
   textareaInputWrap: {
     minHeight: 100,
+  },
+  errorText: {
+    ...typography.xs,
+    marginTop: 4,
   },
 
 });
