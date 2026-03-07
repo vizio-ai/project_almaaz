@@ -156,8 +156,6 @@ export function WizardConfirmationStep({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── TRIP PLAN label ──────────────────────────────────────── */}
-        <AppText style={[styles.sectionLabel, { color: secondary }]}>TRIP PLAN</AppText>
 
         {/* ── Cover image ──────────────────────────────────────────── */}
         <Image
@@ -218,14 +216,14 @@ export function WizardConfirmationStep({
         </View>
 
         {/* ── Toggles (inline card) ────────────────────────────────── */}
-        <View style={[styles.togglesCard, { backgroundColor: surface, borderColor: border }]}>
+        <View style={[styles.togglesCard, { backgroundColor: background, borderColor: border }]}>
           <ToggleRow
             label="Allow other users to clone"
             value={isClonable}
             onValueChange={onIsClonableChange}
             infoMessage="This lets other users use your itinerary as a starting point to plan their own trip."
           />
-          <View style={[styles.toggleDivider, { backgroundColor: border }]} />
+
           <ToggleRow
             label={isPublic ? 'Public itinerary' : 'Private itinerary'}
             value={isPublic}
@@ -365,21 +363,27 @@ const styles = StyleSheet.create({
 
   // Cover
   coverImage: {
-    width: '100%',
+    width: '90%',
     height: 200,
+    alignSelf: 'center',
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    paddingBottom: spacing.md,
+    paddingTop: spacing.md,
   },
 
   // Action row below cover
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
   },
   saveItineraryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: spacing.md,
     gap: spacing.xs,
     borderWidth: 1,
     borderRadius: radii.full,
@@ -426,8 +430,6 @@ const styles = StyleSheet.create({
   togglesCard: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.lg,
   },
