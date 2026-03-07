@@ -17,6 +17,11 @@ function toISODate(d: Date): string {
   return d.toISOString().split('T')[0];
 }
 
+/** Treat epoch-zero and invalid dates as "no date". */
+function isUsableDate(d: Date | null | undefined): d is Date {
+  return d instanceof Date && !isNaN(d.getTime()) && d.getTime() > 0;
+}
+
 function formatDateRange(startDate: Date | null, endDate: Date | null): string {
   if (!startDate && !endDate) return '';
   if (!endDate && startDate) {
@@ -73,14 +78,14 @@ export function TripDateRangeInput({
   function openPicker() {
     if (!editable) return;
     const today = new Date();
-    setLocalDate(startDate instanceof Date && !isNaN(startDate.getTime()) ? startDate : today);
+    setLocalDate(isUsableDate(startDate) ? startDate : today);
     setPickerStep('start');
   }
 
   function handleConfirm() {
     if (pickerStep === 'start') {
       onStartDate?.(localDate);
-      const next = endDate instanceof Date && !isNaN(endDate.getTime()) ? endDate : localDate;
+      const next = isUsableDate(endDate) ? endDate : localDate;
       setLocalDate(next);
       setPickerStep('end');
     } else if (pickerStep === 'end') {

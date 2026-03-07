@@ -117,6 +117,7 @@ function DayCard({
   onOpenTimePicker,
 }: DayCardProps) {
   const textColor  = useThemeColor('text');
+  const subTextColor = useThemeColor('subText');
   const secondary  = useThemeColor('textSecondary');
   const borderMuted = useThemeColor('borderMuted');
 

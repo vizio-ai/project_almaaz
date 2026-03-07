@@ -233,15 +233,15 @@ export function WizardConfirmationStep({
         </View>
 
         {/* ── Trip note ────────────────────────────────────────────── */}
-        {tripNote.trim() ? (
-          <View style={[styles.noteCard, { backgroundColor: surface, borderColor: border }]}>
-            <View style={styles.noteHeader}>
-              <AppText style={[styles.noteTitle, { color: textColor }]}>Note</AppText>
-              <Ionicons name="ellipsis-horizontal" size={18} color={secondary} />
-            </View>
-            <AppText style={[styles.noteText, { color: secondary }]}>{tripNote}</AppText>
+        <View style={[styles.noteCard, { backgroundColor: background, borderColor: border }]}>
+          <View style={styles.noteHeader}>
+            <AppText style={[styles.noteTitle, { color: textColor }]}>Note</AppText>
+          
           </View>
-        ) : null}
+          <AppText style={[styles.noteText, { color: secondary }]}>
+            {tripNote.trim() || 'No notes added'}
+          </AppText>
+        </View>
 
         {/* ── Travel information ───────────────────────────────────── */}
         {hasTransports ? (
