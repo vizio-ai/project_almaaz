@@ -142,10 +142,39 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
     [startDate, endDate],
   );
 
+  const isDirty =
+    tripName.trim() !== '' ||
+    destination.trim() !== '' ||
+    startDate != null ||
+    endDate != null ||
+    tripNote.trim() !== '' ||
+    coverUri != null ||
+    travelInfoItems.length > 0 ||
+    wizardDays.length > 1 ||
+    (wizardDays.length === 1 && wizardDays[0].accommodation.trim() !== '');
+
   const handleCancel = useCallback(() => {
-    resetWizardState();
-    onDone();
-  }, [resetWizardState, onDone]);
+    if (isDirty) {
+      Alert.alert(
+        'Değişiklikleri kaydetmediniz',
+        'Çıkmak istediğinize emin misiniz? Girdiğiniz bilgiler kaybolacak.',
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          {
+            text: 'Çık',
+            style: 'destructive',
+            onPress: () => {
+              resetWizardState();
+              onDone();
+            },
+          },
+        ],
+      );
+    } else {
+      resetWizardState();
+      onDone();
+    }
+  }, [isDirty, resetWizardState, onDone]);
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
