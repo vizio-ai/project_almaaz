@@ -7,14 +7,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader, AppText } from '@shared/ui-kit';
 import { DoraMessage, TypingIndicator } from '../components/DoraMessage';
 import { DoraInput } from '../components/DoraInput';
+import { DoraSuggestionCard } from '../components/DoraSuggestionCard';
+import { ImportTripPlanCard } from '../components/ImportTripPlanCard';
 import { useItineraryDependencies } from '../../di/useItineraryDependencies';
 import type { DoraMessage as DoraMsg, DoraPersona } from '../../domain/entities/DoraMessage';
+
+const ACCENT_COLOR = '#44FFFF';
 
 interface DoraConversationScreenProps {
   userName?: string | null;
@@ -31,6 +37,11 @@ interface UiMessage {
   content: string;
 }
 
+const SUGGESTIONS = [
+  'Tokyo trip with sushi focus',
+  'Plan me vacation for 2 people in Caribbeans',
+];
+
 export function DoraConversationScreen({
   userName,
   persona,
@@ -43,9 +54,7 @@ export function DoraConversationScreen({
   const [isTyping, setIsTyping] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const hasInitialized = useRef(false);
 
-  const displayName = userName || 'there';
   const userInitials = userName?.[0]?.toUpperCase() ?? '?';
 
   const sendToAI = useCallback(async (history: UiMessage[]) => {
@@ -80,13 +89,6 @@ export function DoraConversationScreen({
     }
   }, [persona, isOnboarding]);
 
-  // Auto-trigger first AI message
-  useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
-    sendToAI([]);
-  }, [sendToAI]);
-
   // Auto-scroll on new messages
   useEffect(() => {
     if (messages.length > 0) {
@@ -105,11 +107,19 @@ export function DoraConversationScreen({
     sendToAI(next);
   };
 
+  const handleSuggestionPress = (text: string) => {
+    handleSend(text);
+  };
+
+  const handleImportPress = () => {
+    // TODO: open import flow / paste modal
+  };
+
   const renderItem = ({ item }: { item: UiMessage }) => (
     <DoraMessage role={item.role} content={item.content} userInitials={userInitials} />
   );
 
-  const showGreeting = messages.length === 0 && !isTyping;
+  const showInitialView = messages.length === 0 && !isTyping;
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
@@ -129,13 +139,41 @@ export function DoraConversationScreen({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.flex}>
-          {showGreeting ? (
-            <View style={styles.greetingWrap}>
+          {showInitialView ? (
+            <ScrollView
+              style={styles.flex}
+              contentContainerStyle={styles.initialContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Greeting */}
               <AppText style={styles.greetingText}>
-                Hello {displayName}!{'\n'}I'm dora, your personal{'\n'}travel agent.
+                I'm{' '}
+                <AppText style={styles.greetingAccent}>dora</AppText>
+                , your personal{'\n'}travel agent.
               </AppText>
-              {isTyping && <TypingIndicator />}
-            </View>
+
+              {/* Initial Dora message */}
+              <View style={styles.initialMessageRow}>
+                <Image
+                  source={require('../../../../assets/images/avatar.png')}
+                  style={styles.doraAvatar}
+                />
+                <AppText style={styles.initialMessageText}>
+                  Where are you dreaming of going next? Just tell me a place or a vibe.
+                </AppText>
+              </View>
+
+              {/* Import trip plan card */}
+              <ImportTripPlanCard onPress={handleImportPress} />
+
+              {/* Suggestion cards */}
+              <View style={styles.suggestionsRow}>
+                {SUGGESTIONS.map((s) => (
+                  <DoraSuggestionCard key={s} text={s} onPress={handleSuggestionPress} />
+                ))}
+              </View>
+            </ScrollView>
           ) : (
             <FlatList
               ref={flatListRef}
@@ -204,18 +242,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  greetingWrap: {
-    flex: 1,
+  // Initial view
+  initialContent: {
     paddingHorizontal: 24,
     paddingTop: 32,
+    gap: 20,
+    flexGrow: 1,
   },
   greetingText: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '500',
     color: '#18181B',
-    lineHeight: 38,
+    lineHeight: 25,
     textAlign: 'center',
   },
+  greetingAccent: {
+    color: ACCENT_COLOR,
+    fontWeight: '500',
+  },
+  initialMessageRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 28,
+  },
+  doraAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 9999,
+    flexShrink: 0,
+  },
+  initialMessageText: {
+    fontSize: 14,
+    lineHeight: 18,
+    color: '#18181B',
+    flex: 1,
+    paddingTop: 4,
+  },
+  suggestionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  // Chat list
   listContent: {
     paddingTop: 20,
     paddingBottom: 8,
