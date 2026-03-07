@@ -98,8 +98,10 @@ export default function PersonalScreen() {
 
   const filteredPlaces = useMemo(() => searchPlaces(placeSearch), [placeSearch]);
 
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
   const handleNext = () => {
-    if (!name.trim() || !surname.trim()) {
+    if (!name.trim() || !surname.trim() || !email.trim() || !isValidEmail(email.trim())) {
       setShowErrors(true);
       return;
     }
@@ -166,20 +168,23 @@ export default function PersonalScreen() {
 
           <AppInput
             label="Email"
-            optional
             leftIcon="mail-outline"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => { setEmail(v); setShowErrors(false); }}
             placeholder="johndoe@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
             returnKeyType="done"
             style={styles.fieldSpacing}
+            hasError={showErrors && (!email.trim() || !isValidEmail(email.trim()))}
           />
+          {showErrors && email.trim().length > 0 && !isValidEmail(email.trim()) && (
+            <AppText style={styles.errorHint}>Please enter a valid email address</AppText>
+          )}
 
           {/* Birthday */}
           <View style={styles.fieldSpacing}>
-            <AppText style={[styles.label, { color: textColor }]}>Birthday</AppText>
+            <AppText style={[styles.label, { color: textColor }]}>Birthday <AppText style={[styles.optionalHint, { color: subText }]}>(Optional)</AppText></AppText>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
               activeOpacity={0.7}
@@ -194,7 +199,7 @@ export default function PersonalScreen() {
 
           {/* Where do you live */}
           <View style={styles.fieldSpacing}>
-            <AppText style={[styles.label, { color: textColor }]}>Where do you live</AppText>
+            <AppText style={[styles.label, { color: textColor }]}>Where do you live <AppText style={[styles.optionalHint, { color: subText }]}>(Optional)</AppText></AppText>
             <TouchableOpacity
               onPress={() => { setPlaceSearch(''); setShowLocationPicker(true); }}
               activeOpacity={0.7}
@@ -326,6 +331,8 @@ const styles = StyleSheet.create({
   gap: { width: 12 },
   fieldSpacing: { marginBottom: 16 },
   label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+  optionalHint: { fontSize: 11, fontWeight: '400' },
+  errorHint: { fontSize: 11, fontWeight: '400', color: '#DC2626', marginBottom: 16},
   pickerRow: {
     flexDirection: 'row',
     alignItems: 'center',

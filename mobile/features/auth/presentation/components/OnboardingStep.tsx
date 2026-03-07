@@ -93,7 +93,13 @@ export function OnboardingStep({
                 icon={icon}
                 iconSource={iconSource}
                 isSelected={selected.includes(label)}
-                onPress={() => onSelect(label)}
+                onPress={() => {
+                  if (!multiSelect && selected.includes(label)) {
+                    onSelect('');
+                  } else {
+                    onSelect(label);
+                  }
+                }}
               />
             );
           })}

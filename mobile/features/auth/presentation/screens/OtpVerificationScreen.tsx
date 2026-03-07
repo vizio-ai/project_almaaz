@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -37,10 +37,21 @@ export function OtpVerificationScreen({
   const [code, setCode] = useState('');
   const [otpKey, setOtpKey] = useState(0);
   const [legalModal, setLegalModal] = useState<LegalModalType | null>(null);
+  const isSubmittingRef = useRef(false);
 
   const bgColor   = useThemeColor('background');
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
+
+  const safeSubmit = useCallback(async (submittedCode: string) => {
+    if (isSubmittingRef.current || submittedCode.length !== OTP_LENGTH) return;
+    isSubmittingRef.current = true;
+    try {
+      await onSubmit(submittedCode);
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  }, [onSubmit]);
 
   const handleOtpChange = useCallback((newCode: string) => {
     setCode(newCode);
@@ -55,8 +66,8 @@ export function OtpVerificationScreen({
   }, [onClearError, onResend]);
 
   const handleSubmit = useCallback(() => {
-    if (code.length === OTP_LENGTH) onSubmit(code);
-  }, [code, onSubmit]);
+    safeSubmit(code);
+  }, [code, safeSubmit]);
 
   const maskedPhone = phone.replace(/(\d{3})\d+(\d{2})/, '$1***$2');
   const codeComplete = code.length === OTP_LENGTH;
@@ -69,8 +80,8 @@ export function OtpVerificationScreen({
     >
       {hasError && (
         <AuthErrorSection
-          warning={error}
-          onDismissWarning={onClearError}
+          error={error}
+          onDismissError={onClearError}
         />
       )}
       {!hasError && <AppHeader />}
@@ -90,7 +101,7 @@ export function OtpVerificationScreen({
           <OtpCodeInput
             key={otpKey}
             length={OTP_LENGTH}
-            onComplete={onSubmit}
+            onComplete={safeSubmit}
             onChange={handleOtpChange}
             hasError={hasError}
           />

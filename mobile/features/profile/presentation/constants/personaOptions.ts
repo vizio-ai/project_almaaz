@@ -17,9 +17,9 @@ export const INTEREST_OPTIONS = [
 ] as const;
 
 export const JOURNALING_OPTIONS = [
+  { value: 'photographer', label: 'Visual Memory' },
   { value: 'storyteller', label: 'Storyteller' },
-  { value: 'minimalist', label: 'Minimalist' },
-  { value: 'photographer', label: 'Photographer' },
+  { value: 'minimalist', label: 'Just the moment' },
 ] as const;
 
 export const COMPANIONSHIP_OPTIONS = [

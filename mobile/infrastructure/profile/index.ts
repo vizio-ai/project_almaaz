@@ -39,9 +39,12 @@ function toPaceValue(label: string): string | null {
 
 function toJournalingValue(label: string): string | null {
   const map: Record<string, string> = {
+    'Visual Memory': 'photographer',
     Storyteller: 'storyteller',
-    Minimalist: 'minimalist',
+    'Just the moment': 'minimalist',
+    // Legacy labels (from edit profile or old onboarding)
     Photographer: 'photographer',
+    Minimalist: 'minimalist',
   };
   return map[label] ?? null;
 }
@@ -121,6 +124,8 @@ export function createProfileRemoteDataSource(): ProfileRemoteDataSource {
           username:       data.username,
           avatar_url:     data.avatar_url ?? null,
           bio:            data.bio,
+          birthday:       data.birthday ?? null,
+          location:       data.location ?? null,
           pace:           data.pace ?? null,
           interests:      data.interests ?? [],
           journaling:     data.journaling ?? null,

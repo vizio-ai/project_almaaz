@@ -18,6 +18,8 @@ export interface Profile {
   avatarUrl: string | null;
   bio: string | null;
   phone: string | null;
+  birthday: string | null;
+  location: string | null;
   role: ProfileRole;
   isOnboarded: boolean;
   isActive: boolean;

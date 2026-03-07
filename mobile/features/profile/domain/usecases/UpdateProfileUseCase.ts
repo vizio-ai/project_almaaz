@@ -9,6 +9,8 @@ export interface UpdateProfileParams {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  birthday: string | null;
+  location: string | null;
   pace: string | null;
   interests: string[];
   journaling: string | null;
@@ -27,6 +29,8 @@ export class UpdateProfileUseCase implements UseCase<UpdateProfileParams, void> 
       username: params.username?.trim() || null,
       avatar_url: params.avatar_url ?? null,
       bio: params.bio?.trim() || null,
+      birthday: params.birthday ?? null,
+      location: params.location ?? null,
       pace: params.pace || null,
       interests: params.interests ?? [],
       journaling: params.journaling || null,

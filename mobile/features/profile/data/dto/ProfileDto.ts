@@ -44,6 +44,8 @@ export interface UpdateProfileDto {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  birthday: string | null;
+  location: string | null;
   pace: string | null;
   interests: string[];
   journaling: string | null;

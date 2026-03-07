@@ -50,6 +50,8 @@ export class ProfileRepositoryImpl implements ProfileRepository {
         username:      data.username,
         avatar_url:    data.avatar_url,
         bio:           data.bio,
+        birthday:      data.birthday,
+        location:      data.location,
         pace:          data.pace,
         interests:     data.interests,
         journaling:    data.journaling,

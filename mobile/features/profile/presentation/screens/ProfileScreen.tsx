@@ -23,9 +23,9 @@ const PERSONA_LABELS: Record<string, Record<string, string>> = {
     spontaneous: 'Spontaneous',
   },
   journaling: {
+    photographer: 'Visual Memory',
     storyteller: 'Storyteller',
-    minimalist: 'Minimalist',
-    photographer: 'Photographer',
+    minimalist: 'Just the moment',
   },
   companionship: {
     solo: 'Solo',
@@ -51,8 +51,8 @@ const TAG_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'relaxed and flexible': 'time-outline',
   spontaneous: 'time-outline',
   storyteller: 'book-outline',
-  minimalist: 'ellipse-outline',
-  photographer: 'camera-outline',
+  'just the moment': 'ellipse-outline',
+  'visual memory': 'camera-outline',
   solo: 'person-outline',
   friends: 'people-outline',
   family: 'home-outline',
