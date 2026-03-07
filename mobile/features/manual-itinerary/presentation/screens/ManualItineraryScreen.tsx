@@ -680,7 +680,6 @@ export const ManualItineraryScreen = React.forwardRef<
             <TripLocationInput
               value={isNew ? draftDestination : editDestination}
               onChange={isNew ? setDraftDestination : setEditDestination}
-              onLocationIconPress={() => setLocationMapVisible(true)}
             />
           </View>
           <View style={styles.metaDateWrap}>

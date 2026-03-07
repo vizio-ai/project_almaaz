@@ -14,7 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { AppText, AppInput, SelectTrigger, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import { WizardBottomActionBar } from './WizardBottomActionBar';
 import { TripDateRangeInput } from '../TripDateRangeInput';
-import { LocationMapModal } from '../LocationMapModal';
+import { LocationPickerModal } from '../LocationPickerModal';
 
 const PLACEHOLDER_IMAGE = require('../../../../../assets/images/card_photo.png');
 
@@ -234,13 +234,11 @@ export function WizardBasicDetailsStep({
         onRightPress={onNext}
       />
 
-      {/* ── Location map picker modal ──────────────────────────────────── */}
-      <LocationMapModal
+      {/* ── Location picker modal ────────────────────────────────────── */}
+      <LocationPickerModal
         visible={locationMapVisible}
-        initialQuery={destination}
         onSelect={onDestinationChange}
         onClose={() => setLocationMapVisible(false)}
-        allowPointPick={false}
       />
     </KeyboardAvoidingView>
   );
