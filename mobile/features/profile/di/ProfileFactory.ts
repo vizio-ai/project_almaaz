@@ -15,5 +15,6 @@ export function createProfileDependencies(
     updateOnboardingProfileUseCase: new UpdateOnboardingProfileUseCase(repository),
     updateProfileUseCase: new UpdateProfileUseCase(repository),
     uploadAvatarUseCase: new UploadAvatarUseCase(repository),
+    profileRepository: repository,
   };
 }

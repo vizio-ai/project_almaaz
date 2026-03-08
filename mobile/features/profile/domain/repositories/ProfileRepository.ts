@@ -23,4 +23,6 @@ export interface ProfileRepository {
   saveOnboardingProfile(profile: OnboardingProfile): Promise<Result<void>>;
   updateProfile(data: UpdateProfileData): Promise<Result<void>>;
   uploadAvatar(userId: ID, fileUri: string): Promise<Result<string>>;
+  /** Subscribe to realtime profile changes. Returns an unsubscribe function. */
+  subscribeToProfileChanges(userId: ID, onChanged: (profile: Profile) => void): () => void;
 }

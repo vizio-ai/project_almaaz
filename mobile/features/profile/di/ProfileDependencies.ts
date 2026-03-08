@@ -3,6 +3,7 @@ import { UpdateOnboardingProfileUseCase } from '../domain/usecases/UpdateOnboard
 import { GetProfileUseCase } from '../domain/usecases/GetProfileUseCase';
 import { UpdateProfileUseCase } from '../domain/usecases/UpdateProfileUseCase';
 import { UploadAvatarUseCase } from '../domain/usecases/UploadAvatarUseCase';
+import type { ProfileRepository } from '../domain/repositories/ProfileRepository';
 
 export interface ProfileExternalDependencies {
   profileRemoteDataSource: ProfileRemoteDataSource;
@@ -13,4 +14,5 @@ export interface ProfileDependencies {
   updateOnboardingProfileUseCase: UpdateOnboardingProfileUseCase;
   updateProfileUseCase: UpdateProfileUseCase;
   uploadAvatarUseCase: UploadAvatarUseCase;
+  profileRepository: ProfileRepository;
 }

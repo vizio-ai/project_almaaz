@@ -26,7 +26,7 @@ interface UseProfileResult {
 }
 
 export function useProfile(userId: string | undefined): UseProfileResult {
-  const { getProfileUseCase, updateProfileUseCase, uploadAvatarUseCase } = useProfileDependencies();
+  const { getProfileUseCase, updateProfileUseCase, uploadAvatarUseCase, profileRepository } = useProfileDependencies();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +54,15 @@ export function useProfile(userId: string | undefined): UseProfileResult {
   useEffect(() => {
     if (userId) fetchProfile();
   }, [userId, fetchProfile, formatErrorMessage]);
+
+  // Realtime listener: update local state when profile changes in DB (e.g. admin deactivation)
+  useEffect(() => {
+    if (!userId) return;
+    const unsubscribe = profileRepository.subscribeToProfileChanges(userId, (updated) => {
+      setProfile(updated);
+    });
+    return unsubscribe;
+  }, [userId, profileRepository]);
 
   const updateProfile = useCallback(
     async (params: {

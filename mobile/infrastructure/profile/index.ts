@@ -149,5 +149,29 @@ export function createProfileRemoteDataSource(): ProfileRemoteDataSource {
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
       return data.publicUrl;
     },
+
+    subscribeToProfileChanges(userId: string, onChanged: (dto: ProfileRowDto) => void): () => void {
+      const channel = supabase
+        .channel(`profile-realtime-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`,
+          },
+          (payload) => {
+            if (payload.new) {
+              onChanged(payload.new as unknown as ProfileRowDto);
+            }
+          },
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
   };
 }

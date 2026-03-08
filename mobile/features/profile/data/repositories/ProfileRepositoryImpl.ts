@@ -71,4 +71,11 @@ export class ProfileRepositoryImpl implements ProfileRepository {
       return fail(networkError(error));
     }
   }
+
+  subscribeToProfileChanges(userId: ID, onChanged: (profile: Profile) => void): () => void {
+    return this.remoteDataSource.subscribeToProfileChanges(
+      String(userId),
+      (dto) => onChanged(this.mapper.map(dto)),
+    );
+  }
 }
