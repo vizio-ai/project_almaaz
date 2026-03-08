@@ -8,6 +8,7 @@ export function createStubManualItineraryRepository(): ManualItineraryRepository
     async create() { return { success: true, id: 'stub-id' }; },
     async update() { return { success: true }; },
     async remove() { return { success: true }; },
+    async cloneItinerary() { return { success: true, id: 'stub-clone-id' }; },
 
     // Days
     async addDay() { return { success: true, id: 'stub-day-id' }; },

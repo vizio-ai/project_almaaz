@@ -7,8 +7,8 @@ import PencilIcon from '../../../../assets/images/pencil.svg';
 
 export interface TravelInfoSectionProps {
   items: TravelInfo[];
-  onAddPress: () => void;
-  onEditItem: (item: TravelInfo) => void;
+  onAddPress?: () => void;
+  onEditItem?: (item: TravelInfo) => void;
 }
 
 export function TravelInfoSection({ items, onAddPress, onEditItem }: TravelInfoSectionProps) {
@@ -45,9 +45,11 @@ export function TravelInfoSection({ items, onAddPress, onEditItem }: TravelInfoS
         <AppText style={[styles.cardTitle, { color: textColor }]} numberOfLines={1}>
           Travel Information
         </AppText>
+        {onAddPress && (
         <TouchableOpacity onPress={onAddPress} hitSlop={8}>
           <PencilIcon width={16} height={16} />
         </TouchableOpacity>
+        )}
       </View>
       {items.length === 0 ? (
         <AppText style={[styles.placeholderText, { color: secondary }]}>
@@ -78,7 +80,8 @@ export function TravelInfoSection({ items, onAddPress, onEditItem }: TravelInfoS
             {section.items.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                onPress={() => onEditItem(item)}
+                onPress={onEditItem ? () => onEditItem(item) : undefined}
+                disabled={!onEditItem}
                 hitSlop={8}
                 style={styles.detailRowTouchable}
               >

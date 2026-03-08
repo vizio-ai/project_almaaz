@@ -40,6 +40,7 @@ export interface ItineraryViewTabsProps {
   ) => void;
   onDraftAccommodationChange?: (accommodation: Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>) => void;
   onReorderDays?: (orderedDayIds: string[]) => Promise<unknown>;
+  readOnly?: boolean;
 }
 
 export function ItineraryViewTabs({
@@ -64,6 +65,7 @@ export function ItineraryViewTabs({
   onDraftActivitiesChange,
   onDraftAccommodationChange,
   onReorderDays,
+  readOnly = false,
 }: ItineraryViewTabsProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -119,6 +121,7 @@ export function ItineraryViewTabs({
           onChangeDraftDayNote={onChangeDraftDayNote}
           onDraftActivitiesChange={onDraftActivitiesChange}
           onDraftAccommodationChange={onDraftAccommodationChange}
+          readOnly={readOnly}
         />
       )}
 

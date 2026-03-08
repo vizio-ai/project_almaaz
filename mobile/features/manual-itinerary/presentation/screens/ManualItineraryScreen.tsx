@@ -542,13 +542,41 @@ export const ManualItineraryScreen = React.forwardRef<
     doShare();
   }, [isNew, isPublic, itineraryId, manualItineraryRepository, refresh, doShare]);
 
-  // ── More options (delete) ─────────────────────────────────────────────────
+  // ── Clone ────────────────────────────────────────────────────────────────
+
+  const handleClone = useCallback(async () => {
+    if (!itineraryId) return;
+    Alert.alert(
+      'Clone itinerary',
+      'This will create a copy of this itinerary in your trips.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clone',
+          onPress: async () => {
+            const result = await manualItineraryRepository.cloneItinerary(itineraryId, userId);
+            if (result.success) {
+              Alert.alert('Cloned', 'The itinerary has been cloned to your trips.');
+            } else {
+              Alert.alert('Error', 'Could not clone this itinerary.');
+            }
+          },
+        },
+      ],
+    );
+  }, [itineraryId, userId, manualItineraryRepository]);
+
+  // ── More options (delete + clone) ───────────────────────────────────────
 
   const handleMoreOptions = useCallback(() => {
     Alert.alert(
       'Options',
       undefined,
       [
+        {
+          text: 'Clone itinerary',
+          onPress: handleClone,
+        },
         {
           text: 'Delete itinerary',
           style: 'destructive',
@@ -573,10 +601,11 @@ export const ManualItineraryScreen = React.forwardRef<
         { text: 'Cancel', style: 'cancel' },
       ],
     );
-  }, [itineraryId, manualItineraryRepository, onBack]);
+  }, [itineraryId, manualItineraryRepository, onBack, handleClone]);
 
   // ── Derived values ────────────────────────────────────────────────────────
 
+  const isOwner = isNew || (!!itinerary?.userId && itinerary.userId === userId);
   const startDate = itinerary?.startDate ?? null;
   const creatorName = itinerary?.creatorName ?? 'You';
   const creatorAvatarUrl = itinerary?.creatorAvatarUrl ?? null;
@@ -589,13 +618,18 @@ export const ManualItineraryScreen = React.forwardRef<
     return acc;
   }, {});
 
-  const headerActions = (
+  const headerActions = isOwner ? (
     <HeaderActions
       onSave={handleSave}
       saveLabel="Save itinerary"
       isSaving={isSaving}
       onShare={handleShare}
       onMoreOptions={!isNew ? handleMoreOptions : undefined}
+    />
+  ) : (
+    <HeaderActions
+      onShare={handleShare}
+      onClone={isClonable ? handleClone : undefined}
     />
   );
 
@@ -666,15 +700,15 @@ export const ManualItineraryScreen = React.forwardRef<
         {/* ── Cover image ───────────────────────────────────────────────── */}
         <CoverImagePicker
           imageUri={isNew ? draftCoverUri : (editCoverUri ?? coverImageUrl)}
-          onChange={isNew ? setDraftCoverUri : setEditCoverUri}
-          editable={true}
+          onChange={isOwner ? (isNew ? setDraftCoverUri : setEditCoverUri) : undefined}
+          editable={isOwner}
         />
 
         {/* ── Trip title ────────────────────────────────────────────────── */}
         <View style={styles.titleWrap}>
           <TripTitleInput
             value={isNew ? draftTitle : editTitle}
-            onChange={isNew ? setDraftTitle : setEditTitle}
+            onChange={isOwner ? (isNew ? setDraftTitle : setEditTitle) : undefined}
           />
         </View>
 
@@ -683,7 +717,7 @@ export const ManualItineraryScreen = React.forwardRef<
           <View style={styles.metaLocationWrap}>
             <TripLocationInput
               value={isNew ? draftDestination : editDestination}
-              onChange={isNew ? setDraftDestination : setEditDestination}
+              onChange={isOwner ? (isNew ? setDraftDestination : setEditDestination) : undefined}
             />
           </View>
           <View style={styles.metaDateWrap}>
@@ -698,8 +732,8 @@ export const ManualItineraryScreen = React.forwardRef<
               <TripDateRangeInput
                 startDate={editStartDate}
                 endDate={editEndDate}
-                onStartDate={setEditStartDate}
-                onEndDate={setEditEndDate}
+                onStartDate={isOwner ? setEditStartDate : undefined}
+                onEndDate={isOwner ? setEditEndDate : undefined}
                 displayText={formatDateRange(startDate, editEndDate ? toISODate(editEndDate) : (itinerary?.endDate ?? null))}
               />
             )}
@@ -715,40 +749,45 @@ export const ManualItineraryScreen = React.forwardRef<
         </View>
 
         {/* ── Allow other users to clone ───────────────────────────────── */}
+        {isOwner && (
         <ToggleRow
           label="Allow other users to clone"
           value={isClonable}
           onValueChange={setIsClonable}
           infoMessage="This lets other users use your itinerary as a starting point to plan their own trip"
         />
+        )}
 
         {/* ── Public / Private visibility ───────────────────────────────── */}
+        {isOwner && (
         <ToggleRow
           label={isPublic ? 'Public itinerary' : 'Private itinerary'}
           value={isPublic}
           onValueChange={setIsPublic}
           infoMessage="When public, other users may see this itinerary in discover or shared views. When private, only you can see it."
         />
+        )}
 
         {/* ── Travel Information ────────────────────────────────────────── */}
         <TravelInfoSection
           items={isNew ? draftTravelInfo : travelInfo}
-          onAddPress={() => {
+          onAddPress={isOwner ? () => {
             setEditingTravelInfo(null);
             setTravelInfoModalVisible(true);
-          }}
-          onEditItem={(t) => {
+          } : undefined}
+          onEditItem={isOwner ? (t) => {
             setEditingTravelInfo(t);
             setTravelInfoModalVisible(true);
-          }}
+          } : undefined}
         />
 
         {/* ── Notes ─────────────────────────────────────────────────────── */}
         <TripNotesSection
           value={tripNotes}
-          onChangeText={setTripNotes}
+          onChangeText={isOwner ? setTripNotes : () => {}}
           onSave={handleSaveNotes}
           isSaving={isSavingNotes}
+          readOnly={!isOwner}
         />
 
         {/* ── View tabs + days ──────────────────────────────────────────── */}
@@ -783,6 +822,7 @@ export const ManualItineraryScreen = React.forwardRef<
             draftAccommodationRef.current = acc;
           }}
           onReorderDays={reorderDays}
+          readOnly={!isOwner}
         />
 
         <View style={{ height: spacing['2xl'] }} />

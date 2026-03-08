@@ -6,7 +6,7 @@ export function createTripRemoteDataSource(): TripRemoteDataSource {
     async getPopularTrips(limit: number): Promise<PopularTripDto[]> {
       const { data, error } = await supabase
         .from('trips')
-        .select('id, title, save_count, cover_image_url, creator_name')
+        .select('id, user_id, title, save_count, cover_image_url, creator_name')
         .order('save_count', { ascending: false })
         .limit(limit);
 
@@ -18,7 +18,7 @@ export function createTripRemoteDataSource(): TripRemoteDataSource {
     async getTripsByUserId(userId: string): Promise<PopularTripDto[]> {
       const { data, error } = await supabase
         .from('trips')
-        .select('id, title, save_count, cover_image_url, creator_name')
+        .select('id, user_id, title, save_count, cover_image_url, creator_name')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 

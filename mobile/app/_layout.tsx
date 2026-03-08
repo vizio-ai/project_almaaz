@@ -60,7 +60,7 @@ const followExternalDeps: FollowExternalDependencies = {
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { session, isLoading } = useSession();
-  const { profile, isLoading: profileLoading } = useProfile(session?.user.id);
+  const { profile, isLoading: profileLoading } = useProfile(session?.user.id, { enableActiveStatusSync: true });
   const segments = useSegments();
   const router = useRouter();
 
@@ -180,6 +180,7 @@ function AppContent() {
                       }}
                     >
                       <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="itinerary" />
                       <Stack.Screen name="admin" />
                       <Stack.Screen name="auth" options={{ animation: 'none' }} />
                       <Stack.Screen name="profile" />

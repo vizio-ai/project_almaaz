@@ -14,6 +14,8 @@ export interface HeaderActionsProps {
   isSaving?: boolean;
   /** Called when the share button is pressed. */
   onShare?: () => void;
+  /** Called when the clone button is pressed. */
+  onClone?: () => void;
   /** Called when the ⋯ more-options button is pressed. */
   onMoreOptions?: () => void;
 }
@@ -23,6 +25,7 @@ export function HeaderActions({
   saveLabel = 'Save',
   isSaving = false,
   onShare,
+  onClone,
   onMoreOptions,
 }: HeaderActionsProps) {
   const textColor = useThemeColor('labelText');
@@ -70,6 +73,24 @@ export function HeaderActions({
           activeOpacity={0.7}
         >
           <Ionicons name="share-outline" size={22} color={textColor} />
+        </TouchableOpacity>
+      )}
+
+      {onClone && (
+        <TouchableOpacity
+          onPress={onClone}
+          style={[
+            styles.iconBtn,
+            {
+              backgroundColor: background,
+              borderColor: borderMuted,
+              shadowColor,
+            },
+          ]}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="copy-outline" size={20} color={textColor} />
         </TouchableOpacity>
       )}
 

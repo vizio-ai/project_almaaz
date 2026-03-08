@@ -26,7 +26,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       const { data: row, error } = await supabase
         .from('itineraries')
         .select(`
-          id, title, destination, start_date, end_date,
+          id, user_id, title, destination, start_date, end_date,
           cover_image_url, trip_notes, is_public, is_clonable, is_ai_generated,
           profiles:user_id (name, surname, avatar_url)
         `)
@@ -42,6 +42,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
       const itinerary: Itinerary = {
         id: row.id,
+        userId: row.user_id,
         title: row.title,
         destination: row.destination,
         startDate: row.start_date,
@@ -174,6 +175,16 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
     async remove(id: string) {
       const { error } = await supabase.from('itineraries').delete().eq('id', id);
       return { success: !error };
+    },
+
+    async cloneItinerary(sourceId: string, userId: string) {
+      const { data, error } = await supabase.rpc('clone_itinerary', {
+        p_source_id: sourceId,
+        p_user_id: userId,
+      });
+
+      if (error || !data) return { success: false };
+      return { success: true, id: data as string };
     },
 
     // ─── Days ────────────────────────────────────────────────────────────────

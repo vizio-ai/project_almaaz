@@ -109,6 +109,8 @@ export interface ManualItineraryRepository {
   create(params: CreateItineraryParams): Promise<{ success: boolean; id?: string }>;
   update(id: string, params: UpdateItineraryParams): Promise<{ success: boolean }>;
   remove(id: string): Promise<{ success: boolean }>;
+  /** Clone an itinerary via the clone_itinerary RPC. Returns the new itinerary ID. */
+  cloneItinerary(sourceId: string, userId: string): Promise<{ success: boolean; id?: string }>;
   /**
    * Compress and upload a local image URI to the `covers` Storage bucket.
    * Returns the public URL on success.

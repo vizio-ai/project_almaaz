@@ -65,6 +65,7 @@ export interface DaySectionProps {
   onDragDay?: () => void;
   isDraggingDay?: boolean;
   baseLocation?: string;
+  readOnly?: boolean;
 }
 
 export function DaySection({
@@ -82,6 +83,7 @@ export function DaySection({
   onDragDay,
   isDraggingDay = false,
   baseLocation,
+  readOnly = false,
 }: DaySectionProps) {
   const secondary = useThemeColor('textSecondary');
   const danger = useThemeColor('danger');
@@ -302,6 +304,7 @@ export function DaySection({
         collapsed={isCollapsed}
         onToggle={onToggle}
         headerRight={
+          readOnly ? undefined : (
           <View style={styles.headerActions}>
             {onDragDay && (
               <TouchableOpacity
@@ -328,11 +331,16 @@ export function DaySection({
               <Trash2 size={16} color={danger} strokeWidth={1.8} />
             </TouchableOpacity>
           </View>
+          )
         }
       >
         <View style={styles.dayBody}>
           {/* ── Accommodation ─────────────────────────────────────────── */}
-          {isEditingAccommodation ? (
+          {readOnly ? (
+            accommodationText ? (
+              <AccommodationCard title={accommodationText} />
+            ) : null
+          ) : isEditingAccommodation ? (
             <AccommodationEditCard
               selectedName={accommodationText}
               onPressSelect={() => setAccommodationLocationModalVisible(true)}
@@ -353,13 +361,33 @@ export function DaySection({
           )}
 
           {/* ── Day note ──────────────────────────────────────────────── */}
-          <DayNoteSection
-            initialNote={day.notes}
-            onSave={handleNoteSave}
-          />
+          {readOnly ? (
+            day.notes ? (
+              <DayNoteSection initialNote={day.notes} onSave={handleNoteSave} />
+            ) : null
+          ) : (
+            <DayNoteSection
+              initialNote={day.notes}
+              onSave={handleNoteSave}
+            />
+          )}
 
           {/* ── Activity list — only rendered when non-empty ───────────── */}
           {orderedActivities.length > 0 && (
+            readOnly ? (
+              <View style={{ gap: spacing.lg }}>
+                {orderedActivities.map((act) => (
+                  <ActivityCard
+                    key={act.id}
+                    title={act.name}
+                    tags={[
+                      ...(act.startTime ? [{ label: act.startTime, icon: 'time' as const }] : []),
+                      ...(act.locationText ? [{ label: act.locationText, icon: 'location' as const }] : []),
+                    ]}
+                  />
+                ))}
+              </View>
+            ) : (
             <DraggableFlatList
               data={orderedActivities}
               keyExtractor={(item) => item.id}
@@ -407,10 +435,11 @@ export function DaySection({
                 )
               }
             />
+            )
           )}
 
           {/* ── Pending new activity ───────────────────────────────────── */}
-          {isPendingNew && (
+          {!readOnly && isPendingNew && (
             <ActivityEditCard
               title="New Activity"
               name={pendingName}
@@ -428,7 +457,7 @@ export function DaySection({
           )}
 
           {/* ── Add another activity button ────────────────────────────── */}
-          {!isPendingNew && (
+          {!readOnly && !isPendingNew && (
             <AddAnotherActivityButton onPress={() => setIsPendingNew(true)} />
           )}
         </View>

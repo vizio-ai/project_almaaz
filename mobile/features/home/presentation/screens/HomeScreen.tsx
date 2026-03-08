@@ -18,9 +18,9 @@ import { AppHeader, AppText, useThemeColor, typography, spacing, radii } from '@
 import type { PopularTrip } from '@shared/trips';
 
 const FALLBACK_TRIPS: PopularTrip[] = [
-  { id: '1', title: 'A breath-taking journey on Tuscany', savedCount: 175, creatorName: 'Bethany', coverImageUrl: null },
-  { id: '2', title: 'Ancient temples of Kyoto', savedCount: 238, creatorName: 'Marcus', coverImageUrl: null },
-  { id: '3', title: 'Northern lights in Iceland', savedCount: 312, creatorName: 'Sofia', coverImageUrl: null },
+  { id: '1', userId: '', title: 'A breath-taking journey on Tuscany', savedCount: 175, creatorName: 'Bethany', coverImageUrl: null },
+  { id: '2', userId: '', title: 'Ancient temples of Kyoto', savedCount: 238, creatorName: 'Marcus', coverImageUrl: null },
+  { id: '3', userId: '', title: 'Northern lights in Iceland', savedCount: 312, creatorName: 'Sofia', coverImageUrl: null },
 ];
 
 export interface HomeScreenProps {
@@ -123,7 +123,7 @@ export function HomeScreen({ heroImage, cardPhotoFallback }: HomeScreenProps) {
               <TouchableOpacity
                 key={trip.id}
                 style={[styles.tripCard, { backgroundColor: surfaceAlt }]}
-                onPress={() => handleAuthOrAction(() => router.push('/discover'))}
+                onPress={() => handleAuthOrAction(() => router.push(`/itinerary/${trip.id}` as const))}
                 activeOpacity={0.85}
               >
                 <Image source={imageSource} style={styles.tripCardImage} resizeMode="cover" />

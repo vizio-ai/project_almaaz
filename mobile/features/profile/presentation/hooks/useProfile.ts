@@ -1,6 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Profile } from '../../domain/entities/Profile';
 import { useProfileDependencies } from '../../di/useProfileDependencies';
+
+const ACTIVE_STATUS_POLL_MS = 30_000;
+
+interface UseProfileOptions {
+  /** Enable realtime + polling sync for deactivation detection. Only use for the current auth user. */
+  enableActiveStatusSync?: boolean;
+}
 
 interface UseProfileResult {
   profile: Profile | null;
@@ -25,7 +33,7 @@ interface UseProfileResult {
   uploadAvatar: (fileUri: string) => Promise<string | null>;
 }
 
-export function useProfile(userId: string | undefined): UseProfileResult {
+export function useProfile(userId: string | undefined, options?: UseProfileOptions): UseProfileResult {
   const { getProfileUseCase, updateProfileUseCase, uploadAvatarUseCase, profileRepository } = useProfileDependencies();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -55,14 +63,41 @@ export function useProfile(userId: string | undefined): UseProfileResult {
     if (userId) fetchProfile();
   }, [userId, fetchProfile, formatErrorMessage]);
 
+  const syncEnabled = options?.enableActiveStatusSync ?? false;
+
   // Realtime listener: update local state when profile changes in DB (e.g. admin deactivation)
   useEffect(() => {
-    if (!userId) return;
+    if (!syncEnabled || !userId) return;
     const unsubscribe = profileRepository.subscribeToProfileChanges(userId, (updated) => {
       setProfile(updated);
     });
     return unsubscribe;
-  }, [userId, profileRepository]);
+  }, [syncEnabled, userId, profileRepository]);
+
+  // Polling fallback: re-fetch profile periodically and on app foreground
+  // to catch deactivation even if Realtime has connectivity issues.
+  useEffect(() => {
+    if (!syncEnabled || !userId) return;
+
+    const interval = setInterval(() => {
+      getProfileUseCaseRef.current.execute({ userId }).then((result) => {
+        if (result.success) setProfile(result.data);
+      });
+    }, ACTIVE_STATUS_POLL_MS);
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        getProfileUseCaseRef.current.execute({ userId }).then((result) => {
+          if (result.success) setProfile(result.data);
+        });
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
+  }, [syncEnabled, userId]);
 
   const updateProfile = useCallback(
     async (params: {

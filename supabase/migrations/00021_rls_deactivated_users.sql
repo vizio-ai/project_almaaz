@@ -418,5 +418,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ─── 5. Enable Supabase Realtime on profiles ────────────────────────────────
 -- Required for frontend to receive live updates when is_active changes.
+-- REPLICA IDENTITY FULL ensures all columns are included in the change payload.
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+EXCEPTION
+  WHEN duplicate_object THEN
+    -- Table already in publication; ignore.
+    NULL;
+END $$;

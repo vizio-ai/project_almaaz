@@ -7,6 +7,7 @@ export interface TripNotesSectionProps {
   onChangeText: (value: string) => void;
   onSave: () => void;
   isSaving: boolean;
+  readOnly?: boolean;
 }
 
 export function TripNotesSection({
@@ -14,6 +15,7 @@ export function TripNotesSection({
   onChangeText,
   onSave,
   isSaving,
+  readOnly = false,
 }: TripNotesSectionProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -33,10 +35,13 @@ export function TripNotesSection({
           multiline
           value={value}
           onChangeText={onChangeText}
+          editable={!readOnly}
         />
+        {!readOnly && (
         <TouchableOpacity onPress={onSave} disabled={isSaving} style={styles.noteSaveBtn}>
           <AppText style={[styles.noteSaveBtnLabel, { color: secondary }]}>Save</AppText>
         </TouchableOpacity>
+        )}
       </View>
     </View>
   );

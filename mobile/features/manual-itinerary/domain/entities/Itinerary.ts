@@ -1,5 +1,7 @@
 export interface Itinerary {
   id: string;
+  /** Owner's user ID */
+  userId?: string;
   title: string;
   destination: string;
   startDate: string | null;

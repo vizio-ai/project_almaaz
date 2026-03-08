@@ -65,6 +65,7 @@ export interface DetailedItineraryTabProps {
   ) => void;
   /** Called whenever draft accommodation changes so the parent can persist them on save. */
   onDraftAccommodationChange?: (accommodation: Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>) => void;
+  readOnly?: boolean;
 }
 
 function formatDraftDate(dateStr: string | null): string {
@@ -102,6 +103,7 @@ export function DetailedItineraryTab({
   onDraftActivitiesChange,
   onDraftAccommodationChange,
   baseLocation,
+  readOnly = false,
 }: DetailedItineraryTabProps) {
   const textColor = useThemeColor('text');
   // Local collapse state for create mode (draft days are not in DB yet)
@@ -244,9 +246,11 @@ export function DetailedItineraryTab({
             onUpdateActivityLocation={onUpdateActivityLocation}
             onReorderActivities={onReorderActivities}
             baseLocation={baseLocation}
+            readOnly={readOnly}
           />
         ))}
 
+        {!readOnly && (
         <TouchableOpacity
           style={[styles.addDayBtn, border ? { borderColor: border } : null]}
           onPress={onAddDay}
@@ -255,6 +259,7 @@ export function DetailedItineraryTab({
           <Plus size={18} color={secondary} strokeWidth={1.8} />
           <AppText style={[styles.addDayLabel, { color: secondary }]}>Add Day</AppText>
         </TouchableOpacity>
+        )}
       </>
     );
   }
