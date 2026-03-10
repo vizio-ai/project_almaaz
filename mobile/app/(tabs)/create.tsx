@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,8 @@ import { BlurView } from 'expo-blur';
 import ChatHistorySvg from '../../assets/images/chat_history.svg';
 
 const HEADER_ICON_COLOR = '#FFFFFF';
-const HEADER_RIGHT_GAP = 24;
+
+type ViewMode = 'chat' | 'manual' | 'ai-itinerary';
 
 export default function CreateScreen() {
   const { session } = useSession();
@@ -19,67 +20,161 @@ export default function CreateScreen() {
   const router = useRouter();
   const { fromOnboarding } = useLocalSearchParams<{ fromOnboarding?: string }>();
   const [showDialog, setShowDialog] = useState(fromOnboarding === 'true');
-  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('chat');
+  const [aiItineraryId, setAiItineraryId] = useState<string | null>(null);
+  const [aiItineraryKey, setAiItineraryKey] = useState(0);
   const manualScreenRef = useRef<ManualItineraryScreenRef>(null);
+  const aiItineraryRef = useRef<ManualItineraryScreenRef>(null);
 
   const handleHistoryPress = () => {
     // TODO: open past chats
   };
 
   const handleToggleManualEntry = () => {
-    if (showManualEntry) {
+    if (viewMode === 'manual') {
       manualScreenRef.current?.requestClose();
     } else {
-      setShowManualEntry(true);
+      setViewMode('manual');
     }
+  };
+
+  const handleSwitchToChat = () => {
+    setViewMode('chat');
+  };
+
+  const handleSwitchToItinerary = useCallback(() => {
+    if (aiItineraryId) {
+      setViewMode('ai-itinerary');
+    }
+  }, [aiItineraryId]);
+
+  const handleItineraryCreated = useCallback((itineraryId: string) => {
+    setAiItineraryId(itineraryId);
+    setAiItineraryKey((k) => k + 1);
+  }, []);
+
+  const handleItineraryModified = useCallback(() => {
+    setAiItineraryKey((k) => k + 1);
+  }, []);
+
+  // Header content based on view mode
+  const renderHeader = () => {
+    if (viewMode === 'manual') return null; // ManualItineraryScreen has its own header
+
+    if (viewMode === 'ai-itinerary') {
+      return (
+        <AppHeader
+          variant="dark"
+          right={
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                onPress={handleSwitchToChat}
+                activeOpacity={0.8}
+                style={styles.headerPrimaryBtn}
+              >
+                <Ionicons name="sparkles" size={16} color={HEADER_ICON_COLOR} />
+                <AppText style={styles.headerPrimaryLabel}>AI Chat</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleHistoryPress}
+                activeOpacity={0.8}
+                style={styles.headerIconBtn}
+              >
+                <ChatHistorySvg width={16} height={16} color={HEADER_ICON_COLOR} />
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      );
+    }
+
+    // Chat mode
+    return (
+      <AppHeader
+        variant="dark"
+        right={
+          <View style={styles.headerRight}>
+            {aiItineraryId ? (
+              <TouchableOpacity
+                onPress={handleSwitchToItinerary}
+                activeOpacity={0.8}
+                style={styles.headerPrimaryBtn}
+              >
+                <Ionicons name="map-outline" size={16} color={HEADER_ICON_COLOR} />
+                <AppText style={styles.headerPrimaryLabel}>Itinerary</AppText>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={handleToggleManualEntry}
+                activeOpacity={0.8}
+                style={styles.headerPrimaryBtn}
+              >
+                <Ionicons name="map-outline" size={16} color={HEADER_ICON_COLOR} />
+                <AppText style={styles.headerPrimaryLabel}>Itinerary</AppText>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={handleHistoryPress}
+              activeOpacity={0.8}
+              style={styles.headerIconBtn}
+            >
+              <ChatHistorySvg width={16} height={16} color={HEADER_ICON_COLOR} />
+            </TouchableOpacity>
+          </View>
+        }
+      />
+    );
   };
 
   return (
     <View style={styles.root}>
-        {!showManualEntry && (
-          <AppHeader
-            variant="dark"
-            right={
-              <View style={styles.headerRight}>
-                <TouchableOpacity
-                  onPress={handleToggleManualEntry}
-                  activeOpacity={0.8}
-                  style={styles.headerPrimaryBtn}
-                >
-                  <Ionicons
-                    name="map-outline"
-                    size={16}
-                    color={HEADER_ICON_COLOR}
-                  />
-                  <AppText style={styles.headerPrimaryLabel}>Itinerary</AppText>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleHistoryPress} activeOpacity={0.8} style={styles.headerIconBtn}>
-                  <ChatHistorySvg width={16} height={16} color={HEADER_ICON_COLOR} />
-                </TouchableOpacity>
-              </View>
-            }
+      {renderHeader()}
+      <View style={styles.content}>
+        {/* Manual Itinerary (create mode) */}
+        <View style={{ flex: 1, display: viewMode === 'manual' ? 'flex' : 'none' }}>
+          <ManualItineraryScreen
+            ref={manualScreenRef}
+            itineraryId={null}
+            userId={session?.user.id ?? ''}
+            currentUserName={profile?.name}
+            currentUserAvatarUrl={profile?.avatarUrl}
+            showHeader={false}
+            onBack={() => setViewMode('chat')}
           />
-        )}
-        <View style={styles.content}>
-          <View style={{ flex: 1, display: showManualEntry ? 'flex' : 'none' }}>
+        </View>
+
+        {/* AI-generated Itinerary (view/edit mode) */}
+        <View style={{ flex: 1, display: viewMode === 'ai-itinerary' ? 'flex' : 'none' }}>
+          {aiItineraryId && (
             <ManualItineraryScreen
-              ref={manualScreenRef}
-              itineraryId={null}
+              key={`ai-${aiItineraryKey}`}
+              ref={aiItineraryRef}
+              itineraryId={aiItineraryId}
               userId={session?.user.id ?? ''}
               currentUserName={profile?.name}
               currentUserAvatarUrl={profile?.avatarUrl}
               showHeader={false}
-              onBack={() => setShowManualEntry(false)}
+              onBack={handleSwitchToChat}
             />
-          </View>
-          <View style={{ flex: 1, display: showManualEntry ? 'none' : 'flex' }}>
-            <DoraConversationScreen
-              userName={profile?.name}
-              persona={profile?.persona}
-              hideHeader
-            />
-          </View>
+          )}
         </View>
+
+        {/* AI Chat */}
+        <View style={{ flex: 1, display: viewMode === 'chat' ? 'flex' : 'none' }}>
+          <DoraConversationScreen
+            userName={profile?.name}
+            userId={session?.user.id}
+            persona={profile?.persona}
+            isOnboarding={fromOnboarding === 'true'}
+            onFinish={() => router.navigate('/(tabs)')}
+            hideHeader
+            onItineraryCreated={handleItineraryCreated}
+            onSwitchToItinerary={handleSwitchToItinerary}
+            onItineraryModified={handleItineraryModified}
+          />
+        </View>
+      </View>
+
       <Modal visible={showDialog} transparent animationType="fade">
         <BlurView intensity={20} tint="dark" style={styles.scrim}>
           <View style={styles.dialog}>
@@ -126,7 +221,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: HEADER_RIGHT_GAP,
+    gap: 24,
   },
   headerPrimaryBtn: {
     flexDirection: 'row',
@@ -136,22 +231,13 @@ const styles = StyleSheet.create({
   headerPrimaryLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: HEADER_ICON_COLOR,
+    color: '#FFFFFF',
   },
   headerIconBtn: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  manualPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  manualPlaceholderText: {
-    fontSize: 14,
-    color: '#71717A',
   },
   scrim: {
     flex: 1,

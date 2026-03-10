@@ -17,24 +17,36 @@ import { DoraMessage, TypingIndicator } from '../components/DoraMessage';
 import { DoraInput } from '../components/DoraInput';
 import { DoraSuggestionCard } from '../components/DoraSuggestionCard';
 import { ImportTripPlanCard } from '../components/ImportTripPlanCard';
+import { TripDetailsFormCard } from '../components/TripDetailsFormCard';
+import { TripSummaryCard } from '../components/TripSummaryCard';
 import { useItineraryDependencies } from '../../di/useItineraryDependencies';
 import type { DoraMessage as DoraMsg, DoraPersona } from '../../domain/entities/DoraMessage';
+import type {
+  TripFormData,
+  FormSuggestions,
+  ChatMessageType,
+} from '../../domain/entities/ChatSession';
 
 const ACCENT_COLOR = '#44FFFF';
 
 interface DoraConversationScreenProps {
   userName?: string | null;
+  userId?: string | null;
   persona?: DoraPersona | null;
   isOnboarding?: boolean;
   onFinish?: () => void;
-  /** When true, do not render the header (parent provides it, e.g. Create tab). */
   hideHeader?: boolean;
+  onItineraryCreated?: (itineraryId: string) => void;
+  onSwitchToItinerary?: () => void;
+  onItineraryModified?: () => void;
 }
 
 interface UiMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  messageType: ChatMessageType;
+  metadata?: Record<string, unknown> | null;
 }
 
 const SUGGESTIONS = [
@@ -44,63 +56,249 @@ const SUGGESTIONS = [
 
 export function DoraConversationScreen({
   userName,
+  userId,
   persona,
   isOnboarding,
   onFinish,
   hideHeader,
+  onItineraryCreated,
+  onSwitchToItinerary,
+  onItineraryModified,
 }: DoraConversationScreenProps) {
-  const { sendDoraMessageUseCase } = useItineraryDependencies();
+  const {
+    sendDoraMessageUseCase,
+    sendChatMessageUseCase,
+    createChatSessionUseCase,
+    chatRepository,
+  } = useItineraryDependencies();
+
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [itineraryId, setItineraryId] = useState<string | null>(null);
+  const [tripDetails, setTripDetails] = useState<TripFormData | null>(null);
+  const [pendingFormSuggestions, setPendingFormSuggestions] =
+    useState<FormSuggestions | null>(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
+  const flatListRef = useRef<FlatList>(null);
   const userInitials = userName?.[0]?.toUpperCase() ?? '?';
 
-  const sendToAI = useCallback(async (history: UiMessage[]) => {
-    setIsTyping(true);
-    try {
-      const apiMessages: DoraMsg[] = history.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-      const result = await sendDoraMessageUseCase.execute({ messages: apiMessages, persona, isOnboarding });
-      if (!result.success) throw new Error(result.error?.message);
-
-      const aiMsg: UiMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: result.data.reply,
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-
-      if (result.data.isComplete && isOnboarding) {
-        setTimeout(() => setShowModal(true), 600);
-      }
-    } catch {
-      const errMsg: UiMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: "I'm having a moment — could you try again?",
-      };
-      setMessages((prev) => [...prev, errMsg]);
-    } finally {
-      setIsTyping(false);
+  // Create a session on first interaction
+  const ensureSession = useCallback(async (): Promise<string | null> => {
+    if (sessionId) return sessionId;
+    if (!userId) return null;
+    const result = await createChatSessionUseCase.execute({
+      userId,
+    });
+    if (result.success) {
+      setSessionId(result.data.id);
+      return result.data.id;
     }
-  }, [persona, isOnboarding]);
+    return null;
+  }, [sessionId, userId, createChatSessionUseCase]);
+
+  // Persist a message to the DB (fire-and-forget)
+  const persistMessage = useCallback(
+    (
+      sid: string | null,
+      role: 'user' | 'assistant',
+      content: string,
+      messageType: ChatMessageType,
+      metadata?: Record<string, unknown> | null,
+    ) => {
+      if (!sid) return;
+      chatRepository
+        .saveMessage(sid, {
+          sessionId: sid,
+          role,
+          content,
+          messageType,
+          metadata: metadata ?? null,
+        })
+        .catch(() => {});
+    },
+    [chatRepository],
+  );
 
   // Auto-scroll on new messages
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(
+        () => flatListRef.current?.scrollToEnd({ animated: true }),
+        100,
+      );
     }
   }, [messages, isTyping]);
+
+  const sendToAI = useCallback(
+    async (history: UiMessage[], currentTripDetails?: TripFormData | null) => {
+      setIsTyping(true);
+      try {
+        const currentSession = await ensureSession();
+
+        // Persist the latest user message
+        const lastUserMsg = [...history].reverse().find((m) => m.role === 'user');
+        if (lastUserMsg && currentSession) {
+          persistMessage(
+            currentSession,
+            'user',
+            lastUserMsg.content,
+            lastUserMsg.messageType,
+            lastUserMsg.metadata,
+          );
+        }
+
+        // Build API messages (text-only for OpenAI)
+        const apiMessages: DoraMsg[] = history
+          .filter(
+            (m) => m.messageType === 'text' || m.messageType === 'trip_summary',
+          )
+          .map((m) => ({
+            role: m.role,
+            content: m.content,
+          }));
+
+        if (isOnboarding) {
+          const result = await sendDoraMessageUseCase.execute({
+            messages: apiMessages,
+            persona,
+            isOnboarding: true,
+          });
+          if (!result.success) throw new Error(result.error?.message);
+
+          const aiMsg: UiMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: result.data.reply,
+            messageType: 'text',
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          persistMessage(currentSession, 'assistant', result.data.reply, 'text');
+
+          if (result.data.isComplete) {
+            setTimeout(() => setShowModal(true), 600);
+          }
+          return;
+        }
+
+        const detailsToSend = currentTripDetails ?? tripDetails;
+        const result = await sendChatMessageUseCase.execute({
+          messages: apiMessages,
+          persona,
+          sessionId: currentSession ?? undefined,
+          userId: userId ?? undefined,
+          tripDetails: detailsToSend ?? undefined,
+          itineraryId: itineraryId ?? undefined,
+        });
+
+        if (!result.success) throw new Error(result.error?.message);
+
+        const { action, formSuggestions, itineraryId: newItineraryId } =
+          result.data;
+
+        if (action === 'show_trip_form') {
+          if (result.data.reply) {
+            const aiTextMsg: UiMessage = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: result.data.reply,
+              messageType: 'text',
+            };
+            setMessages((prev) => [...prev, aiTextMsg]);
+            persistMessage(currentSession, 'assistant', result.data.reply, 'text');
+          }
+
+          setPendingFormSuggestions(formSuggestions ?? null);
+          const formMsg: UiMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: '',
+            messageType: 'trip_form',
+            metadata: { formSuggestions },
+          };
+          setMessages((prev) => [...prev, formMsg]);
+          persistMessage(currentSession, 'assistant', '', 'trip_form', { formSuggestions });
+          return;
+        }
+
+        if (action === 'itinerary_generated') {
+          if (newItineraryId) {
+            setItineraryId(newItineraryId);
+            onItineraryCreated?.(newItineraryId);
+          }
+
+          const aiMsg: UiMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: result.data.reply,
+            messageType: 'itinerary_result',
+            metadata: {
+              itineraryId: newItineraryId,
+            },
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          persistMessage(currentSession, 'assistant', result.data.reply, 'itinerary_result', {
+            itineraryId: newItineraryId,
+          });
+          return;
+        }
+
+        if (action === 'itinerary_modified') {
+          const aiMsg: UiMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: result.data.reply,
+            messageType: 'text',
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          persistMessage(currentSession, 'assistant', result.data.reply, 'text');
+          onItineraryModified?.();
+          return;
+        }
+
+        const aiMsg: UiMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: result.data.reply,
+          messageType: 'text',
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+        persistMessage(currentSession, 'assistant', result.data.reply, 'text');
+      } catch {
+        const errMsg: UiMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: "I'm having a moment — could you try again?",
+          messageType: 'error',
+        };
+        setMessages((prev) => [...prev, errMsg]);
+      } finally {
+        setIsTyping(false);
+      }
+    },
+    [
+      persona,
+      isOnboarding,
+      tripDetails,
+      itineraryId,
+      userId,
+      ensureSession,
+      persistMessage,
+      sendDoraMessageUseCase,
+      sendChatMessageUseCase,
+      onItineraryCreated,
+      onItineraryModified,
+    ],
+  );
 
   const handleSend = (text: string) => {
     const userMsg: UiMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: text,
+      messageType: 'text',
     };
     const next = [...messages, userMsg];
     setMessages(next);
@@ -115,9 +313,86 @@ export function DoraConversationScreen({
     // TODO: open import flow / paste modal
   };
 
-  const renderItem = ({ item }: { item: UiMessage }) => (
-    <DoraMessage role={item.role} content={item.content} userInitials={userInitials} />
-  );
+  const handleFormSubmit = (data: TripFormData) => {
+    setTripDetails(data);
+    setFormSubmitted(true);
+
+    const summaryMsg: UiMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `${data.title} — ${data.destination}`,
+      messageType: 'trip_summary',
+      metadata: { tripDetails: data },
+    };
+
+    const updatedMessages = [...messages, summaryMsg];
+    setMessages(updatedMessages);
+    persistMessage(sessionId, 'assistant', summaryMsg.content, 'trip_summary', { tripDetails: data });
+
+    const contextContent = `I've set my trip details: "${data.title}" to ${data.destination}, from ${data.startDate} to ${data.endDate}, budget: ${data.budget}. Please generate my itinerary!`;
+    const contextMessage: UiMessage = {
+      id: (Date.now() + 1).toString(),
+      role: 'user',
+      content: contextContent,
+      messageType: 'text',
+    };
+
+    const messagesForAI = [...updatedMessages, contextMessage];
+    setMessages(messagesForAI);
+    persistMessage(sessionId, 'user', contextContent, 'text');
+    sendToAI(messagesForAI, data);
+  };
+
+  const renderItem = ({ item }: { item: UiMessage }) => {
+    if (item.messageType === 'trip_form' && !formSubmitted) {
+      return (
+        <TripDetailsFormCard
+          suggestions={pendingFormSuggestions}
+          onSubmit={handleFormSubmit}
+          disabled={isTyping}
+        />
+      );
+    }
+
+    if (item.messageType === 'trip_summary') {
+      const details = item.metadata?.tripDetails as TripFormData | undefined;
+      if (details) {
+        return <TripSummaryCard tripDetails={details} />;
+      }
+    }
+
+    if (item.messageType === 'itinerary_result') {
+      return (
+        <View style={styles.itineraryResultContainer}>
+          <DoraMessage
+            role={item.role}
+            content={item.content}
+            userInitials={userInitials}
+          />
+          {itineraryId && onSwitchToItinerary && (
+            <TouchableOpacity
+              style={styles.viewItineraryBtn}
+              onPress={onSwitchToItinerary}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="map-outline" size={16} color="#FFFFFF" />
+              <AppText style={styles.viewItineraryBtnText}>
+                View Itinerary
+              </AppText>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
+    return (
+      <DoraMessage
+        role={item.role}
+        content={item.content}
+        userInitials={userInitials}
+      />
+    );
+  };
 
   const showInitialView = messages.length === 0 && !isTyping;
 
@@ -127,8 +402,26 @@ export function DoraConversationScreen({
         <AppHeader
           variant="dark"
           right={
-            <View style={styles.notifBtn}>
-              <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
+            <View style={styles.headerRight}>
+              {itineraryId && onSwitchToItinerary && (
+                <TouchableOpacity
+                  onPress={onSwitchToItinerary}
+                  activeOpacity={0.8}
+                  style={styles.headerPrimaryBtn}
+                >
+                  <Ionicons name="map-outline" size={16} color="#FFFFFF" />
+                  <AppText style={styles.headerPrimaryLabel}>
+                    Itinerary
+                  </AppText>
+                </TouchableOpacity>
+              )}
+              <View style={styles.notifBtn}>
+                <Ionicons
+                  name="notifications-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
+              </View>
             </View>
           }
         />
@@ -146,31 +439,32 @@ export function DoraConversationScreen({
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* Greeting */}
               <AppText style={styles.greetingText}>
                 I'm{' '}
                 <AppText style={styles.greetingAccent}>dora</AppText>
                 , your personal{'\n'}travel agent.
               </AppText>
 
-              {/* Initial Dora message */}
               <View style={styles.initialMessageRow}>
                 <Image
                   source={require('../../../../assets/images/avatar.png')}
                   style={styles.doraAvatar}
                 />
                 <AppText style={styles.initialMessageText}>
-                  Where are you dreaming of going next? Just tell me a place or a vibe.
+                  Where are you dreaming of going next? Just tell me a place or
+                  a vibe.
                 </AppText>
               </View>
 
-              {/* Import trip plan card */}
               <ImportTripPlanCard onPress={handleImportPress} />
 
-              {/* Suggestion cards */}
               <View style={styles.suggestionsRow}>
                 {SUGGESTIONS.map((s) => (
-                  <DoraSuggestionCard key={s} text={s} onPress={handleSuggestionPress} />
+                  <DoraSuggestionCard
+                    key={s}
+                    text={s}
+                    onPress={handleSuggestionPress}
+                  />
                 ))}
               </View>
             </ScrollView>
@@ -190,7 +484,6 @@ export function DoraConversationScreen({
         <DoraInput onSend={handleSend} disabled={isTyping} />
       </KeyboardAvoidingView>
 
-      {/* Completion Modal */}
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
@@ -213,14 +506,18 @@ export function DoraConversationScreen({
                 onPress={onFinish}
                 activeOpacity={0.8}
               >
-                <AppText style={styles.modalBtnOutlineText}>Go to Homepage</AppText>
+                <AppText style={styles.modalBtnOutlineText}>
+                  Go to Homepage
+                </AppText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalBtnFilled}
                 onPress={onFinish}
                 activeOpacity={0.8}
               >
-                <AppText style={styles.modalBtnFilledText}>Let's start!</AppText>
+                <AppText style={styles.modalBtnFilledText}>
+                  Let's start!
+                </AppText>
               </TouchableOpacity>
             </View>
           </View>
@@ -233,6 +530,21 @@ export function DoraConversationScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF' },
   flex: { flex: 1 },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerPrimaryLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
   notifBtn: {
     width: 36,
     height: 36,
@@ -242,7 +554,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Initial view
   initialContent: {
     paddingHorizontal: 24,
     paddingTop: 32,
@@ -282,12 +593,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  // Chat list
   listContent: {
     paddingTop: 20,
     paddingBottom: 8,
   },
-  // Modal
+  itineraryResultContainer: {
+    gap: 12,
+  },
+  viewItineraryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#18181B',
+    borderRadius: 999,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  viewItineraryBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',

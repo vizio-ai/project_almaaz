@@ -1,6 +1,7 @@
 import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../supabase';
+import { fetchWithTimeout } from '../http/fetchWithTimeout';
 import type {
   ManualItineraryRepository,
   CreateItineraryParams,
@@ -58,7 +59,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
       const { data: daysData, error: daysError } = await supabase
         .from('itinerary_days')
-        .select('id, day_number, date, notes, accommodation, accommodation_latitude, accommodation_longitude')
+        .select('id, day_number, date, notes, summary, accommodation, accommodation_latitude, accommodation_longitude')
         .eq('itinerary_id', id)
         .order('day_number', { ascending: true });
 
@@ -69,6 +70,7 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
         dayNumber: d.day_number,
         date: d.date,
         notes: d.notes ?? null,
+        summary: d.summary ?? null,
         accommodation: d.accommodation ?? null,
         accommodationLatitude: d.accommodation_latitude ?? null,
         accommodationLongitude: d.accommodation_longitude ?? null,
@@ -387,4 +389,40 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       }
     },
   };
+}
+
+// ─── AI Summary Generation ─────────────────────────────────────────────────
+
+const FUNCTIONS_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ??
+  `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
+
+function getSummaryHeaders(): Record<string, string> {
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY is required');
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${anonKey}`,
+  };
+}
+
+/**
+ * Calls the generate-summaries edge function to create AI summaries
+ * for each day in the given itinerary. Fire-and-forget safe.
+ */
+export async function generateItinerarySummaries(
+  itineraryId: string,
+): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(`${FUNCTIONS_URL}/generate-summaries`, {
+      method: 'POST',
+      headers: getSummaryHeaders(),
+      body: JSON.stringify({ itineraryId }),
+      timeout: 30_000,
+    });
+    const data = await res.json();
+    return data.success === true;
+  } catch {
+    return false;
+  }
 }

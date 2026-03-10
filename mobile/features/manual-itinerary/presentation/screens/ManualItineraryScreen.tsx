@@ -29,6 +29,7 @@ import { useActivityMutations } from '../hooks/useActivityMutations';
 import { useDayMutations } from '../hooks/useDayMutations';
 import { useTravelInfoMutations } from '../hooks/useTravelInfoMutations';
 import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider';
+import { useAutoSummary } from '../hooks/useAutoSummary';
 import { DaySection } from '../components/DaySection';
 import { TravelInfoFormModal } from '../components/TravelInfoFormModal';
 import { TravelInfoSection } from '../components/TravelInfoSection';
@@ -142,6 +143,7 @@ export const ManualItineraryScreen = React.forwardRef<
     itineraryId,
     refresh,
   );
+  const { isGenerating: isGeneratingSummary, triggerSummary } = useAutoSummary(itineraryId, refresh);
 
   // ── Create mode state ──────────────────────────────────────────────────────
   const [draftCoverUri, setDraftCoverUri] = useState<string | null>(null);
@@ -309,6 +311,43 @@ export const ManualItineraryScreen = React.forwardRef<
     await manualItineraryRepository.update(itineraryId, { endDate: newEndStr });
     setEditEndDate(newEndStr ? new Date(newEndStr) : null);
   }, [days, itineraryId, removeDay, manualItineraryRepository]);
+
+  // ── Wrap mutations to trigger summary generation ────────────────────────
+  const addActivityWithSummary = useCallback(
+    async (dayId: string, params: import('../../domain/repository/ManualItineraryRepository').AddActivityParams) => {
+      const result = await addActivity(dayId, params);
+      if (result.success) triggerSummary();
+      return result;
+    },
+    [addActivity, triggerSummary],
+  );
+
+  const updateActivityWithSummary = useCallback(
+    async (activityId: string, params: import('../../domain/repository/ManualItineraryRepository').UpdateActivityParams) => {
+      const result = await updateActivity(activityId, params);
+      if (result.success) triggerSummary();
+      return result;
+    },
+    [updateActivity, triggerSummary],
+  );
+
+  const removeActivityWithSummary = useCallback(
+    async (activityId: string) => {
+      const result = await removeActivity(activityId);
+      if (result.success) triggerSummary();
+      return result;
+    },
+    [removeActivity, triggerSummary],
+  );
+
+  const updateDayWithSummary = useCallback(
+    async (dayId: string, params: import('../../domain/repository/ManualItineraryRepository').UpdateDayParams) => {
+      const result = await updateDay(dayId, params);
+      if (result.success) triggerSummary();
+      return result;
+    },
+    [updateDay, triggerSummary],
+  );
 
   const effectiveDays: ItineraryDay[] = React.useMemo(
     () => (isNew ? buildDraftDays(draftStartDate, draftEndDate) : days),
@@ -798,10 +837,10 @@ export const ManualItineraryScreen = React.forwardRef<
           activitiesByDay={activitiesByDay}
           collapsedDays={collapsedDays}
           onToggleDay={toggleDay}
-          onAddActivity={addActivity}
-          onEditActivity={updateActivity}
-          onRemoveActivity={removeActivity}
-          onUpdateDay={updateDay}
+          onAddActivity={addActivityWithSummary}
+          onEditActivity={updateActivityWithSummary}
+          onRemoveActivity={removeActivityWithSummary}
+          onUpdateDay={updateDayWithSummary}
           onRemoveDay={handleRemoveDay}
           onAddDay={handleAddDay}
           onUpdateActivityLocation={updateActivityLocation}
@@ -823,6 +862,8 @@ export const ManualItineraryScreen = React.forwardRef<
           }}
           onReorderDays={reorderDays}
           readOnly={!isOwner}
+          isAiGenerated={itinerary?.isAiGenerated}
+          isGeneratingSummary={isGeneratingSummary}
         />
 
         <View style={{ height: spacing['2xl'] }} />

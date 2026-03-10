@@ -7,6 +7,7 @@ import { WizardBasicDetailsStep } from '../components/wizard/WizardBasicDetailsS
 import { WizardTravelInfoStep, type WizardDraftTravelInfo } from '../components/wizard/WizardTravelInfoStep';
 import { WizardTripPlanStep, type WizardDraftDay } from '../components/wizard/WizardTripPlanStep';
 import { WizardConfirmationStep } from '../components/wizard/WizardConfirmationStep';
+import { generateItinerarySummaries } from '../../../../infrastructure/manual-itinerary';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -260,6 +261,9 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
           });
         }
       }
+
+      // Fire-and-forget: generate AI summaries in background
+      generateItinerarySummaries(itineraryId).catch(() => {});
 
       resetWizardState();
       onDone();

@@ -16,10 +16,11 @@ import { FollowProvider, type FollowExternalDependencies } from '@shared/follow'
 import { createAuthRemoteDataSource } from '@/infrastructure/auth';
 import { createProfileRemoteDataSource } from '@/infrastructure/profile';
 import { createTripRemoteDataSource } from '@/infrastructure/trips';
-import { createDoraRemoteDataSource } from '@/infrastructure/itinerary';
+import { createDoraRemoteDataSource, createChatRemoteDataSource } from '@/infrastructure/itinerary';
 import { createAdminRemoteDataSource } from '@/infrastructure/admin';
 import { createFollowRemoteDataSource } from '@/infrastructure/follow';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
+import { supabase } from '@/infrastructure/supabase/SupabaseClient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
@@ -42,8 +43,11 @@ const tripExternalDeps: TripExternalDependencies = {
 };
 
 const _doraDataSource = createDoraRemoteDataSource();
+const _chatDataSource = createChatRemoteDataSource();
 const itineraryExternalDeps: ItineraryExternalDependencies = {
   doraRemoteDataSource: _doraDataSource,
+  chatRemoteDataSource: _chatDataSource,
+  supabaseClient: supabase,
 };
 
 const _adminDataSource = createAdminRemoteDataSource();

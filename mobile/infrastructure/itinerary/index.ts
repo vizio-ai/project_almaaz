@@ -1,4 +1,4 @@
-import type { DoraRemoteDataSource } from '@shared/itinerary';
+import type { DoraRemoteDataSource, ChatRemoteDataSource } from '@shared/itinerary';
 import { fetchWithTimeout } from '../http/fetchWithTimeout';
 
 const FUNCTIONS_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
@@ -24,6 +24,31 @@ export function createDoraRemoteDataSource(): DoraRemoteDataSource {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Dora is unavailable right now');
       return { reply: data.reply, isComplete: data.isComplete ?? false };
+    },
+  };
+}
+
+export function createChatRemoteDataSource(): ChatRemoteDataSource {
+  return {
+    async sendMessage(request) {
+      const res = await fetchWithTimeout(`${FUNCTIONS_URL}/dora-chat`, {
+        method: 'POST',
+        headers: getFunctionsHeaders(),
+        body: JSON.stringify(request),
+        timeout: 60_000,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Dora is unavailable right now');
+      return {
+        reply: data.reply,
+        isComplete: data.isComplete ?? false,
+        action: data.action ?? null,
+        formSuggestions: data.formSuggestions ?? null,
+        itineraryId: data.itineraryId ?? null,
+        generatedItinerary: data.generatedItinerary,
+        modification: data.modification,
+        success: data.success,
+      };
     },
   };
 }

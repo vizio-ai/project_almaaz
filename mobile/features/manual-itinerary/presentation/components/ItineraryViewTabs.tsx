@@ -41,6 +41,8 @@ export interface ItineraryViewTabsProps {
   onDraftAccommodationChange?: (accommodation: Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>) => void;
   onReorderDays?: (orderedDayIds: string[]) => Promise<unknown>;
   readOnly?: boolean;
+  isAiGenerated?: boolean;
+  isGeneratingSummary?: boolean;
 }
 
 export function ItineraryViewTabs({
@@ -66,6 +68,8 @@ export function ItineraryViewTabs({
   onDraftAccommodationChange,
   onReorderDays,
   readOnly = false,
+  isAiGenerated = false,
+  isGeneratingSummary = false,
 }: ItineraryViewTabsProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
@@ -125,7 +129,15 @@ export function ItineraryViewTabs({
         />
       )}
 
-      {viewTab === 'summary' && <SummaryItineraryTab secondary={secondary} />}
+      {viewTab === 'summary' && (
+        <SummaryItineraryTab
+          secondary={secondary}
+          isAiGenerated={isAiGenerated}
+          days={days}
+          activitiesByDay={activitiesByDay}
+          isGeneratingSummary={isGeneratingSummary}
+        />
+      )}
       {viewTab === 'map' && (
         <MapItineraryTab
           secondary={secondary}
