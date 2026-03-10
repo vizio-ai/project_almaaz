@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
-const SERP_API_KEY = Deno.env.get('SERP_API_KEY') ?? '';
+const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -179,25 +179,41 @@ const tools = [
   },
 ];
 
-// ── SerpAPI helper ─────────────────────────────────────────
+// ── Nominatim (OpenStreetMap) geocoding helper ────────────
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function verifyLocation(
   query: string,
 ): Promise<{ lat?: number; lng?: number; description?: string } | null> {
-  if (!SERP_API_KEY) return null;
   try {
-    const url = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(query)}&api_key=${SERP_API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const place = data.local_results?.[0] ?? data.place_results;
-    if (!place) return null;
+    const url = `${NOMINATIM_BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+    console.log('[geocode] querying:', query);
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'dora-travel-app/1.0' },
+    });
+    if (!res.ok) {
+      console.error('[geocode] HTTP error:', res.status, res.statusText);
+      return null;
+    }
+    const results = await res.json();
+    if (!results || results.length === 0) {
+      console.log('[geocode] no results for:', query);
+      return null;
+    }
+    const place = results[0];
+    const lat = parseFloat(place.lat);
+    const lng = parseFloat(place.lon);
+    console.log('[geocode] found:', query, '->', lat, lng);
     return {
-      lat: place.gps_coordinates?.latitude,
-      lng: place.gps_coordinates?.longitude,
-      description: place.description || place.snippet || null,
+      lat,
+      lng,
+      description: place.display_name || null,
     };
-  } catch {
+  } catch (e) {
+    console.error('[geocode] error:', e);
     return null;
   }
 }
@@ -313,9 +329,9 @@ async function createItineraryInDb(
         day_number: day.dayNumber,
         date: day.date,
         sort_order: day.dayNumber,
-        accommodation: day.accommodation || null,
-        accommodation_latitude: day.accommodationLatitude || null,
-        accommodation_longitude: day.accommodationLongitude || null,
+        accommodation: day.accommodation ?? null,
+        accommodation_latitude: day.accommodationLatitude ?? null,
+        accommodation_longitude: day.accommodationLongitude ?? null,
         summary: day.summary || null,
       })
       .select('id')
@@ -326,17 +342,19 @@ async function createItineraryInDb(
       continue;
     }
 
-    const activities = day.activities.map((act, idx) => ({
+    const activities = day.activities.map((act, idx) => {
+      console.log(`[db] activity "${act.name}" lat=${act.latitude} lng=${act.longitude} loc="${act.locationText}"`);
+      return {
       day_id: dayRow.id,
       sort_order: idx + 1,
       name: act.name,
       activity_type: act.activityType,
       start_time: act.startTime,
       location_text: act.locationText,
-      latitude: act.latitude || null,
-      longitude: act.longitude || null,
-      description: act.description || null,
-    }));
+      latitude: act.latitude ?? null,
+      longitude: act.longitude ?? null,
+      description: act.description ?? null,
+    };});
 
     if (activities.length > 0) {
       const { error: actErr } = await sb
@@ -360,6 +378,15 @@ async function modifyItineraryInDb(
   const sb = getSupabaseAdmin();
 
   if (action === 'add_activity' && dayNumber && activity) {
+    // Geocode if coordinates are missing
+    if (!activity.latitude && activity.locationText) {
+      const loc = await verifyLocation(`${activity.name} ${activity.locationText}`);
+      if (loc) {
+        activity.latitude = loc.lat ?? null;
+        activity.longitude = loc.lng ?? null;
+      }
+    }
+
     const { data: day } = await sb
       .from('itinerary_days')
       .select('id')
@@ -385,9 +412,9 @@ async function modifyItineraryInDb(
       activity_type: activity.activityType,
       start_time: activity.startTime,
       location_text: activity.locationText,
-      latitude: activity.latitude || null,
-      longitude: activity.longitude || null,
-      description: activity.description || null,
+      latitude: activity.latitude ?? null,
+      longitude: activity.longitude ?? null,
+      description: activity.description ?? null,
     });
 
     return !error;
@@ -425,6 +452,15 @@ async function modifyItineraryInDb(
     activityIndex != null &&
     activity
   ) {
+    // Geocode if coordinates are missing
+    if (!activity.latitude && activity.locationText) {
+      const loc = await verifyLocation(`${activity.name} ${activity.locationText}`);
+      if (loc) {
+        activity.latitude = loc.lat ?? null;
+        activity.longitude = loc.lng ?? null;
+      }
+    }
+
     const { data: day } = await sb
       .from('itinerary_days')
       .select('id')
@@ -449,9 +485,9 @@ async function modifyItineraryInDb(
         activity_type: activity.activityType,
         start_time: activity.startTime,
         location_text: activity.locationText,
-        latitude: activity.latitude || null,
-        longitude: activity.longitude || null,
-        description: activity.description || null,
+        latitude: activity.latitude ?? null,
+        longitude: activity.longitude ?? null,
+        description: activity.description ?? null,
       })
       .eq('id', activities[activityIndex].id);
 
@@ -653,6 +689,8 @@ Generate a complete day-by-day itinerary using the generate_itinerary function. 
                   act.description = loc.description;
                 }
               }
+              // Nominatim rate limit: max 1 request/second
+              await delay(1100);
             }
           }
         }

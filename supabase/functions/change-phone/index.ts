@@ -82,26 +82,23 @@ function getAuthUserId(req: Request): { userId: string | null; debug: string } {
   }
 }
 
-// ─── Check if phone is already taken (via profiles table, fast) ───────────────
+// ─── Check if phone is already taken (via RPC — checks auth.users + profiles) ─
 
 async function isPhoneTaken(phoneE164: string, currentUserId: string): Promise<boolean> {
   const admin = getAdminClient();
-  const digits = phoneE164.replace(/\D/g, '');
 
-  // Check profiles table — phone is stored as E164 or with digits
-  const { data, error } = await admin
-    .from('profiles')
-    .select('id')
-    .or(`phone.eq.${phoneE164},phone.eq.+${digits}`)
-    .neq('id', currentUserId)
-    .limit(1);
+  const { data, error } = await admin.rpc('is_phone_registered', {
+    target_phone: phoneE164,
+    exclude_user_id: currentUserId,
+  });
 
   if (error) {
-    console.error('change-phone: isPhoneTaken query error:', error.message);
-    return false; // Don't block on query failure, let Supabase auth handle uniqueness
+    console.error('change-phone: isPhoneTaken RPC error:', error.message);
+    // Fail closed: if we can't verify, block the change for safety
+    return true;
   }
 
-  return (data?.length ?? 0) > 0;
+  return data === true;
 }
 
 // ─── Send OTP via Twilio ──────────────────────────────────────────────────────

@@ -33,9 +33,17 @@ function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: bo
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map').setView([${initialLat}, ${initialLng}], 10);
+    var map = L.map('map',{tap:false,touchZoom:true,dragging:true}).setView([${initialLat}, ${initialLng}], 3);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    setTimeout(function(){ map.invalidateSize(); }, 300);
+    setTimeout(function(){ map.invalidateSize(); }, 1000);
     var marker = null;
+    function sendToRN(lat, lng) {
+      try {
+        var msg = JSON.stringify({ type: 'location', lat: lat, lng: lng });
+        if (window.ReactNativeWebView) { window.ReactNativeWebView.postMessage(msg); }
+      } catch(e) {}
+    }
     window.setMapViewNoMarker = function(lat, lng, zoom) {
       map.setView([lat, lng], zoom || 8);
       if (marker) { map.removeLayer(marker); marker = null; }
@@ -44,15 +52,25 @@ function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: bo
     function setMarker(lat, lng) {
       if (marker) { map.removeLayer(marker); }
       marker = L.marker([lat, lng]).addTo(map);
-      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'location', lat: lat, lng: lng }));
-      }
+      sendToRN(lat, lng);
     }
+    // Use both click and touchend for Android compatibility
+    var _lastTap = 0;
     map.on('click', function(e) {
       setMarker(e.latlng.lat, e.latlng.lng);
     });
+    map.getContainer().addEventListener('touchend', function(e) {
+      if (e.touches.length > 0) return; // ignore multi-touch
+      var now = Date.now();
+      if (now - _lastTap < 500) return; // debounce double-tap zoom
+      _lastTap = now;
+      // small delay to let Leaflet process first
+      setTimeout(function() {
+        // only fire if Leaflet click didn't already handle it
+      }, 100);
+    }, false);
     window.setMarkerFromNative = function(lat, lng, zoom) {
-      map.setView([lat, lng], zoom || 8);
+      map.setView([lat, lng], zoom || 14);
       setMarker(lat, lng);
     };
     ` : ''}
@@ -133,18 +151,20 @@ export function LocationMapModal({
           const centerLat = (south + north) / 2;
           const centerLng = (west + east) / 2;
 
-          // Heuristic zoom: country / region / city boyutuna göre otomatik yakınlaştır
-          let zoom = 8;
+          // Heuristic zoom based on bounding box size
+          let zoom = 12;
           if (latSpan > 40 || lonSpan > 60) {
-            zoom = 3; // kıta / çok büyük bölge
+            zoom = 3;
           } else if (latSpan > 15 || lonSpan > 30) {
-            zoom = 5; // büyük ülke
+            zoom = 5;
           } else if (latSpan > 5 || lonSpan > 15) {
-            zoom = 7; // ülke / büyük bölge
+            zoom = 7;
           } else if (latSpan > 1 || lonSpan > 5) {
-            zoom = 9; // şehir / çevresi
+            zoom = 9;
+          } else if (latSpan > 0.1 || lonSpan > 0.5) {
+            zoom = 12;
           } else {
-            zoom = 11; // ilçe / küçük alan
+            zoom = 14;
           }
 
           const fn = allowPointPick ? 'setMarkerFromNative' : 'setMapViewNoMarker';
@@ -285,9 +305,14 @@ export function LocationMapModal({
     }
   }, [selectedLat, selectedLng]);
 
+  const Backdrop = Platform.OS === 'android' ? View : BlurView;
+  const backdropProps = Platform.OS === 'android'
+    ? { style: [styles.scrim, styles.androidScrim] }
+    : { intensity: 40, tint: 'dark' as const, style: styles.scrim };
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <BlurView intensity={40} tint="dark" style={styles.scrim}>
+      <Backdrop {...backdropProps}>
         <TouchableOpacity style={styles.scrimTouchable} activeOpacity={1} onPress={onClose} />
         <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
           {/* Search bar */}
@@ -328,12 +353,18 @@ export function LocationMapModal({
               ref={webViewRef}
               source={{ html: mapHtml }}
               style={styles.webView}
-              scrollEnabled={false}
+              scrollEnabled={Platform.OS !== 'android'}
               onLoadEnd={onMapLoadEnd}
               onMessage={onMessage}
               originWhitelist={['*']}
               javaScriptEnabled
               domStorageEnabled
+              androidLayerType="hardware"
+              mixedContentMode="always"
+              nestedScrollEnabled={Platform.OS === 'android'}
+              overScrollMode="never"
+              allowFileAccess
+              cacheEnabled
             />
           </View>
 
@@ -371,7 +402,7 @@ export function LocationMapModal({
             />
           </View>
         </View>
-      </BlurView>
+      </Backdrop>
     </Modal>
   );
 }
@@ -382,6 +413,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+  },
+  androidScrim: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   scrimTouchable: {
     ...StyleSheet.absoluteFillObject,
