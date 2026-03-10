@@ -39,9 +39,12 @@ function toPaceValue(label: string): string | null {
 
 function toJournalingValue(label: string): string | null {
   const map: Record<string, string> = {
+    'Visual Memory': 'photographer',
     Storyteller: 'storyteller',
-    Minimalist: 'minimalist',
+    'Just the moment': 'minimalist',
+    // Legacy labels (from edit profile or old onboarding)
     Photographer: 'photographer',
+    Minimalist: 'minimalist',
   };
   return map[label] ?? null;
 }
@@ -121,6 +124,8 @@ export function createProfileRemoteDataSource(): ProfileRemoteDataSource {
           username:       data.username,
           avatar_url:     data.avatar_url ?? null,
           bio:            data.bio,
+          birthday:       data.birthday ?? null,
+          location:       data.location ?? null,
           pace:           data.pace ?? null,
           interests:      data.interests ?? [],
           journaling:     data.journaling ?? null,
@@ -143,6 +148,30 @@ export function createProfileRemoteDataSource(): ProfileRemoteDataSource {
 
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
       return data.publicUrl;
+    },
+
+    subscribeToProfileChanges(userId: string, onChanged: (dto: ProfileRowDto) => void): () => void {
+      const channel = supabase
+        .channel(`profile-realtime-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`,
+          },
+          (payload) => {
+            if (payload.new) {
+              onChanged(payload.new as unknown as ProfileRowDto);
+            }
+          },
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     },
   };
 }

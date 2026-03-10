@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Share } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@shared/auth';
@@ -12,11 +12,17 @@ export default function ProfileTab() {
   const { profile, isLoading, error, clearError, refresh, updateProfile, uploadAvatar } = useProfile(session?.user.id);
 
   const [isEditing, setIsEditing] = useState(false);
+  // Skip the first focus event — useProfile already fetches on mount internally
+  const isInitialFocus = useRef(true);
 
   // Refresh profile counts whenever this screen regains focus
   // (e.g. returning from followers/following screens)
   useFocusEffect(
     useCallback(() => {
+      if (isInitialFocus.current) {
+        isInitialFocus.current = false;
+        return;
+      }
       if (!isEditing) refresh();
     }, [isEditing, refresh]),
   );
@@ -54,6 +60,7 @@ export default function ProfileTab() {
         onSave={updateProfile}
         onUploadAvatar={uploadAvatar}
         onBack={() => setIsEditing(false)}
+        onPhoneChanged={refresh}
       />
     );
   }

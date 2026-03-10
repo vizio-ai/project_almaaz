@@ -1,6 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Profile } from '../../domain/entities/Profile';
 import { useProfileDependencies } from '../../di/useProfileDependencies';
+
+const ACTIVE_STATUS_POLL_MS = 30_000;
+
+interface UseProfileOptions {
+  /** Enable realtime + polling sync for deactivation detection. Only use for the current auth user. */
+  enableActiveStatusSync?: boolean;
+}
 
 interface UseProfileResult {
   profile: Profile | null;
@@ -15,6 +23,8 @@ interface UseProfileResult {
     username: string | null;
     avatar_url: string | null;
     bio: string | null;
+    birthday: string | null;
+    location: string | null;
     pace: string | null;
     interests: string[];
     journaling: string | null;
@@ -23,8 +33,8 @@ interface UseProfileResult {
   uploadAvatar: (fileUri: string) => Promise<string | null>;
 }
 
-export function useProfile(userId: string | undefined): UseProfileResult {
-  const { getProfileUseCase, updateProfileUseCase, uploadAvatarUseCase } = useProfileDependencies();
+export function useProfile(userId: string | undefined, options?: UseProfileOptions): UseProfileResult {
+  const { getProfileUseCase, updateProfileUseCase, uploadAvatarUseCase, profileRepository } = useProfileDependencies();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,18 +47,57 @@ export function useProfile(userId: string | undefined): UseProfileResult {
     if (!userId) return;
     setIsLoading(true);
     setError(null);
-    const result = await getProfileUseCaseRef.current.execute({ userId });
-    if (result.success) {
-      setProfile(result.data);
-    } else {
-      setError(formatErrorMessage(result.error.message));
+    try {
+      const result = await getProfileUseCaseRef.current.execute({ userId });
+      if (result.success) {
+        setProfile(result.data);
+      } else {
+        setError(formatErrorMessage(result.error.message));
+      }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [userId]);
 
   useEffect(() => {
     if (userId) fetchProfile();
   }, [userId, fetchProfile, formatErrorMessage]);
+
+  const syncEnabled = options?.enableActiveStatusSync ?? false;
+
+  // Realtime listener: update local state when profile changes in DB (e.g. admin deactivation)
+  useEffect(() => {
+    if (!syncEnabled || !userId) return;
+    const unsubscribe = profileRepository.subscribeToProfileChanges(userId, (updated) => {
+      setProfile(updated);
+    });
+    return unsubscribe;
+  }, [syncEnabled, userId, profileRepository]);
+
+  // Polling fallback: re-fetch profile periodically and on app foreground
+  // to catch deactivation even if Realtime has connectivity issues.
+  useEffect(() => {
+    if (!syncEnabled || !userId) return;
+
+    const interval = setInterval(() => {
+      getProfileUseCaseRef.current.execute({ userId }).then((result) => {
+        if (result.success) setProfile(result.data);
+      });
+    }, ACTIVE_STATUS_POLL_MS);
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        getProfileUseCaseRef.current.execute({ userId }).then((result) => {
+          if (result.success) setProfile(result.data);
+        });
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
+  }, [syncEnabled, userId]);
 
   const updateProfile = useCallback(
     async (params: {
@@ -58,6 +107,8 @@ export function useProfile(userId: string | undefined): UseProfileResult {
       username: string | null;
       avatar_url: string | null;
       bio: string | null;
+      birthday: string | null;
+      location: string | null;
       pace: string | null;
       interests: string[];
       journaling: string | null;
@@ -82,8 +133,11 @@ export function useProfile(userId: string | undefined): UseProfileResult {
 
   const formatErrorMessage = useCallback((msg: string): string => {
     const lower = msg.toLowerCase();
-    if (lower.includes('network request failed')) {
+    if (lower.includes('network request failed') || lower.includes('failed to fetch') || lower.includes('load failed')) {
       return 'Connection error. Please check your internet connection and try again.';
+    }
+    if (lower.includes('aborted') || lower.includes('timed out') || lower.includes('timeout')) {
+      return 'Request timed out. Please check your connection and try again.';
     }
     if (lower.includes('bucket') && (lower.includes('not found') || lower.includes('exist'))) {
       return 'Storage unavailable. Please try again later or contact support.';

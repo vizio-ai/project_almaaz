@@ -4,4 +4,5 @@ export interface AdminUser {
   name: string;
   joined: string;     // formatted 'DD.MM.YYYY'
   isActive: boolean;
+  role: 'normal' | 'admin';
 }

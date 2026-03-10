@@ -1,4 +1,5 @@
 import type { DoraRemoteDataSource } from '@shared/itinerary';
+import { fetchWithTimeout } from '../http/fetchWithTimeout';
 
 const FUNCTIONS_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
 
@@ -14,10 +15,11 @@ function getFunctionsHeaders(): Record<string, string> {
 export function createDoraRemoteDataSource(): DoraRemoteDataSource {
   return {
     async sendMessage(request) {
-      const res = await fetch(`${FUNCTIONS_URL}/dora-chat`, {
+      const res = await fetchWithTimeout(`${FUNCTIONS_URL}/dora-chat`, {
         method: 'POST',
         headers: getFunctionsHeaders(),
         body: JSON.stringify(request),
+        timeout: 30_000,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Dora is unavailable right now');

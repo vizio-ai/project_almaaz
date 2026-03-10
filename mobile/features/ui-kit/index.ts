@@ -1,5 +1,5 @@
 // Theme
-export { colors, typography, radii, spacing } from './theme';
+export { colors, typography, radii, spacing, elevatedCard } from './theme';
 export type { ColorScheme, ColorToken } from './theme';
 
 // Hooks
@@ -39,3 +39,21 @@ export { CoverImagePicker } from './components/CoverImagePicker';
 export type { CoverImagePickerProps } from './components/CoverImagePicker';
 export { TripTitleInput } from './components/TripTitleInput';
 export type { TripTitleInputProps } from './components/TripTitleInput';
+export { CreatedByAuthor } from './components/CreatedByAuthor';
+export type { CreatedByAuthorProps } from './components/CreatedByAuthor';
+export { CustomSwitch } from './components/CustomSwitch';
+export type { CustomSwitchProps } from './components/CustomSwitch';
+export { ToggleRow } from './components/ToggleRow';
+export type { ToggleRowProps } from './components/ToggleRow';
+export { AccordionSection } from './components/AccordionSection';
+export type { AccordionSectionProps } from './components/AccordionSection';
+export { InfoCard } from './components/InfoCard';
+export type { InfoCardProps } from './components/InfoCard';
+export { NoteCard } from './components/NoteCard';
+export type { NoteCardProps } from './components/NoteCard';
+export { SelectTrigger } from './components/SelectTrigger';
+export type { SelectTriggerProps } from './components/SelectTrigger';
+export { FilterChipGroup } from './components/FilterChipGroup';
+export type { FilterChipGroupProps, FilterChipOption } from './components/FilterChipGroup';
+export { TimePickerBottomSheet } from './components/TimePickerBottomSheet';
+export type { TimePickerBottomSheetProps } from './components/TimePickerBottomSheet';

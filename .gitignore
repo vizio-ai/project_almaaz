@@ -66,6 +66,13 @@ mobile/*.key
 mobile/*.mobileprovision
 mobile/*.orig.*
 
+# Build artifacts
+mobile/*.aab
+mobile/*.apk
+mobile/*.ipa
+mobile/build-*.aab
+mobile/build-*.apk
+
 # Kotlin
 mobile/.kotlin/
 

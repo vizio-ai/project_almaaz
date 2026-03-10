@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, AppState } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
 import { typography, spacing } from '../theme';
@@ -19,20 +19,34 @@ export function ResendCodeBlock({
 }: ResendCodeBlockProps) {
   const textColor = useThemeColor('text');
   const secondaryText = useThemeColor('textSecondary');
+  const endTimeRef = useRef(Date.now() + cooldownSeconds * 1000);
   const [cooldownRemaining, setCooldownRemaining] = useState(cooldownSeconds);
   const [isLoading, setIsLoading] = useState(false);
 
+  const recalculate = useCallback(() => {
+    const remaining = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000));
+    setCooldownRemaining(remaining);
+  }, []);
+
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
-    const timer = setInterval(() => setCooldownRemaining((r) => r - 1), 1000);
+    const timer = setInterval(recalculate, 1000);
     return () => clearInterval(timer);
-  }, [cooldownRemaining]);
+  }, [cooldownRemaining, recalculate]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') recalculate();
+    });
+    return () => sub.remove();
+  }, [recalculate]);
 
   const handlePress = useCallback(async () => {
     if (cooldownRemaining > 0 || isLoading) return;
     setIsLoading(true);
     try {
       await onPress();
+      endTimeRef.current = Date.now() + cooldownSeconds * 1000;
       setCooldownRemaining(cooldownSeconds);
     } finally {
       setIsLoading(false);

@@ -7,6 +7,8 @@ const TWILIO_VERIFY_SID = Deno.env.get('TWILIO_VERIFY_SID')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const TEST_PHONE = Deno.env.get('TEST_PHONE');
+const TEST_OTP = Deno.env.get('TEST_OTP');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,31 +50,39 @@ serve(async (req) => {
     const phoneE164 = normalizeToE164(phone.trim());
     const codeTrimmed = code.trim();
 
-    const twilioUrl = `https://verify.twilio.com/v2/Services/${TWILIO_VERIFY_SID}/VerificationCheck`;
-    const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+    // Test bypass: skip Twilio verification for the configured test number
+    const isTestBypass = TEST_PHONE && TEST_OTP &&
+      phoneE164 === TEST_PHONE && codeTrimmed === TEST_OTP;
 
-    const twilioRes = await fetch(twilioUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${auth}`,
-      },
-      body: new URLSearchParams({
-        To: phoneE164,
-        Code: codeTrimmed,
-      }),
-    });
+    if (!isTestBypass) {
+      const twilioUrl = `https://verify.twilio.com/v2/Services/${TWILIO_VERIFY_SID}/VerificationCheck`;
+      const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
-    const twilioData = await twilioRes.json();
+      const twilioRes = await fetch(twilioUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${auth}`,
+        },
+        body: new URLSearchParams({
+          To: phoneE164,
+          Code: codeTrimmed,
+        }),
+      });
 
-    if (!twilioRes.ok || twilioData.status !== 'approved') {
-      const twilioMsg = twilioData.message || twilioData.error_message || 'Invalid or expired code';
-      const twilioCode = twilioData.code || twilioData.error_code;
-      console.error('Twilio Verify failed:', { code: twilioCode, message: twilioMsg, to: phoneE164 });
-      return new Response(
-        JSON.stringify({ error: twilioMsg }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      const twilioData = await twilioRes.json();
+
+      if (!twilioRes.ok || twilioData.status !== 'approved') {
+        const twilioMsg = twilioData.message || twilioData.error_message || 'Invalid or expired code';
+        const twilioCode = twilioData.code || twilioData.error_code;
+        console.error('Twilio Verify failed:', { code: twilioCode, message: twilioMsg, to: phoneE164 });
+        return new Response(
+          JSON.stringify({ error: twilioMsg }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    } else {
+      console.log('verify-otp: test number detected, skipping Twilio');
     }
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {

@@ -4,6 +4,7 @@
  */
 export interface PopularTripDto {
   id: string;
+  user_id: string;
   title: string;
   save_count: number;
   cover_image_url: string | null;

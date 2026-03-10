@@ -38,6 +38,12 @@ export { OtpVerificationScreen } from './presentation/screens/OtpVerificationScr
 export { OnboardingStep } from './presentation/components/OnboardingStep';
 export type { WelcomeTripCardData } from './presentation/components/welcome/TripCard';
 
+// Presentation — Shared phone components (reused by profile phone-change flow)
+export { CountryPicker } from './presentation/components/CountryPicker';
+export { PhoneInput } from './presentation/components/PhoneInput';
+export { COUNTRIES } from './data/config/countries';
+export type { Country } from './data/config/countries';
+
 // Presentation — Hooks
 export { useAuth } from './presentation/hooks/useAuth';
 export type { AuthSession } from './presentation/hooks/useAuth';

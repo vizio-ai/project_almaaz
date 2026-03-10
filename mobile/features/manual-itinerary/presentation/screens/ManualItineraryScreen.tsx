@@ -1,13 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useImperativeHandle } from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Image,
   TextInput,
-  Switch,
   ActivityIndicator,
+  Alert,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -17,33 +17,53 @@ import {
   HeaderTitle,
   CoverImagePicker,
   TripTitleInput,
+  CreatedByAuthor,
   useThemeColor,
   typography,
   spacing,
   radii,
 } from '@shared/ui-kit';
 import { useGetItinerary } from '../hooks/useGetItinerary';
+import { BuildYourselfWizard } from './BuildYourselfWizard';
 import { useActivityMutations } from '../hooks/useActivityMutations';
 import { useDayMutations } from '../hooks/useDayMutations';
 import { useTravelInfoMutations } from '../hooks/useTravelInfoMutations';
 import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider';
 import { DaySection } from '../components/DaySection';
 import { TravelInfoFormModal } from '../components/TravelInfoFormModal';
+import { TravelInfoSection } from '../components/TravelInfoSection';
+import { TripNotesSection } from '../components/TripNotesSection';
+import { LocationMapModal } from '../components/LocationMapModal';
 import { TripLocationInput } from '../components/TripLocationInput';
 import { TripDateRangeInput } from '../components/TripDateRangeInput';
+import { ItineraryViewTabs } from '../components/ItineraryViewTabs';
+import { ToggleRow } from '@shared/ui-kit';
 import type { Activity } from '../../domain/entities/Activity';
 import type { TravelInfo } from '../../domain/entities/TravelInfo';
+import type {
+  AddTravelInfoParams,
+  UpdateTravelInfoParams,
+} from '../../domain/repository/ManualItineraryRepository';
+import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 
 type ViewTab = 'detailed' | 'summary' | 'map';
+
+export interface ManualItineraryScreenRef {
+  /** Triggers the unsaved-changes guard and navigates back if confirmed. */
+  requestClose: () => void;
+}
 
 export interface ManualItineraryScreenProps {
   /** When null, show create form. When set, load existing itinerary from Supabase. */
   itineraryId: string | null;
   /** Required when creating a new itinerary. */
   userId: string;
+  /** Logged-in user's display name; shown as "Created by {name}" in create mode. */
+  currentUserName?: string | null;
+  /** Logged-in user's avatar URL; shown in create mode when set. */
+  currentUserAvatarUrl?: string | null;
   /** When false, header is not rendered (e.g. when embedded in Create tab). */
   showHeader?: boolean;
-  onShare?: () => void;
   onBack?: () => void;
 }
 
@@ -74,22 +94,50 @@ function formatDateRange(startDate: string | null, endDate: string | null): stri
   return `${month} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${year}`;
 }
 
+function buildDraftDays(start: Date | null, end: Date | null): ItineraryDay[] {
+  if (!start || !end) return [];
+
+  const days: ItineraryDay[] = [];
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+
+  let index = 1;
+  for (
+    let d = new Date(startDate);
+    d <= endDate;
+    d = new Date(d.getTime() + 24 * 60 * 60 * 1000), index += 1
+  ) {
+    days.push({
+      id: `draft-${index}`,
+      dayNumber: index,
+      date: toISODate(d),
+      notes: null,
+    });
+  }
+
+  return days;
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
-export function ManualItineraryScreen({
+export const ManualItineraryScreen = React.forwardRef<
+  ManualItineraryScreenRef,
+  ManualItineraryScreenProps
+>(function ManualItineraryScreen({
   itineraryId,
   userId,
+  currentUserName,
+  currentUserAvatarUrl,
   showHeader = true,
-  onShare,
   onBack,
-}: ManualItineraryScreenProps) {
+}: ManualItineraryScreenProps, ref) {
   const isNew = itineraryId === null;
 
   const { itinerary, days, activities, travelInfo, isLoading, error, refresh } =
     useGetItinerary(itineraryId);
   const { manualItineraryRepository } = useManualItineraryDependencies();
-  const { addActivity, updateActivity, removeActivity } = useActivityMutations(refresh);
-  const { addDay, updateDay, removeDay } = useDayMutations(itineraryId, refresh);
+  const { addActivity, updateActivity, removeActivity, updateActivityLocation, reorderActivities } = useActivityMutations(refresh);
+  const { addDay, updateDay, removeDay, reorderDays } = useDayMutations(itineraryId, refresh);
   const { addTravelInfo, updateTravelInfo, removeTravelInfo } = useTravelInfoMutations(
     itineraryId,
     refresh,
@@ -101,33 +149,104 @@ export function ManualItineraryScreen({
   const [draftDestination, setDraftDestination] = useState('');
   const [draftStartDate, setDraftStartDate] = useState<Date | null>(null);
   const [draftEndDate, setDraftEndDate] = useState<Date | null>(null);
+  const [editStartDate, setEditStartDate] = useState<Date | null>(null);
+  const [editEndDate, setEditEndDate] = useState<Date | null>(null);
+  const [draftTravelInfo, setDraftTravelInfo] = useState<TravelInfo[]>([]);
+  const [draftDayNotes, setDraftDayNotes] = useState<Record<string, string>>({});
+  const draftActivitiesRef = useRef<Record<string, { name: string; locationText: string | null }[]>>({});
+  const draftAccommodationRef = useRef<Record<string, { name: string | null; latitude?: number | null; longitude?: number | null }>>({});
 
   // ── Shared state (create + edit) ──────────────────────────────────────────
   const [isPublic, setIsPublic] = useState(false);
   const [isClonable, setIsClonable] = useState(false);
 
   // ── Edit mode state ───────────────────────────────────────────────────────
+  const [editTitle, setEditTitle] = useState('');
+  const [editDestination, setEditDestination] = useState('');
+  const [editCoverUri, setEditCoverUri] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('detailed');
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const [tripNotes, setTripNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (isNew) return;
+    setIsSavingNotes(true);
+    try {
+      await manualItineraryRepository.update(itineraryId!, { tripNotes: tripNotes || null });
+      refresh();
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [isNew, itineraryId, tripNotes, manualItineraryRepository, refresh]);
 
   // ── TravelInfo modal ──────────────────────────────────────────────────────
   const [travelInfoModalVisible, setTravelInfoModalVisible] = useState(false);
   const [editingTravelInfo, setEditingTravelInfo] = useState<TravelInfo | null>(null);
+
+  const handleDraftAddTravelInfo = useCallback(
+    async (params: AddTravelInfoParams) => {
+      const id = `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const item: TravelInfo = {
+        id,
+        type: params.type,
+        title: params.title,
+        provider: params.provider ?? null,
+        detail: params.detail ?? null,
+        startDatetime: params.startDatetime ?? null,
+        endDatetime: params.endDatetime ?? null,
+      };
+      setDraftTravelInfo((prev) => [...prev, item]);
+    },
+    [],
+  );
+
+  const handleDraftUpdateTravelInfo = useCallback(
+    async (id: string, params: UpdateTravelInfoParams) => {
+      setDraftTravelInfo((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                type: params.type ?? item.type,
+                title: params.title ?? item.title,
+                provider: params.provider ?? item.provider,
+                detail: params.detail ?? item.detail,
+                startDatetime: params.startDatetime ?? item.startDatetime,
+                endDatetime: params.endDatetime ?? item.endDatetime,
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleDraftRemoveTravelInfo = useCallback(async (id: string) => {
+    setDraftTravelInfo((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
+  // ── Location map modal (create mode: pick destination from OSM) ─────────────
+  const [locationMapVisible, setLocationMapVisible] = useState(false);
 
   React.useEffect(() => {
     if (!itinerary) return;
     setTripNotes(itinerary.tripNotes ?? '');
     setIsPublic(itinerary.isPublic ?? false);
     setIsClonable(itinerary.isClonable ?? false);
+    setEditStartDate(itinerary.startDate ? new Date(itinerary.startDate) : null);
+    setEditEndDate(itinerary.endDate ? new Date(itinerary.endDate) : null);
+    setEditTitle(itinerary.title ?? '');
+    setEditDestination(itinerary.destination ?? '');
   }, [itinerary?.id]);
 
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
   const surface = useThemeColor('surface');
   const surfaceAlt = useThemeColor('surfaceAlt');
-  const border = useThemeColor('border');
+  const borderMuted = useThemeColor('borderMuted');
+  const background = useThemeColor('background');
   const accent = useThemeColor('accent');
 
   const toggleDay = useCallback((dayId: string) => {
@@ -138,6 +257,63 @@ export function ManualItineraryScreen({
       return next;
     });
   }, []);
+
+  /**
+   * Adds the next day in sequence and keeps the itinerary end date in sync.
+   * Advancing rule: last dated day + 1 → if no dates yet, adds a dateless day.
+   */
+  const handleAddDay = useCallback(async () => {
+    if (!itineraryId) return;
+
+    const sortedDays = [...days].sort((a, b) => a.dayNumber - b.dayNumber);
+    const lastDatedDay = [...sortedDays].reverse().find((d) => !!d.date);
+
+    let newDateStr: string | null = null;
+
+    if (lastDatedDay?.date) {
+      // Advance last known date by 1 UTC day
+      const d = new Date(lastDatedDay.date);
+      d.setUTCDate(d.getUTCDate() + 1);
+      newDateStr = toISODate(d);
+    } else if (editEndDate) {
+      const d = new Date(editEndDate.getTime());
+      d.setUTCDate(d.getUTCDate() + 1);
+      newDateStr = toISODate(d);
+    }
+
+    if (newDateStr) {
+      // Keep the displayed date range consistent with the new day count
+      const newEnd = new Date(newDateStr);
+      await manualItineraryRepository.update(itineraryId, { endDate: newDateStr });
+      setEditEndDate(newEnd);
+    }
+
+    await addDay({ date: newDateStr ?? undefined });
+  }, [itineraryId, days, editEndDate, manualItineraryRepository, addDay]);
+
+  /**
+   * Removes a day and keeps the itinerary end date in sync.
+   * The new end date is the date of the last remaining dated day.
+   */
+  const handleRemoveDay = useCallback(async (dayId: string) => {
+    const result = await removeDay(dayId);
+    if (!result.success || !itineraryId) return;
+
+    const remainingDays = days.filter((d) => d.id !== dayId);
+    const lastDatedDay = remainingDays
+      .filter((d) => !!d.date)
+      .sort((a, b) => a.dayNumber - b.dayNumber)
+      .pop();
+
+    const newEndStr = lastDatedDay?.date ?? null;
+    await manualItineraryRepository.update(itineraryId, { endDate: newEndStr });
+    setEditEndDate(newEndStr ? new Date(newEndStr) : null);
+  }, [days, itineraryId, removeDay, manualItineraryRepository]);
+
+  const effectiveDays: ItineraryDay[] = React.useMemo(
+    () => (isNew ? buildDraftDays(draftStartDate, draftEndDate) : days),
+    [isNew, draftStartDate, draftEndDate, days],
+  );
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -151,14 +327,106 @@ export function ManualItineraryScreen({
           endDate: draftEndDate ? toISODate(draftEndDate) : null,
           isPublic,
           isClonable,
+          tripNotes: tripNotes || null,
           isAiGenerated: false,
+          travelInfo: draftTravelInfo.map((t) => ({
+            type: t.type,
+            title: t.title,
+            provider: t.provider ?? null,
+            detail: t.detail ?? null,
+            startDatetime: t.startDatetime ?? null,
+            endDatetime: t.endDatetime ?? null,
+          })),
         });
-        if (result.success) onBack?.();
+        if (result.success && result.id) {
+          // Upload cover image to Storage and persist the public URL
+          if (draftCoverUri) {
+            const upload = await manualItineraryRepository.uploadCoverImage(
+              userId,
+              result.id,
+              draftCoverUri,
+            );
+            if (upload.success && upload.url) {
+              await manualItineraryRepository.update(result.id, { coverImageUrl: upload.url });
+            }
+          }
+
+          // Create concrete days and their draft activities
+          if (draftStartDate && draftEndDate) {
+            const draftDays = buildDraftDays(draftStartDate, draftEndDate);
+            for (const day of draftDays) {
+              const note = draftDayNotes[day.id]?.trim() || null;
+              const accData = draftAccommodationRef.current[day.id];
+              const dayResult = await manualItineraryRepository.addDay(result.id, {
+                date: day.date,
+                notes: note,
+                accommodation: accData?.name?.trim() || null,
+                accommodationLatitude: accData?.latitude ?? null,
+                accommodationLongitude: accData?.longitude ?? null,
+              });
+              if (dayResult.success && dayResult.id) {
+                const acts = draftActivitiesRef.current[day.id] ?? [];
+                for (const act of acts) {
+                  if (act.name) {
+                    await manualItineraryRepository.addActivity(dayResult.id, {
+                      name: act.name,
+                      locationText: act.locationText,
+                    });
+                  }
+                }
+              }
+            }
+
+            // Save draft accommodations as hotel TravelInfo items
+            for (const day of draftDays) {
+              const accData = draftAccommodationRef.current[day.id];
+              if (accData?.name?.trim()) {
+                await manualItineraryRepository.addTravelInfo(result.id, {
+                  type: 'hotel',
+                  title: accData.name.trim(),
+                });
+              }
+            }
+          }
+
+          // Reset draft state so the form is clean next time
+          setDraftTitle('');
+          setDraftDestination('');
+          setDraftStartDate(null);
+          setDraftEndDate(null);
+          setDraftCoverUri(null);
+          setDraftTravelInfo([]);
+          setDraftDayNotes({});
+          setTripNotes('');
+          setIsPublic(false);
+          setIsClonable(false);
+          draftActivitiesRef.current = {};
+          draftAccommodationRef.current = {};
+
+          onBack?.();
+        }
       } else {
+        let newCoverUrl: string | undefined;
+        if (editCoverUri) {
+          const upload = await manualItineraryRepository.uploadCoverImage(
+            userId,
+            itineraryId!,
+            editCoverUri,
+          );
+          if (upload.success && upload.url) {
+            newCoverUrl = upload.url;
+          }
+        }
+
         const result = await manualItineraryRepository.update(itineraryId!, {
+          title: editTitle.trim() || 'Untitled trip',
+          destination: editDestination.trim(),
+          startDate: editStartDate ? toISODate(editStartDate) : null,
+          endDate: editEndDate ? toISODate(editEndDate) : null,
           tripNotes: tripNotes || null,
           isPublic,
           isClonable,
+          ...(newCoverUrl ? { coverImageUrl: newCoverUrl } : {}),
         });
         if (result.success) refresh();
       }
@@ -169,22 +437,175 @@ export function ManualItineraryScreen({
     isNew,
     itineraryId,
     userId,
+    draftCoverUri,
     draftTitle,
     draftDestination,
     draftStartDate,
     draftEndDate,
+    editCoverUri,
+    editTitle,
+    editDestination,
+    editStartDate,
+    editEndDate,
     tripNotes,
     isPublic,
     isClonable,
     manualItineraryRepository,
+    draftDayNotes,
     refresh,
     onBack,
   ]);
 
+  // ── Unsaved changes guard ─────────────────────────────────────────────────
+
+  const hasUnsavedChanges = React.useMemo(() => {
+    if (isNew) {
+      return !!(draftTitle || draftDestination || draftStartDate || draftCoverUri);
+    }
+    if (!itinerary) return false;
+    return (
+      editTitle !== (itinerary.title ?? '') ||
+      editDestination !== (itinerary.destination ?? '') ||
+      editCoverUri !== null ||
+      (tripNotes || '') !== (itinerary.tripNotes ?? '') ||
+      isPublic !== (itinerary.isPublic ?? false) ||
+      isClonable !== (itinerary.isClonable ?? false)
+    );
+  }, [
+    isNew, itinerary, draftTitle, draftDestination, draftStartDate, draftCoverUri,
+    editTitle, editDestination, editCoverUri, tripNotes, isPublic, isClonable,
+  ]);
+
+  const handleBack = useCallback(() => {
+    if (!onBack) return;
+    if (isNew || !hasUnsavedChanges) {
+      onBack();
+      return;
+    }
+    Alert.alert(
+      'Unsaved changes',
+      'You have unsaved changes. Would you like to save before leaving?',
+      [
+        { text: 'Discard', style: 'destructive', onPress: onBack },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Save', onPress: async () => { await handleSave(); } },
+      ],
+    );
+  }, [onBack, hasUnsavedChanges, handleSave]);
+
+  useImperativeHandle(
+    ref,
+    () => ({ requestClose: isNew ? (onBack ?? (() => {})) : handleBack }),
+    [isNew, onBack, handleBack],
+  );
+
+  // ── Share ─────────────────────────────────────────────────────────────────
+
+  const doShare = useCallback(() => {
+    const title = itinerary?.title || editTitle || 'My Trip';
+    const destination = itinerary?.destination || editDestination;
+    const start = itinerary?.startDate ?? null;
+    const end = itinerary?.endDate ?? null;
+
+    let message = title;
+    if (destination) message += `\nDestination: ${destination}`;
+    if (start && end) message += `\nDates: ${formatDate(start)} – ${formatDate(end)}`;
+    else if (start) message += `\nDate: ${formatDate(start)}`;
+
+    Share.share({ title, message });
+  }, [itinerary, editTitle, editDestination]);
+
+  const handleShare = useCallback(() => {
+    if (isNew) {
+      Alert.alert('Save first', 'Save your itinerary before sharing it.');
+      return;
+    }
+    if (!isPublic) {
+      Alert.alert(
+        'Private itinerary',
+        'This itinerary is private. Make it public to share it.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Make Public & Share',
+            onPress: async () => {
+              await manualItineraryRepository.update(itineraryId!, { isPublic: true });
+              setIsPublic(true);
+              refresh();
+              doShare();
+            },
+          },
+        ],
+      );
+      return;
+    }
+    doShare();
+  }, [isNew, isPublic, itineraryId, manualItineraryRepository, refresh, doShare]);
+
+  // ── Clone ────────────────────────────────────────────────────────────────
+
+  const handleClone = useCallback(async () => {
+    if (!itineraryId) return;
+    Alert.alert(
+      'Clone itinerary',
+      'This will create a copy of this itinerary in your trips.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clone',
+          onPress: async () => {
+            const result = await manualItineraryRepository.cloneItinerary(itineraryId, userId);
+            if (result.success) {
+              Alert.alert('Cloned', 'The itinerary has been cloned to your trips.');
+            } else {
+              Alert.alert('Error', 'Could not clone this itinerary.');
+            }
+          },
+        },
+      ],
+    );
+  }, [itineraryId, userId, manualItineraryRepository]);
+
+  // ── More options (delete + clone) ───────────────────────────────────────
+
+  const handleMoreOptions = useCallback(() => {
+    Alert.alert(
+      'Options',
+      undefined,
+      [
+        {
+          text: 'Clone itinerary',
+          onPress: handleClone,
+        },
+        {
+          text: 'Delete itinerary',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete itinerary',
+              'Are you sure? This cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await manualItineraryRepository.remove(itineraryId!);
+                    onBack?.();
+                  },
+                },
+              ],
+            );
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, [itineraryId, manualItineraryRepository, onBack, handleClone]);
+
   // ── Derived values ────────────────────────────────────────────────────────
 
-  const title = itinerary?.title ?? 'Untitled trip';
-  const destination = itinerary?.destination ?? '—';
+  const isOwner = isNew || (!!itinerary?.userId && itinerary.userId === userId);
   const startDate = itinerary?.startDate ?? null;
   const creatorName = itinerary?.creatorName ?? 'You';
   const creatorAvatarUrl = itinerary?.creatorAvatarUrl ?? null;
@@ -197,26 +618,59 @@ export function ManualItineraryScreen({
     return acc;
   }, {});
 
-  const headerActions = (
+  const headerActions = isOwner ? (
     <HeaderActions
       onSave={handleSave}
       saveLabel="Save itinerary"
       isSaving={isSaving}
-      onShare={onShare}
-      onMoreOptions={() => {}}
+      onShare={handleShare}
+      onMoreOptions={!isNew ? handleMoreOptions : undefined}
+    />
+  ) : (
+    <HeaderActions
+      onShare={handleShare}
+      onClone={isClonable ? handleClone : undefined}
     />
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // Create mode → hand off entirely to the multi-step wizard
+  if (isNew) {
+    return (
+      <BuildYourselfWizard
+        userId={userId}
+        currentUserName={currentUserName}
+        currentUserAvatarUrl={currentUserAvatarUrl}
+        onDone={onBack ?? (() => {})}
+      />
+    );
+  }
+
   return (
-    <View style={[styles.root, { backgroundColor: surfaceAlt }]}>
-      {/* ── App logo bar ───────────────────────────────────────────────── */}
-      {showHeader && <AppHeader variant="light" />}
+    <View style={[styles.root, { backgroundColor: background }]}>
+      {showHeader && (
+        <AppHeader
+          variant="dark"
+          right={
+            onBack ? (
+              <TouchableOpacity style={styles.goBackPill} onPress={handleBack} activeOpacity={0.8}>
+                <Ionicons name="chevron-back-outline" size={16} color="#FFFFFF" />
+                <AppText style={styles.goBackText}>Go back</AppText>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        />
+      )}
 
       {/* ── Screen title row: "Itinerary" ← → [Save][Share][⋯] ────────── */}
-      <View style={[styles.screenTitleRow, { borderBottomColor: border }]}>
-        <HeaderTitle title="Itinerary" />
+      <View
+        style={[
+          styles.screenTitleRow,
+          { borderBottomColor: borderMuted, backgroundColor: background },
+        ]}
+      >
+        <AppText style={styles.screenTitleText}>Itinerary</AppText>
         {headerActions}
       </View>
 
@@ -245,194 +699,131 @@ export function ManualItineraryScreen({
 
         {/* ── Cover image ───────────────────────────────────────────────── */}
         <CoverImagePicker
-          imageUri={isNew ? draftCoverUri : coverImageUrl}
-          onChange={isNew ? setDraftCoverUri : undefined}
-          editable={isNew}
+          imageUri={isNew ? draftCoverUri : (editCoverUri ?? coverImageUrl)}
+          onChange={isOwner ? (isNew ? setDraftCoverUri : setEditCoverUri) : undefined}
+          editable={isOwner}
         />
 
         {/* ── Trip title ────────────────────────────────────────────────── */}
         <View style={styles.titleWrap}>
           <TripTitleInput
-            value={isNew ? draftTitle : title}
-            onChange={isNew ? setDraftTitle : undefined}
+            value={isNew ? draftTitle : editTitle}
+            onChange={isOwner ? (isNew ? setDraftTitle : setEditTitle) : undefined}
           />
         </View>
 
         {/* ── Location + Date row ───────────────────────────────────────── */}
         <View style={styles.metaInfoRow}>
-          <TripLocationInput
-            value={isNew ? draftDestination : destination}
-            onChange={isNew ? setDraftDestination : undefined}
-          />
-          {isNew ? (
-            <TripDateRangeInput
-              startDate={draftStartDate}
-              endDate={draftEndDate}
-              onStartDate={setDraftStartDate}
-              onEndDate={setDraftEndDate}
+          <View style={styles.metaLocationWrap}>
+            <TripLocationInput
+              value={isNew ? draftDestination : editDestination}
+              onChange={isOwner ? (isNew ? setDraftDestination : setEditDestination) : undefined}
             />
-          ) : (startDate || itinerary?.endDate) ? (
-            <TripDateRangeInput
-              startDate={null}
-              endDate={null}
-              displayText={formatDateRange(startDate, itinerary?.endDate ?? null)}
-            />
-          ) : null}
+          </View>
+          <View style={styles.metaDateWrap}>
+            {isNew ? (
+              <TripDateRangeInput
+                startDate={draftStartDate}
+                endDate={draftEndDate}
+                onStartDate={setDraftStartDate}
+                onEndDate={setDraftEndDate}
+              />
+            ) : (
+              <TripDateRangeInput
+                startDate={editStartDate}
+                endDate={editEndDate}
+                onStartDate={isOwner ? setEditStartDate : undefined}
+                onEndDate={isOwner ? setEditEndDate : undefined}
+                displayText={formatDateRange(startDate, editEndDate ? toISODate(editEndDate) : (itinerary?.endDate ?? null))}
+              />
+            )}
+          </View>
         </View>
 
-        {/* ── Creator (edit mode only) ─────────────────────────────────── */}
-        {!isNew && (
-          <View style={styles.metaRow}>
-            {creatorAvatarUrl ? (
-              <Image source={{ uri: creatorAvatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: border }]} />
-            )}
-            <AppText style={[styles.metaText, { color: secondary }]}>
-              Created by {creatorName}
-            </AppText>
-          </View>
-        )}
+        {/* ── Creator ───────────────────────────────────────────────────── */}
+        <View style={styles.metaRow}>
+          <CreatedByAuthor
+            userName={isNew ? (currentUserName?.trim() || 'You') : creatorName}
+            avatarUrl={isNew ? currentUserAvatarUrl : creatorAvatarUrl}
+          />
+        </View>
 
         {/* ── Allow other users to clone ───────────────────────────────── */}
-        <View style={[styles.toggleRow, { borderColor: border }]}>
-          <AppText style={[styles.toggleLabel, { color: textColor }]}>
-            Allow other users to clone
-          </AppText>
-          <Ionicons name="information-circle-outline" size={16} color={secondary} />
-          <Switch
-            value={isClonable}
-            onValueChange={setIsClonable}
-            trackColor={{ false: border, true: accent }}
-          />
-        </View>
-
-        {/* ── Travel Information (edit mode only) ───────────────────────── */}
-        {!isNew && (
-          <View style={[styles.card, { backgroundColor: surface }]}>
-            <View style={styles.cardHeader}>
-              <AppText style={[styles.cardTitle, { color: textColor }]}>
-                Travel Information
-              </AppText>
-              <TouchableOpacity
-                onPress={() => { setEditingTravelInfo(null); setTravelInfoModalVisible(true); }}
-                hitSlop={8}
-              >
-                <Ionicons name="add" size={22} color={secondary} />
-              </TouchableOpacity>
-            </View>
-            {travelInfo.length === 0 ? (
-              <AppText style={[styles.placeholderText, { color: secondary }]}>
-                No travel info yet. Tap + to add.
-              </AppText>
-            ) : (
-              travelInfo.map((t: TravelInfo) => (
-                <TravelInfoRow
-                  key={t.id}
-                  item={t}
-                  secondary={secondary}
-                  textColor={textColor}
-                  onEdit={() => { setEditingTravelInfo(t); setTravelInfoModalVisible(true); }}
-                />
-              ))
-            )}
-          </View>
+        {isOwner && (
+        <ToggleRow
+          label="Allow other users to clone"
+          value={isClonable}
+          onValueChange={setIsClonable}
+          infoMessage="This lets other users use your itinerary as a starting point to plan their own trip"
+        />
         )}
+
+        {/* ── Public / Private visibility ───────────────────────────────── */}
+        {isOwner && (
+        <ToggleRow
+          label={isPublic ? 'Public itinerary' : 'Private itinerary'}
+          value={isPublic}
+          onValueChange={setIsPublic}
+          infoMessage="When public, other users may see this itinerary in discover or shared views. When private, only you can see it."
+        />
+        )}
+
+        {/* ── Travel Information ────────────────────────────────────────── */}
+        <TravelInfoSection
+          items={isNew ? draftTravelInfo : travelInfo}
+          onAddPress={isOwner ? () => {
+            setEditingTravelInfo(null);
+            setTravelInfoModalVisible(true);
+          } : undefined}
+          onEditItem={isOwner ? (t) => {
+            setEditingTravelInfo(t);
+            setTravelInfoModalVisible(true);
+          } : undefined}
+        />
 
         {/* ── Notes ─────────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <AppText style={[styles.sectionTitle, { color: textColor }]}>
-            Add a note or things to remember
-          </AppText>
-          <View style={[styles.noteWrap, { backgroundColor: surface, borderColor: border }]}>
-            <TextInput
-              style={[styles.noteInput, { color: textColor }]}
-              placeholder="Placeholder"
-              placeholderTextColor={secondary}
-              multiline
-              value={tripNotes}
-              onChangeText={setTripNotes}
-            />
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={isSaving}
-              style={styles.noteSaveBtn}
-            >
-              <AppText style={[styles.noteSaveBtnLabel, { color: secondary }]}>Save</AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <TripNotesSection
+          value={tripNotes}
+          onChangeText={isOwner ? setTripNotes : () => {}}
+          onSave={handleSaveNotes}
+          isSaving={isSavingNotes}
+          readOnly={!isOwner}
+        />
 
-        {/* ── View tabs + days (edit mode only) ─────────────────────────── */}
-        {!isNew && (
-          <>
-            <View style={styles.tabs}>
-              {(['detailed', 'summary', 'map'] as const).map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  onPress={() => setViewTab(tab)}
-                  style={[styles.tab, viewTab === tab && { backgroundColor: textColor }]}
-                >
-                  <AppText
-                    style={[
-                      styles.tabLabel,
-                      { color: viewTab === tab ? surfaceAlt : textColor },
-                    ]}
-                  >
-                    {tab === 'detailed'
-                      ? 'Detailed View'
-                      : tab === 'summary'
-                      ? 'Summary View'
-                      : 'Map View'}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {viewTab === 'detailed' && (
-              <>
-                {days.map((day) => (
-                  <DaySection
-                    key={day.id}
-                    day={day}
-                    dayActivities={activitiesByDay[day.id] ?? []}
-                    isCollapsed={collapsedDays.has(day.id)}
-                    onToggle={() => toggleDay(day.id)}
-                    onAddActivity={addActivity}
-                    onEditActivity={updateActivity}
-                    onRemoveActivity={removeActivity}
-                    onUpdateDay={updateDay}
-                    onRemoveDay={removeDay}
-                  />
-                ))}
-
-                {/* ── Add Day button ─────────────────────────────────── */}
-                <TouchableOpacity
-                  style={[styles.addDayBtn, { borderColor: border }]}
-                  onPress={() => addDay()}
-                >
-                  <Ionicons name="add" size={18} color={secondary} />
-                  <AppText style={[styles.addDayLabel, { color: secondary }]}>Add Day</AppText>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {viewTab === 'summary' && (
-              <View style={styles.placeholderBlock}>
-                <AppText style={[styles.placeholderText, { color: secondary }]}>
-                  Summary view — coming soon
-                </AppText>
-              </View>
-            )}
-            {viewTab === 'map' && (
-              <View style={styles.placeholderBlock}>
-                <AppText style={[styles.placeholderText, { color: secondary }]}>
-                  Map view — coming soon
-                </AppText>
-              </View>
-            )}
-          </>
-        )}
+        {/* ── View tabs + days ──────────────────────────────────────────── */}
+        <ItineraryViewTabs
+          viewTab={viewTab}
+          onChangeTab={setViewTab}
+          days={effectiveDays}
+          activitiesByDay={activitiesByDay}
+          collapsedDays={collapsedDays}
+          onToggleDay={toggleDay}
+          onAddActivity={addActivity}
+          onEditActivity={updateActivity}
+          onRemoveActivity={removeActivity}
+          onUpdateDay={updateDay}
+          onRemoveDay={handleRemoveDay}
+          onAddDay={handleAddDay}
+          onUpdateActivityLocation={updateActivityLocation}
+          onReorderActivities={reorderActivities}
+          isNew={isNew}
+          destination={isNew ? draftDestination : editDestination}
+          draftDayNotes={draftDayNotes}
+          onChangeDraftDayNote={(dayId, note) =>
+            setDraftDayNotes((prev) => ({
+              ...prev,
+              [dayId]: note,
+            }))
+          }
+          onDraftActivitiesChange={(acts) => {
+            draftActivitiesRef.current = acts;
+          }}
+          onDraftAccommodationChange={(acc) => {
+            draftAccommodationRef.current = acc;
+          }}
+          onReorderDays={reorderDays}
+          readOnly={!isOwner}
+        />
 
         <View style={{ height: spacing['2xl'] }} />
       </ScrollView>
@@ -442,58 +833,54 @@ export function ManualItineraryScreen({
       <TravelInfoFormModal
         visible={travelInfoModalVisible}
         editingItem={editingTravelInfo}
-        onAdd={addTravelInfo}
-        onUpdate={updateTravelInfo}
-        onRemove={removeTravelInfo}
-        onClose={() => setTravelInfoModalVisible(false)}
+        onAdd={isNew ? handleDraftAddTravelInfo : addTravelInfo}
+        onUpdate={isNew ? handleDraftUpdateTravelInfo : updateTravelInfo}
+        onRemove={isNew ? handleDraftRemoveTravelInfo : removeTravelInfo}
+        onClose={() => {
+          setTravelInfoModalVisible(false);
+          setEditingTravelInfo(null);
+        }}
+      />
+
+      {/* ── Location map modal (OpenStreetMap picker) ──────── */}
+      <LocationMapModal
+        visible={locationMapVisible}
+        initialQuery={isNew ? draftDestination : editDestination}
+        onSelect={isNew ? setDraftDestination : setEditDestination}
+        onClose={() => setLocationMapVisible(false)}
+        allowPointPick={false}
       />
     </View>
   );
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function TravelInfoRow({
-  item,
-  secondary,
-  textColor,
-  onEdit,
-}: {
-  item: TravelInfo;
-  secondary: string;
-  textColor: string;
-  onEdit: () => void;
-}) {
-  const iconName =
-    item.type === 'flight'
-      ? 'airplane-outline'
-      : item.type === 'rental_car'
-      ? 'car-outline'
-      : item.type === 'hotel'
-      ? 'bed-outline'
-      : ('document-text-outline' as const);
-  const detail = [item.provider, item.detail].filter(Boolean).join(' · ') || item.title;
-
-  return (
-    <View style={styles.travelRow}>
-      <Ionicons name={iconName} size={18} color={secondary} />
-      <View style={styles.travelTextWrap}>
-        <AppText style={[styles.travelTitle, { color: textColor }]}>{item.title}</AppText>
-        {detail !== item.title && (
-          <AppText style={[styles.travelDetail, { color: secondary }]}>{detail}</AppText>
-        )}
-      </View>
-      <TouchableOpacity onPress={onEdit} hitSlop={8}>
-        <Ionicons name="pencil-outline" size={16} color={secondary} />
-      </TouchableOpacity>
-    </View>
-  );
-}
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  goBackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'transparent',
+  },
+  goBackText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  screenTitleText: {
+    ...typography.lg,
+    fontWeight: typography.weights.semibold,
+    lineHeight: 28,
+    color: '#18181B',
+  },
   scroll: { flex: 1 },
   scrollContent: {
     paddingTop: spacing['2xl'],
@@ -514,8 +901,15 @@ const styles = StyleSheet.create({
   metaInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
     marginBottom: spacing.sm,
+  },
+  metaLocationWrap: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  metaDateWrap: {
+    width: '50%',
+    alignItems: 'flex-start',
   },
   metaRow: {
     flexDirection: 'row',
@@ -523,22 +917,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  metaText: { ...typography.sm, flex: 1 },
-  avatar: { width: 24, height: 24, borderRadius: 12 },
-  avatarPlaceholder: { width: 24, height: 24, borderRadius: 12 },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    marginTop: spacing.sm,
+  card: {
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
-  toggleRowNoTopBorder: { borderTopWidth: 0, marginTop: 0 },
-  toggleLabelWrap: { flex: 1 },
-  toggleLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  toggleDesc: { ...typography.caption },
-  card: { borderRadius: radii.md, padding: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.xl },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -547,54 +931,4 @@ const styles = StyleSheet.create({
   },
   cardTitle: { ...typography.base, fontWeight: typography.weights.semibold },
   placeholderText: { ...typography.sm },
-  travelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  travelTextWrap: { flex: 1 },
-  travelTitle: { ...typography.sm, fontWeight: typography.weights.medium },
-  travelDetail: { ...typography.caption },
-  section: { marginBottom: spacing.xl },
-  sectionTitle: {
-    ...typography.base,
-    fontWeight: typography.weights.semibold,
-    marginBottom: spacing.sm,
-  },
-  noteWrap: {
-    borderWidth: 1,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-  },
-  noteInput: {
-    minHeight: 100,
-    padding: spacing.lg,
-    ...typography.sm,
-  },
-  noteSaveBtn: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  noteSaveBtnLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  tabs: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-  tab: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.rounded,
-  },
-  tabLabel: { ...typography.caption, fontWeight: typography.weights.medium },
-  addDayBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    marginBottom: spacing.xl,
-  },
-  addDayLabel: { ...typography.sm, fontWeight: typography.weights.medium },
-  placeholderBlock: { paddingVertical: spacing['2xl'], alignItems: 'center' },
 });

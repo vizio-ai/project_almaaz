@@ -43,6 +43,7 @@ export default function PaceScreen() {
     });
     if (result.success) {
       markOnboarded();
+      router.replace('/(tabs)/create?fromOnboarding=true');
     } else {
       Alert.alert('Error', result.error?.message ?? 'Something went wrong. Please try again.');
     }
@@ -58,6 +59,7 @@ export default function PaceScreen() {
       selected={[selected]}
       onSelect={setSelected}
       multiSelect={false}
+      optional
       onNext={handleNext}
       onBack={() => router.back()}
       onFinishLater={handleFinishLater}

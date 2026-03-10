@@ -13,6 +13,7 @@ export interface AdminUserRowDto {
   surname: string | null;
   created_at: string;
   is_active: boolean;
+  role: string;
 }
 
 export interface GetAdminUsersDto {

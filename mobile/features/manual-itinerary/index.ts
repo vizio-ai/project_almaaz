@@ -1,5 +1,5 @@
 export { ManualItineraryScreen } from './presentation/screens/ManualItineraryScreen';
-export type { ManualItineraryScreenProps } from './presentation/screens/ManualItineraryScreen';
+export type { ManualItineraryScreenProps, ManualItineraryScreenRef } from './presentation/screens/ManualItineraryScreen';
 export { ManualItineraryProvider, useManualItineraryDependencies } from './di/ManualItineraryProvider';
 export type {
   ManualItineraryRepository,

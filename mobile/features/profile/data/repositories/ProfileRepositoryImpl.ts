@@ -50,6 +50,8 @@ export class ProfileRepositoryImpl implements ProfileRepository {
         username:      data.username,
         avatar_url:    data.avatar_url,
         bio:           data.bio,
+        birthday:      data.birthday,
+        location:      data.location,
         pace:          data.pace,
         interests:     data.interests,
         journaling:    data.journaling,
@@ -68,5 +70,12 @@ export class ProfileRepositoryImpl implements ProfileRepository {
     } catch (error) {
       return fail(networkError(error));
     }
+  }
+
+  subscribeToProfileChanges(userId: ID, onChanged: (profile: Profile) => void): () => void {
+    return this.remoteDataSource.subscribeToProfileChanges(
+      String(userId),
+      (dto) => onChanged(this.mapper.map(dto)),
+    );
   }
 }

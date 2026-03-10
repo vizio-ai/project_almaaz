@@ -57,6 +57,7 @@ export default function CompanionsScreen() {
       selected={[selected]}
       onSelect={setSelected}
       multiSelect={false}
+      optional
       isLoading={isLoading}
       onNext={() => submit(selected)}
       onBack={() => router.back()}

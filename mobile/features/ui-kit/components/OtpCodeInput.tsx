@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -50,6 +50,17 @@ export const OtpCodeInput = forwardRef<OtpCodeInputRef, OtpCodeInputProps>(
         });
       },
     }));
+
+    // Clear code when error occurs so the user can re-enter
+    useEffect(() => {
+      if (hasError && code.length === length) {
+        setCode('');
+        setFocusedIndex(0);
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
+      }
+    }, [hasError]);
 
     const handleChange = useCallback(
       (value: string) => {

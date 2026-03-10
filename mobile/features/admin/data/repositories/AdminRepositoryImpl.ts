@@ -23,6 +23,7 @@ function toAdminUser(dto: AdminUserRowDto): AdminUser {
     name: [firstName, lastInitial].filter(Boolean).join(' ') || 'Unknown',
     joined: formatJoined(dto.created_at),
     isActive: dto.is_active,
+    role: dto.role === 'admin' ? 'admin' : 'normal',
   };
 }
 

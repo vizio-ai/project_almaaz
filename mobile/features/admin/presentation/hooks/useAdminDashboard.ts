@@ -41,7 +41,7 @@ interface UseAdminDashboardResult {
   toggleUserActive: (userId: string) => Promise<void>;
 }
 
-export function useAdminDashboard(): UseAdminDashboardResult {
+export function useAdminDashboard(currentUserId: string): UseAdminDashboardResult {
   const { getAdminStatsUseCase, getAdminUsersUseCase, setUserActiveUseCase } =
     useAdminDependencies();
 
@@ -106,7 +106,12 @@ export function useAdminDashboard(): UseAdminDashboardResult {
         prev.map(u => (u.id === userId ? { ...u, isActive: nextActive } : u)),
       );
 
-      const result = await setUserActiveUseCase.execute({ userId, isActive: nextActive });
+      const result = await setUserActiveUseCase.execute({
+        userId,
+        isActive: nextActive,
+        currentUserId,
+        targetRole: user.role,
+      });
 
       if (!result.success) {
         setUsers(prev =>
@@ -114,7 +119,7 @@ export function useAdminDashboard(): UseAdminDashboardResult {
         );
       }
     },
-    [users, setUserActiveUseCase],
+    [users, setUserActiveUseCase, currentUserId],
   );
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));

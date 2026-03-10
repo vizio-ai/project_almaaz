@@ -9,11 +9,17 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { Calendar } from 'lucide-react-native';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function toISODate(d: Date): string {
   return d.toISOString().split('T')[0];
+}
+
+/** Treat epoch-zero and invalid dates as "no date". */
+function isUsableDate(d: Date | null | undefined): d is Date {
+  return d instanceof Date && !isNaN(d.getTime()) && d.getTime() > 0;
 }
 
 function formatDateRange(startDate: Date | null, endDate: Date | null): string {
@@ -71,14 +77,16 @@ export function TripDateRangeInput({
 
   function openPicker() {
     if (!editable) return;
-    setLocalDate(startDate ?? new Date());
+    const today = new Date();
+    setLocalDate(isUsableDate(startDate) ? startDate : today);
     setPickerStep('start');
   }
 
   function handleConfirm() {
     if (pickerStep === 'start') {
       onStartDate?.(localDate);
-      setLocalDate(endDate ?? localDate);
+      const next = isUsableDate(endDate) ? endDate : localDate;
+      setLocalDate(next);
       setPickerStep('end');
     } else if (pickerStep === 'end') {
       onEndDate?.(localDate);
@@ -95,23 +103,27 @@ export function TripDateRangeInput({
 
   return (
     <View style={styles.row}>
-      <Ionicons name="calendar-outline" size={14} color={secondary} />
       {editable ? (
-        <TouchableOpacity onPress={openPicker} activeOpacity={0.7}>
+        <TouchableOpacity onPress={openPicker} activeOpacity={0.7} style={styles.rowTouchable}>
+          <Calendar size={16} color={secondary} />
           <AppText style={[styles.label, { color: (startDate || endDate) ? textColor : secondary }]}>
             {label}
           </AppText>
         </TouchableOpacity>
       ) : (
-        <AppText style={[styles.label, { color: secondary }]} numberOfLines={1}>
-          {label}
-        </AppText>
+        <>
+          <Calendar size={16} color={secondary} />
+          <AppText style={[styles.label, { color: secondary }]} numberOfLines={1}>
+            {label}
+          </AppText>
+        </>
       )}
 
       {/* ── Picker modal ─────────────────────────────────────────────── */}
       {pickerStep !== null && (
         Platform.OS === 'android' ? (
           <DateTimePicker
+            key={pickerStep}
             value={localDate}
             mode="date"
             display="default"
@@ -133,7 +145,7 @@ export function TripDateRangeInput({
             }}
           />
         ) : (
-          <Modal visible transparent animationType="slide" onRequestClose={handleDismiss}>
+          <Modal visible transparent animationType="none" onRequestClose={handleDismiss}>
             <View style={pickerStyles.overlay}>
               <TouchableOpacity
                 style={pickerStyles.scrim}
@@ -145,6 +157,7 @@ export function TripDateRangeInput({
                   {showLabel}
                 </AppText>
                 <DateTimePicker
+                  key={pickerStep}
                   value={localDate}
                   mode="date"
                   display="spinner"
@@ -175,6 +188,11 @@ export function TripDateRangeInput({
 
 const styles = StyleSheet.create({
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  rowTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,

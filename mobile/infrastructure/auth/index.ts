@@ -1,5 +1,6 @@
 import type { AuthRemoteDataSource, OtpSessionDto } from '@shared/auth';
 import { supabase } from '../supabase';
+import { fetchWithTimeout } from '../http/fetchWithTimeout';
 
 const FUNCTIONS_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
 
@@ -22,10 +23,11 @@ export function createAuthRemoteDataSource(): AuthRemoteDataSource {
   return {
     async sendOtp({ phone }) {
       const phoneE164 = normalizePhoneE164(phone);
-      const res = await fetch(`${FUNCTIONS_URL}/send-otp`, {
+      const res = await fetchWithTimeout(`${FUNCTIONS_URL}/send-otp`, {
         method: 'POST',
         headers: getFunctionsHeaders(),
         body: JSON.stringify({ phone: phoneE164 }),
+        timeout: 15_000,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to send verification code');
@@ -33,10 +35,11 @@ export function createAuthRemoteDataSource(): AuthRemoteDataSource {
 
     async verifyOtp({ phone, token }) {
       const phoneE164 = normalizePhoneE164(phone);
-      const res = await fetch(`${FUNCTIONS_URL}/verify-otp`, {
+      const res = await fetchWithTimeout(`${FUNCTIONS_URL}/verify-otp`, {
         method: 'POST',
         headers: getFunctionsHeaders(),
         body: JSON.stringify({ phone: phoneE164, code: token }),
+        timeout: 15_000,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Verification failed');

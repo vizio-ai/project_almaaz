@@ -1,57 +1,42 @@
+import { getCountries, getCountryCallingCode, type CountryCode } from 'libphonenumber-js';
+import { getName } from 'country-list';
+
 export interface Country {
+  code: CountryCode;
   name: string;
   dialCode: string;
   flag: string;
 }
 
-export const COUNTRIES: Country[] = [
-  { name: 'Turkey',         dialCode: '+90',  flag: '🇹🇷' },
-  { name: 'United States',  dialCode: '+1',   flag: '🇺🇸' },
-  { name: 'United Kingdom', dialCode: '+44',  flag: '🇬🇧' },
-  { name: 'Germany',        dialCode: '+49',  flag: '🇩🇪' },
-  { name: 'France',         dialCode: '+33',  flag: '🇫🇷' },
-  { name: 'Netherlands',    dialCode: '+31',  flag: '🇳🇱' },
-  { name: 'Belgium',        dialCode: '+32',  flag: '🇧🇪' },
-  { name: 'Switzerland',    dialCode: '+41',  flag: '🇨🇭' },
-  { name: 'Austria',        dialCode: '+43',  flag: '🇦🇹' },
-  { name: 'Sweden',         dialCode: '+46',  flag: '🇸🇪' },
-  { name: 'Norway',         dialCode: '+47',  flag: '🇳🇴' },
-  { name: 'Denmark',        dialCode: '+45',  flag: '🇩🇰' },
-  { name: 'Finland',        dialCode: '+358', flag: '🇫🇮' },
-  { name: 'Spain',          dialCode: '+34',  flag: '🇪🇸' },
-  { name: 'Italy',          dialCode: '+39',  flag: '🇮🇹' },
-  { name: 'Portugal',       dialCode: '+351', flag: '🇵🇹' },
-  { name: 'Poland',         dialCode: '+48',  flag: '🇵🇱' },
-  { name: 'Russia',         dialCode: '+7',   flag: '🇷🇺' },
-  { name: 'Ukraine',        dialCode: '+380', flag: '🇺🇦' },
-  { name: 'Greece',         dialCode: '+30',  flag: '🇬🇷' },
-  { name: 'Canada',         dialCode: '+1',   flag: '🇨🇦' },
-  { name: 'Australia',      dialCode: '+61',  flag: '🇦🇺' },
-  { name: 'New Zealand',    dialCode: '+64',  flag: '🇳🇿' },
-  { name: 'Japan',          dialCode: '+81',  flag: '🇯🇵' },
-  { name: 'South Korea',    dialCode: '+82',  flag: '🇰🇷' },
-  { name: 'China',          dialCode: '+86',  flag: '🇨🇳' },
-  { name: 'India',          dialCode: '+91',  flag: '🇮🇳' },
-  { name: 'Pakistan',       dialCode: '+92',  flag: '🇵🇰' },
-  { name: 'Bangladesh',     dialCode: '+880', flag: '🇧🇩' },
-  { name: 'UAE',            dialCode: '+971', flag: '🇦🇪' },
-  { name: 'Saudi Arabia',   dialCode: '+966', flag: '🇸🇦' },
-  { name: 'Qatar',          dialCode: '+974', flag: '🇶🇦' },
-  { name: 'Kuwait',         dialCode: '+965', flag: '🇰🇼' },
-  { name: 'Israel',         dialCode: '+972', flag: '🇮🇱' },
-  { name: 'Egypt',          dialCode: '+20',  flag: '🇪🇬' },
-  { name: 'South Africa',   dialCode: '+27',  flag: '🇿🇦' },
-  { name: 'Nigeria',        dialCode: '+234', flag: '🇳🇬' },
-  { name: 'Kenya',          dialCode: '+254', flag: '🇰🇪' },
-  { name: 'Brazil',         dialCode: '+55',  flag: '🇧🇷' },
-  { name: 'Argentina',      dialCode: '+54',  flag: '🇦🇷' },
-  { name: 'Mexico',         dialCode: '+52',  flag: '🇲🇽' },
-  { name: 'Colombia',       dialCode: '+57',  flag: '🇨🇴' },
-  { name: 'Chile',          dialCode: '+56',  flag: '🇨🇱' },
-  { name: 'Singapore',      dialCode: '+65',  flag: '🇸🇬' },
-  { name: 'Malaysia',       dialCode: '+60',  flag: '🇲🇾' },
-  { name: 'Indonesia',      dialCode: '+62',  flag: '🇮🇩' },
-  { name: 'Thailand',       dialCode: '+66',  flag: '🇹🇭' },
-  { name: 'Philippines',    dialCode: '+63',  flag: '🇵🇭' },
-  { name: 'Vietnam',        dialCode: '+84',  flag: '🇻🇳' },
-];
+function getCountryName(isoCode: string): string {
+  return getName(isoCode) ?? isoCode;
+}
+
+function isoToFlag(isoCode: string): string {
+  return isoCode
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+}
+
+const PRIORITY: CountryCode[] = ['US', 'GB', 'CA', 'DE', 'FR', 'AE', 'SA', 'TR'];
+
+function buildCountryList(): Country[] {
+  const all = getCountries().map((code) => ({
+    code,
+    name: getCountryName(code),
+    dialCode: `+${getCountryCallingCode(code)}`,
+    flag: isoToFlag(code),
+  }));
+
+  const priority = PRIORITY
+    .map((code) => all.find((c) => c.code === code))
+    .filter(Boolean) as Country[];
+
+  const rest = all
+    .filter((c) => !PRIORITY.includes(c.code))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return [...priority, ...rest];
+}
+
+export const COUNTRIES: Country[] = buildCountryList();

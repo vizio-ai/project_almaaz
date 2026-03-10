@@ -5,6 +5,7 @@
 export function resolveAuthError(code: string, message: string): string {
   const userMessages: Record<string, string> = {
     NETWORK: 'Connection failed. Please check your internet and try again.',
+    TIMEOUT: 'Request timed out. Please check your connection and try again.',
     UNAUTHORIZED: 'This number is not authorized. Please try again.',
     UNKNOWN: 'Something went wrong. Please try again.',
   };

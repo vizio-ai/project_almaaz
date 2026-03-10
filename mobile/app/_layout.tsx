@@ -20,6 +20,7 @@ import { createDoraRemoteDataSource } from '@/infrastructure/itinerary';
 import { createAdminRemoteDataSource } from '@/infrastructure/admin';
 import { createFollowRemoteDataSource } from '@/infrastructure/follow';
 import { AppText, ErrorBoundary } from '@shared/ui-kit';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -59,7 +60,7 @@ const followExternalDeps: FollowExternalDependencies = {
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { session, isLoading } = useSession();
-  const { profile, isLoading: profileLoading } = useProfile(session?.user.id);
+  const { profile, isLoading: profileLoading } = useProfile(session?.user.id, { enableActiveStatusSync: true });
   const segments = useSegments();
   const router = useRouter();
 
@@ -179,6 +180,7 @@ function AppContent() {
                       }}
                     >
                       <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="itinerary" />
                       <Stack.Screen name="admin" />
                       <Stack.Screen name="auth" options={{ animation: 'none' }} />
                       <Stack.Screen name="profile" />
@@ -218,12 +220,14 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
-      <AuthProvider dependencies={authExternalDeps}>
-        <AuthSessionProvider>
-          <AppContent />
-        </AuthSessionProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <AuthProvider dependencies={authExternalDeps}>
+          <AuthSessionProvider>
+            <AppContent />
+          </AuthSessionProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

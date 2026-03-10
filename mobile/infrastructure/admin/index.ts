@@ -22,7 +22,7 @@ export function createAdminRemoteDataSource(): AdminRemoteDataSource {
 
       const { data, error, count } = await supabase
         .from('profiles')
-        .select('id, name, surname, created_at, is_active', { count: 'exact' })
+        .select('id, name, surname, created_at, is_active, role', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { AppText, useThemeColor } from '@shared/ui-kit';
-import AnonymousUserIcon from '../../../../../assets/images/anonymous_user_icon.svg';
+import { AppText, CreatedByAuthor, useThemeColor } from '@shared/ui-kit';
 import BookmarkIcon from '../../../../../assets/images/bookmark_vector.svg';
 
 const FALLBACK_PHOTO = require('../../../../../assets/images/card_photo.png');
@@ -23,7 +22,6 @@ interface TripCardProps {
 export function TripCard({ trip, onPress, width }: TripCardProps) {
   const surface = useThemeColor('surfaceAlt');
   const text = useThemeColor('text');
-  const secondary = useThemeColor('textSecondary');
 
   const cardWidth = width ?? 183;
   const imageHeight = Math.round(cardWidth * (110 / 183));
@@ -40,10 +38,7 @@ export function TripCard({ trip, onPress, width }: TripCardProps) {
       </View>
       <View style={styles.info}>
         <AppText style={[styles.title, { color: text }]} numberOfLines={3}>{trip.title}</AppText>
-        <View style={styles.authorRow}>
-          <AnonymousUserIcon width={12} height={12} />
-          <AppText style={[styles.author, { color: secondary }]}>{trip.creatorName}</AppText>
-        </View>
+        <CreatedByAuthor userName={trip.creatorName} />
       </View>
     </TouchableOpacity>
   );
@@ -90,10 +85,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#71717A',
   },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  author: { fontSize: 12, fontWeight: '400' },
 });

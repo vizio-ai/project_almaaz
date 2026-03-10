@@ -3,6 +3,8 @@ import { useManualItineraryDependencies } from '../../di/ManualItineraryProvider
 import { AddDayUseCase } from '../../domain/usecases/AddDayUseCase';
 import { UpdateDayUseCase } from '../../domain/usecases/UpdateDayUseCase';
 import { RemoveDayUseCase } from '../../domain/usecases/RemoveDayUseCase';
+import { ReorderDaysUseCase } from '../../domain/usecases/ReorderDaysUseCase';
+import type { AddDayParams, UpdateDayParams } from '../../domain/repository/ManualItineraryRepository';
 
 export function useDayMutations(itineraryId: string | null, refresh: () => void) {
   const { manualItineraryRepository } = useManualItineraryDependencies();
@@ -19,20 +21,25 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
     () => new RemoveDayUseCase(manualItineraryRepository),
     [manualItineraryRepository],
   );
+  const reorderUseCase = useMemo(
+    () => new ReorderDaysUseCase(manualItineraryRepository),
+    [manualItineraryRepository],
+  );
 
-  const addDay = useCallback(async () => {
+  const addDay = useCallback(async (params: AddDayParams = {}) => {
     if (!itineraryId) return { success: false as const };
-    const result = await addUseCase.execute(itineraryId);
+    const result = await addUseCase.execute(itineraryId, params);
     if (result.success) refresh();
     return result;
   }, [itineraryId, addUseCase, refresh]);
 
   const updateDay = useCallback(
-    async (dayId: string, notes: string | null) => {
-      // No refresh — caller handles UI state to avoid losing cursor focus
-      return updateUseCase.execute(dayId, notes);
+    async (dayId: string, params: UpdateDayParams) => {
+      const result = await updateUseCase.execute(dayId, params);
+      if (result.success) refresh();
+      return result;
     },
-    [updateUseCase],
+    [updateUseCase, refresh],
   );
 
   const removeDay = useCallback(
@@ -44,5 +51,15 @@ export function useDayMutations(itineraryId: string | null, refresh: () => void)
     [removeUseCase, refresh],
   );
 
-  return { addDay, updateDay, removeDay };
+  const reorderDays = useCallback(
+    async (orderedDayIds: string[]) => {
+      if (!itineraryId) return { success: false as const };
+      const result = await reorderUseCase.execute(itineraryId, orderedDayIds);
+      if (result.success) refresh();
+      return result;
+    },
+    [itineraryId, reorderUseCase, refresh],
+  );
+
+  return { addDay, updateDay, removeDay, reorderDays };
 }

@@ -10,6 +10,8 @@ export interface UpdateProfileData {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  birthday: string | null;
+  location: string | null;
   pace: string | null;
   interests: string[];
   journaling: string | null;
@@ -21,4 +23,6 @@ export interface ProfileRepository {
   saveOnboardingProfile(profile: OnboardingProfile): Promise<Result<void>>;
   updateProfile(data: UpdateProfileData): Promise<Result<void>>;
   uploadAvatar(userId: ID, fileUri: string): Promise<Result<string>>;
+  /** Subscribe to realtime profile changes. Returns an unsubscribe function. */
+  subscribeToProfileChanges(userId: ID, onChanged: (profile: Profile) => void): () => void;
 }

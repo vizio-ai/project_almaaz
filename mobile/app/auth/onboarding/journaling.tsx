@@ -42,6 +42,7 @@ export default function JournalingScreen() {
     });
     if (result.success) {
       markOnboarded();
+      router.replace('/(tabs)/create?fromOnboarding=true');
     } else {
       Alert.alert('Error', result.error?.message ?? 'Something went wrong. Please try again.');
     }
@@ -57,6 +58,7 @@ export default function JournalingScreen() {
       selected={[selected]}
       onSelect={setSelected}
       multiSelect={false}
+      optional
       onNext={handleNext}
       onBack={() => router.back()}
       onFinishLater={handleFinishLater}

@@ -49,6 +49,7 @@ export default function InterestsScreen() {
     });
     if (result.success) {
       markOnboarded();
+      router.replace('/(tabs)/create?fromOnboarding=true');
     } else {
       Alert.alert('Error', result.error?.message ?? 'Something went wrong. Please try again.');
     }
@@ -64,6 +65,7 @@ export default function InterestsScreen() {
       selected={selected}
       onSelect={toggle}
       multiSelect
+      optional
       onNext={handleNext}
       onBack={() => router.back()}
       onFinishLater={handleFinishLater}

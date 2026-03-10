@@ -10,11 +10,29 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
+const GLOBAL_FETCH_TIMEOUT_MS = 20_000;
+
+const fetchWithGlobalTimeout: typeof fetch = (input, init) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GLOBAL_FETCH_TIMEOUT_MS);
+
+  const mergedSignal = init?.signal
+    ? init.signal
+    : controller.signal;
+
+  return fetch(input, { ...init, signal: mergedSignal }).finally(() =>
+    clearTimeout(timer),
+  );
+};
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    fetch: fetchWithGlobalTimeout,
   },
 });

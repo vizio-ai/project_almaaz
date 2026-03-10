@@ -16,14 +16,16 @@ export function useFollowList(
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchUsers = useCallback(() => {
+  const fetchUsers = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
-    const useCase = type === 'followers' ? getFollowersUseCase : getFollowingUseCase;
-    useCase.execute({ userId }).then(result => {
+    try {
+      const useCase = type === 'followers' ? getFollowersUseCase : getFollowingUseCase;
+      const result = await useCase.execute({ userId });
       if (result.success) setUsers(result.data);
+    } finally {
       setIsLoading(false);
-    });
+    }
   }, [userId, type, getFollowersUseCase, getFollowingUseCase]);
 
   useEffect(() => {

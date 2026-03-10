@@ -1,6 +1,6 @@
 import type { Itinerary } from '../entities/Itinerary';
 import type { ItineraryDay } from '../entities/ItineraryDay';
-import type { Activity } from '../entities/Activity';
+import type { Activity, ActivityType } from '../entities/Activity';
 import type { TravelInfo, TravelInfoType } from '../entities/TravelInfo';
 
 // ─── Itinerary ───────────────────────────────────────────────────────────────
@@ -15,6 +15,8 @@ export interface CreateItineraryParams {
   isClonable?: boolean;
   tripNotes?: string | null;
   isAiGenerated?: boolean;
+  /** Optional travel info items to create together with the itinerary (create mode). */
+  travelInfo?: AddTravelInfoParams[];
 }
 
 export interface UpdateItineraryParams {
@@ -25,6 +27,7 @@ export interface UpdateItineraryParams {
   tripNotes?: string | null;
   isPublic?: boolean;
   isClonable?: boolean;
+  coverImageUrl?: string | null;
 }
 
 export interface ItineraryWithDetails {
@@ -39,11 +42,18 @@ export interface ItineraryWithDetails {
 export interface AddDayParams {
   /** ISO date string (YYYY-MM-DD). Optional — day may be dateless. */
   date?: string | null;
+  notes?: string | null;
+  accommodation?: string | null;
+  accommodationLatitude?: number | null;
+  accommodationLongitude?: number | null;
 }
 
 export interface UpdateDayParams {
   date?: string | null;
   notes?: string | null;
+  accommodation?: string | null;
+  accommodationLatitude?: number | null;
+  accommodationLongitude?: number | null;
 }
 
 // ─── Activity ─────────────────────────────────────────────────────────────────
@@ -52,6 +62,8 @@ export interface AddActivityParams {
   name: string;
   /** Omit to append at the end. */
   sortOrder?: number;
+  activityType?: ActivityType | null;
+  startTime?: string | null;
   locationText?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -60,6 +72,8 @@ export interface AddActivityParams {
 export interface UpdateActivityParams {
   name?: string;
   sortOrder?: number;
+  activityType?: ActivityType | null;
+  startTime?: string | null;
   locationText?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -73,6 +87,8 @@ export interface AddTravelInfoParams {
   provider?: string | null;
   detail?: string | null;
   startDatetime?: string | null;
+  /** Optional end datetime (hotel check-out, rental car drop-off, etc.). */
+  endDatetime?: string | null;
 }
 
 export interface UpdateTravelInfoParams {
@@ -81,6 +97,8 @@ export interface UpdateTravelInfoParams {
   provider?: string | null;
   detail?: string | null;
   startDatetime?: string | null;
+  /** Optional end datetime (hotel check-out, rental car drop-off, etc.). */
+  endDatetime?: string | null;
 }
 
 // ─── Repository ───────────────────────────────────────────────────────────────
@@ -91,6 +109,18 @@ export interface ManualItineraryRepository {
   create(params: CreateItineraryParams): Promise<{ success: boolean; id?: string }>;
   update(id: string, params: UpdateItineraryParams): Promise<{ success: boolean }>;
   remove(id: string): Promise<{ success: boolean }>;
+  /** Clone an itinerary via the clone_itinerary RPC. Returns the new itinerary ID. */
+  cloneItinerary(sourceId: string, userId: string): Promise<{ success: boolean; id?: string }>;
+  /**
+   * Compress and upload a local image URI to the `covers` Storage bucket.
+   * Returns the public URL on success.
+   * Path pattern: covers/{userId}/{itineraryId}.jpg
+   */
+  uploadCoverImage(
+    userId: string,
+    itineraryId: string,
+    localUri: string,
+  ): Promise<{ success: boolean; url?: string }>;
 
   // Days
   addDay(itineraryId: string, params: AddDayParams): Promise<{ success: boolean; id?: string }>;

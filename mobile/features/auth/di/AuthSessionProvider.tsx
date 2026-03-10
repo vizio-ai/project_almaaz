@@ -12,6 +12,7 @@ import { useAuthDependencies } from './useAuthDependencies';
 import type { AuthSession } from '../presentation/hooks/useAuth';
 
 const BOOTSTRAP_MIN_DELAY_MS = 2000;
+const SESSION_RESTORE_TIMEOUT_MS = 10_000;
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,8 +58,15 @@ export function AuthSessionProvider({ children }: AuthSessionProviderProps) {
       setTimeout(resolve, BOOTSTRAP_MIN_DELAY_MS),
     );
 
+    const sessionTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Session restore timeout')), SESSION_RESTORE_TIMEOUT_MS),
+    );
+
     Promise.all([
-      getCurrentSessionUseCaseRef.current.execute(),
+      Promise.race([
+        getCurrentSessionUseCaseRef.current.execute(),
+        sessionTimeout,
+      ]),
       minDelay,
     ])
       .then(([result]) => {
@@ -71,7 +79,7 @@ export function AuthSessionProvider({ children }: AuthSessionProviderProps) {
         }
       })
       .catch(() => {
-        // Session could not be loaded; stays null
+        // Session could not be loaded or timed out; stays null → user goes to login
       })
       .finally(() => {
         setIsLoading(false);

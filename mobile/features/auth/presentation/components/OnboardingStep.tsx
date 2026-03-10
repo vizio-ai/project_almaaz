@@ -27,6 +27,8 @@ interface OnboardingStepProps {
   onBack: () => void;
   /** When provided, shows "Finish Later" button aligned with logo. Completes onboarding on press. */
   onFinishLater?: () => void;
+  /** When true, user can proceed without selecting any option */
+  optional?: boolean;
   isLoading?: boolean;
 }
 
@@ -42,6 +44,7 @@ export function OnboardingStep({
   onNext,
   onBack,
   onFinishLater,
+  optional = false,
   isLoading = false,
 }: OnboardingStepProps) {
   const { top } = useSafeAreaInsets();
@@ -49,7 +52,7 @@ export function OnboardingStep({
   const textColor = useThemeColor('text');
   const borderColor = useThemeColor('border');
 
-  const canNext = selected.some((s) => s.length > 0);
+  const canNext = optional || selected.some((s) => s.length > 0);
 
   return (
     <View style={[styles.root, { backgroundColor: bgColor }]}>
@@ -90,7 +93,13 @@ export function OnboardingStep({
                 icon={icon}
                 iconSource={iconSource}
                 isSelected={selected.includes(label)}
-                onPress={() => onSelect(label)}
+                onPress={() => {
+                  if (!multiSelect && selected.includes(label)) {
+                    onSelect('');
+                  } else {
+                    onSelect(label);
+                  }
+                }}
               />
             );
           })}
