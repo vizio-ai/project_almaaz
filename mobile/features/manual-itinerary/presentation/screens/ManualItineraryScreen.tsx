@@ -71,7 +71,10 @@ export interface ManualItineraryScreenProps {
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -103,9 +106,10 @@ function buildDraftDays(start: Date | null, end: Date | null): ItineraryDay[] {
   const endDate = new Date(end);
 
   let index = 1;
+  const endStr = toISODate(endDate);
   for (
     let d = new Date(startDate);
-    d <= endDate;
+    toISODate(d) <= endStr;
     d = new Date(d.getTime() + 24 * 60 * 60 * 1000), index += 1
   ) {
     days.push({
@@ -298,19 +302,10 @@ export const ManualItineraryScreen = React.forwardRef<
    * The new end date is the date of the last remaining dated day.
    */
   const handleRemoveDay = useCallback(async (dayId: string) => {
-    const result = await removeDay(dayId);
-    if (!result.success || !itineraryId) return;
-
-    const remainingDays = days.filter((d) => d.id !== dayId);
-    const lastDatedDay = remainingDays
-      .filter((d) => !!d.date)
-      .sort((a, b) => a.dayNumber - b.dayNumber)
-      .pop();
-
-    const newEndStr = lastDatedDay?.date ?? null;
-    await manualItineraryRepository.update(itineraryId, { endDate: newEndStr });
-    setEditEndDate(newEndStr ? new Date(newEndStr) : null);
-  }, [days, itineraryId, removeDay, manualItineraryRepository]);
+    const result = await manualItineraryRepository.clearDay(dayId);
+    if (!result.success) return;
+    refresh();
+  }, [manualItineraryRepository, refresh]);
 
   // ── Wrap mutations to trigger summary generation ────────────────────────
   const addActivityWithSummary = useCallback(

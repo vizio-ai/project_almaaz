@@ -126,6 +126,8 @@ export interface ManualItineraryRepository {
   addDay(itineraryId: string, params: AddDayParams): Promise<{ success: boolean; id?: string }>;
   updateDay(dayId: string, params: UpdateDayParams): Promise<{ success: boolean }>;
   removeDay(dayId: string): Promise<{ success: boolean }>;
+  /** Clear all activities and accommodation from a day without deleting the day itself. */
+  clearDay(dayId: string): Promise<{ success: boolean }>;
   /** Persist a new day order by passing all dayIds in the desired sequence. */
   reorderDays(itineraryId: string, orderedDayIds: string[]): Promise<{ success: boolean }>;
 

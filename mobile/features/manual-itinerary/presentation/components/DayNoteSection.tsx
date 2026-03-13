@@ -7,9 +7,10 @@ import { NoteCreateCard } from './NoteCreateCard';
 export interface DayNoteSectionProps {
   initialNote?: string | null;
   onSave: (note: string | null) => Promise<void>;
+  readOnly?: boolean;
 }
 
-export function DayNoteSection({ initialNote, onSave }: DayNoteSectionProps) {
+export function DayNoteSection({ initialNote, onSave, readOnly = false }: DayNoteSectionProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
 
@@ -27,8 +28,9 @@ export function DayNoteSection({ initialNote, onSave }: DayNoteSectionProps) {
     }
   };
 
-  // No note, not editing — show a compact right-aligned "Add Note" button
+  // No note, not editing — show a compact right-aligned "Add Note" button (owners only)
   if (!note && !isEditing) {
+    if (readOnly) return null;
     return (
       <View style={styles.addNoteRow}>
         <PrimaryButton
@@ -58,9 +60,11 @@ export function DayNoteSection({ initialNote, onSave }: DayNoteSectionProps) {
     <View style={styles.noteCard}>
       <View style={styles.noteCardRow}>
         <AppText style={[styles.noteLabel, { color: secondary }]}>Note</AppText>
-        <TouchableOpacity onPress={() => setIsEditing(true)} hitSlop={8}>
-          <Pencil size={15} color={secondary} strokeWidth={1.8} />
-        </TouchableOpacity>
+        {!readOnly && (
+          <TouchableOpacity onPress={() => setIsEditing(true)} hitSlop={8}>
+            <Pencil size={15} color={secondary} strokeWidth={1.8} />
+          </TouchableOpacity>
+        )}
       </View>
       <AppText style={[styles.noteText, { color: textColor }]} numberOfLines={4}>
         {note}

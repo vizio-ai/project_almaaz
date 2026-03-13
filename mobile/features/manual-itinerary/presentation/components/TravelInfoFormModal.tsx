@@ -291,7 +291,7 @@ export function TravelInfoFormModal({
         endDatetime: endDatetime ? endDatetime.trim() || null : null,
       };
       await onAdd(params);
-      // Yeni kayıt ekle, modalı açık tut ve alanları temizle (type sabit kalsın)
+      // Keep modal open after add; clear fields but preserve selected type
       setTitle('');
       setProvider('');
       setDetail('');

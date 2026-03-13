@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Modal,
   Platform,
+  Keyboard,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,6 +78,7 @@ export function TripDateRangeInput({
 
   function openPicker() {
     if (!editable) return;
+    Keyboard.dismiss();
     const today = new Date();
     setLocalDate(isUsableDate(startDate) ? startDate : today);
     setPickerStep('start');
@@ -85,7 +87,7 @@ export function TripDateRangeInput({
   function handleConfirm() {
     if (pickerStep === 'start') {
       onStartDate?.(localDate);
-      const next = isUsableDate(endDate) ? endDate : localDate;
+      const next = isUsableDate(endDate) && endDate >= localDate ? endDate : localDate;
       setLocalDate(next);
       setPickerStep('end');
     } else if (pickerStep === 'end') {
@@ -133,7 +135,7 @@ export function TripDateRangeInput({
                 setLocalDate(date);
                 if (pickerStep === 'start') {
                   onStartDate?.(date);
-                  setLocalDate(endDate ?? date);
+                  setLocalDate(isUsableDate(endDate) && endDate >= date ? endDate : date);
                   setPickerStep('end');
                 } else {
                   onEndDate?.(date);

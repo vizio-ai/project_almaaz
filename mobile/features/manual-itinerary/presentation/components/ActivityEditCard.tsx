@@ -77,7 +77,7 @@ export function ActivityEditCard({
         </TouchableOpacity>
       </View>
 
-      {/* Description placeholder (tasarımdaki kısa metin için) */}
+      {/* Description placeholder — reserved for design short-text */}
 
       {/* Activity name input */}
       <View style={styles.fieldBlock}>

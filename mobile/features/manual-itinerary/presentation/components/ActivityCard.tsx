@@ -50,9 +50,11 @@ export function ActivityCard({
           <View style={styles.headerLeft}>
             <AppText style={[styles.title, { color: textColor }]}>{title}</AppText>
           </View>
-          <TouchableOpacity style={styles.iconButton} onPress={onPressEdit} activeOpacity={0.7}>
-            <Pencil size={16} color={secondary} />
-          </TouchableOpacity>
+          {onPressEdit && (
+            <TouchableOpacity style={styles.iconButton} onPress={onPressEdit} activeOpacity={0.7}>
+              <Pencil size={16} color={secondary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {tags.length > 0 && (

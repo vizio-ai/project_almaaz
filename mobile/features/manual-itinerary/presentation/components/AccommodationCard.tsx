@@ -31,9 +31,11 @@ export function AccommodationCard({ title, description, onPress }: Accommodation
           </AppText>
         </View>
 
-        <View style={styles.iconButton}>
-          <Pencil size={16} color={secondary} />
-        </View>
+        {onPress && (
+          <View style={styles.iconButton}>
+            <Pencil size={16} color={secondary} />
+          </View>
+        )}
       </View>
 
       {description?.trim() ? (

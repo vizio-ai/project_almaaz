@@ -320,11 +320,11 @@ export function DaySection({
             <TouchableOpacity
               onPress={() =>
                 Alert.alert(
-                  'Delete day',
-                  'This will permanently delete this day and all its activities.',
+                  'Clear day',
+                  'This will remove all activities and accommodation from this day.',
                   [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => onRemoveDay(day.id) },
+                    { text: 'Clear', style: 'destructive', onPress: () => onRemoveDay(day.id) },
                   ],
                 )
               }
@@ -363,16 +363,11 @@ export function DaySection({
           )}
 
           {/* ── Day note ──────────────────────────────────────────────── */}
-          {readOnly ? (
-            day.notes ? (
-              <DayNoteSection initialNote={day.notes} onSave={handleNoteSave} />
-            ) : null
-          ) : (
-            <DayNoteSection
-              initialNote={day.notes}
-              onSave={handleNoteSave}
-            />
-          )}
+          <DayNoteSection
+            initialNote={day.notes}
+            onSave={handleNoteSave}
+            readOnly={readOnly}
+          />
 
           {/* ── Activity list — only rendered when non-empty ───────────── */}
           {orderedActivities.length > 0 && (

@@ -171,7 +171,33 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
       if (params.coverImageUrl !== undefined) payload.cover_image_url = params.coverImageUrl;
 
       const { error } = await supabase.from('itineraries').update(payload).eq('id', id);
-      return { success: !error };
+      if (error) return { success: false };
+
+      // When startDate changes, re-date all itinerary_days relative to the new start.
+      // Day N gets date = startDate + (day_number - 1) days.
+      if (params.startDate) {
+        const { data: days } = await supabase
+          .from('itinerary_days')
+          .select('id, day_number')
+          .eq('itinerary_id', id)
+          .order('day_number', { ascending: true });
+
+        if (days && days.length > 0) {
+          const updates = days.map((day) => {
+            // Use noon UTC to avoid DST edge cases when formatting
+            const d = new Date(`${params.startDate}T12:00:00`);
+            d.setDate(d.getDate() + (day.day_number - 1));
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return { id: day.id, date: `${yyyy}-${mm}-${dd}` };
+          });
+
+          await supabase.from('itinerary_days').upsert(updates, { onConflict: 'id' });
+        }
+      }
+
+      return { success: true };
     },
 
     async remove(id: string) {
@@ -236,6 +262,17 @@ export function createManualItineraryRepository(): ManualItineraryRepository {
 
     async removeDay(dayId: string) {
       const { error } = await supabase.from('itinerary_days').delete().eq('id', dayId);
+      return { success: !error };
+    },
+
+    async clearDay(dayId: string) {
+      // Delete all activities for this day
+      await supabase.from('itinerary_activities').delete().eq('day_id', dayId);
+      // Clear accommodation and notes, keep the day record and its date
+      const { error } = await supabase
+        .from('itinerary_days')
+        .update({ accommodation: null, accommodation_latitude: null, accommodation_longitude: null, notes: null })
+        .eq('id', dayId);
       return { success: !error };
     },
 

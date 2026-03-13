@@ -21,15 +21,19 @@ export interface BuildYourselfWizardProps {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function buildDaysFromRange(start: Date, end: Date): WizardDraftDay[] {
   const days: WizardDraftDay[] = [];
   let index = 1;
+  const endStr = toISODate(end);
   for (
     let d = new Date(start);
-    d <= end;
+    toISODate(d) <= endStr;
     d = new Date(d.getTime() + 24 * 60 * 60 * 1000), index += 1
   ) {
     days.push({
@@ -157,12 +161,12 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
   const handleCancel = useCallback(() => {
     if (isDirty) {
       Alert.alert(
-        'Değişiklikleri kaydetmediniz',
-        'Çıkmak istediğinize emin misiniz? Girdiğiniz bilgiler kaybolacak.',
+        'Unsaved changes',
+        'Are you sure you want to leave? Your progress will be lost.',
         [
-          { text: 'Vazgeç', style: 'cancel' },
+          { text: 'Stay', style: 'cancel' },
           {
-            text: 'Çık',
+            text: 'Leave',
             style: 'destructive',
             onPress: () => {
               resetWizardState();
@@ -305,10 +309,6 @@ export function BuildYourselfWizard({ userId, currentUserName, currentUserAvatar
             onEndDate={setEndDate}
             tripNote={tripNote}
             onTripNoteChange={setTripNote}
-            isPublic={isPublic}
-            onIsPublicChange={setIsPublic}
-            isClonable={isClonable}
-            onIsClonableChange={setIsClonable}
             onCancel={handleCancel}
             onNext={() => goToStep(1)}
           />

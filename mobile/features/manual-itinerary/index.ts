@@ -18,3 +18,5 @@ export type { ItineraryDay } from './domain/entities/ItineraryDay';
 export type { Activity } from './domain/entities/Activity';
 export type { TravelInfo } from './domain/entities/TravelInfo';
 export { createStubManualItineraryRepository } from './data/StubManualItineraryRepository';
+export { ActivityDetailModal } from './presentation/components/ActivityDetailModal';
+export type { ActivityDetailModalProps } from './presentation/components/ActivityDetailModal';

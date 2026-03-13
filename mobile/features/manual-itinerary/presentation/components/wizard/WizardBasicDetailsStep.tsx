@@ -11,7 +11,7 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { AppText, AppInput, SelectTrigger, ToggleRow, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
+import { AppText, AppInput, SelectTrigger, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import { WizardBottomActionBar } from './WizardBottomActionBar';
 import { TripDateRangeInput } from '../TripDateRangeInput';
 import { LocationPickerModal } from '../LocationPickerModal';
@@ -34,10 +34,6 @@ export interface WizardBasicDetailsStepProps {
   onEndDate: (d: Date) => void;
   tripNote: string;
   onTripNoteChange: (v: string) => void;
-  isPublic: boolean;
-  onIsPublicChange: (value: boolean) => void;
-  isClonable: boolean;
-  onIsClonableChange: (value: boolean) => void;
   onCancel: () => void;
   onNext: () => void;
 }
@@ -58,10 +54,6 @@ export function WizardBasicDetailsStep({
   onEndDate,
   tripNote,
   onTripNoteChange,
-  isPublic,
-  onIsPublicChange,
-  isClonable,
-  onIsClonableChange,
   onCancel,
   onNext,
 }: WizardBasicDetailsStepProps) {
@@ -249,19 +241,6 @@ export function WizardBasicDetailsStep({
           inputStyle={styles.textareaInputWrap}
         />
 
-        {/* ── Toggles ─────────────────────────────────────────────────── */}
-        <ToggleRow
-          label="Allow other users to clone"
-          value={isClonable}
-          onValueChange={onIsClonableChange}
-          infoMessage="This lets other users use your itinerary as a starting point to plan their own trip."
-        />
-        <ToggleRow
-          label={isPublic ? 'Public itinerary' : 'Private itinerary'}
-          value={isPublic}
-          onValueChange={onIsPublicChange}
-          infoMessage="When public, other users may see this itinerary in discover or shared views. When private, only you can see it."
-        />
       </ScrollView>
 
       <WizardBottomActionBar
