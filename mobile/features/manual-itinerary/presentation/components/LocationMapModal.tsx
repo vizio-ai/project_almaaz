@@ -7,21 +7,33 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
-  Linking,
+  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import * as WebBrowser from 'expo-web-browser';
 import { AppText, PrimaryButton, useThemeColor, typography, spacing, radii } from '@shared/ui-kit';
+import { geocodingService, PlaceSuggestion } from '@shared/services';
 
-const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
+// iOS: react-native-maps (Apple Maps, no API key needed)
+// Android: WebView + Leaflet (OSM, no Google dependency)
+import { WebView } from 'react-native-webview';
+let MapView: any = null;
+let Marker: any = null;
+if (Platform.OS === 'ios') {
+  const RNMaps = require('react-native-maps');
+  MapView = RNMaps.default;
+  Marker = RNMaps.Marker;
+}
+
 const DEFAULT_LAT = 20;
 const DEFAULT_LNG = 0;
 const USER_LOCATION_ZOOM = 8;
 
-function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: boolean): string {
+// ── Android: Leaflet HTML ──────────────────────────────────
+
+function buildMapHtml(allowPointPick: boolean): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -33,15 +45,16 @@ function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: bo
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map',{tap:false,touchZoom:true,dragging:true}).setView([${initialLat}, ${initialLng}], 3);
+    var map = L.map('map',{tap:false,touchZoom:true,dragging:true}).setView([${DEFAULT_LAT}, ${DEFAULT_LNG}], 3);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
     setTimeout(function(){ map.invalidateSize(); }, 300);
     setTimeout(function(){ map.invalidateSize(); }, 1000);
     var marker = null;
     function sendToRN(lat, lng) {
       try {
-        var msg = JSON.stringify({ type: 'location', lat: lat, lng: lng });
-        if (window.ReactNativeWebView) { window.ReactNativeWebView.postMessage(msg); }
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'location', lat: lat, lng: lng }));
+        }
       } catch(e) {}
     }
     window.setMapViewNoMarker = function(lat, lng, zoom) {
@@ -54,29 +67,14 @@ function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: bo
       marker = L.marker([lat, lng]).addTo(map);
       sendToRN(lat, lng);
     }
-    // Use both click and touchend for Android compatibility
-    var _lastTap = 0;
-    map.on('click', function(e) {
-      setMarker(e.latlng.lat, e.latlng.lng);
-    });
-    map.getContainer().addEventListener('touchend', function(e) {
-      if (e.touches.length > 0) return; // ignore multi-touch
-      var now = Date.now();
-      if (now - _lastTap < 500) return; // debounce double-tap zoom
-      _lastTap = now;
-      // small delay to let Leaflet process first
-      setTimeout(function() {
-        // only fire if Leaflet click didn't already handle it
-      }, 100);
-    }, false);
+    map.on('click', function(e) { setMarker(e.latlng.lat, e.latlng.lng); });
     window.setMarkerFromNative = function(lat, lng, zoom) {
       map.setView([lat, lng], zoom || 14);
       setMarker(lat, lng);
     };
     ` : ''}
-    window.fitBoundsByBBox = function(south, north, west, east) {
-      var bounds = L.latLngBounds([south, west], [north, east]);
-      map.fitBounds(bounds);
+    window.fitBoundsByBBox = function(s, n, w, e) {
+      map.fitBounds(L.latLngBounds([s, w], [n, e]));
       if (marker) { map.removeLayer(marker); marker = null; }
     };
   </script>
@@ -84,19 +82,18 @@ function buildMapHtml(initialLat: number, initialLng: number, allowPointPick: bo
 </html>`;
 }
 
+// ── Props ──────────────────────────────────────────────────
+
 export interface LocationMapModalProps {
   visible: boolean;
   initialQuery?: string;
-  /**
-   * Called when the user confirms a location.
-   * `latitude` and `longitude` are provided when the user searched or picked
-   * a point (allowPointPick=true). For trip-level free-text only mode they are null.
-   */
   onSelect: (locationName: string, latitude?: number | null, longitude?: number | null) => void;
   onClose: () => void;
   /** When true, user can pick an exact point on the map (used for activities). */
   allowPointPick?: boolean;
 }
+
+// ── Component ──────────────────────────────────────────────
 
 export function LocationMapModal({
   visible,
@@ -112,198 +109,225 @@ export function LocationMapModal({
   const accent = useThemeColor('accent');
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
   const [selectedLng, setSelectedLng] = useState<number | null>(null);
+  // Current map center used to bias autocomplete results toward the viewed area
+  const biasRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  // iOS (Apple Maps)
+  const [iosRegion, setIosRegion] = useState({
+    latitude: DEFAULT_LAT,
+    longitude: DEFAULT_LNG,
+    latitudeDelta: 50,
+    longitudeDelta: 50,
+  });
+  const mapViewRef = useRef<any>(null);
+
+  // Android (WebView + Leaflet)
   const webViewRef = useRef<WebView>(null);
-  const pendingOpenRef = useRef<{ query: string } | null>(null);
+  const mapReadyRef = useRef(false);
+  const pendingMoveRef = useRef<(() => void) | null>(null);
 
-  const mapHtml = buildMapHtml(DEFAULT_LAT, DEFAULT_LNG, allowPointPick);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapHtml = buildMapHtml(allowPointPick);
 
-  const searchNominatim = useCallback(async (query: string) => {
-    const q = query.trim();
-    if (!q) return;
-    setSearching(true);
-    try {
-      const res = await fetch(
-        `${NOMINATIM_BASE}/search?q=${encodeURIComponent(
-          q,
-        )}&format=json&limit=1&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } },
-      );
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const { lat, lon, boundingbox } = data[0];
-        const latNum = parseFloat(lat);
-        const lngNum = parseFloat(lon);
-        setSelectedLat(latNum);
-        setSelectedLng(lngNum);
+  // ── WebView map helpers (Android only) ──────────────────
 
-        if (Array.isArray(boundingbox) && boundingbox.length === 4) {
-          const [southStr, northStr, westStr, eastStr] = boundingbox;
-          const south = parseFloat(southStr);
-          const north = parseFloat(northStr);
-          const west = parseFloat(westStr);
-          const east = parseFloat(eastStr);
-          const latSpan = Math.abs(north - south);
-          const lonSpan = Math.abs(east - west);
-          const centerLat = (south + north) / 2;
-          const centerLng = (west + east) / 2;
-
-          // Heuristic zoom based on bounding box size
-          let zoom = 12;
-          if (latSpan > 40 || lonSpan > 60) {
-            zoom = 3;
-          } else if (latSpan > 15 || lonSpan > 30) {
-            zoom = 5;
-          } else if (latSpan > 5 || lonSpan > 15) {
-            zoom = 7;
-          } else if (latSpan > 1 || lonSpan > 5) {
-            zoom = 9;
-          } else if (latSpan > 0.1 || lonSpan > 0.5) {
-            zoom = 12;
-          } else {
-            zoom = 14;
-          }
-
-          const fn = allowPointPick ? 'setMarkerFromNative' : 'setMapViewNoMarker';
-          webViewRef.current?.injectJavaScript(
-            `window.${fn} && window.${fn}(${centerLat}, ${centerLng}, ${zoom}); true;`,
-          );
-        } else {
-          const fn = allowPointPick ? 'setMarkerFromNative' : 'setMapViewNoMarker';
-          webViewRef.current?.injectJavaScript(
-            `window.${fn} && window.${fn}(${latNum}, ${lngNum}, 8); true;`,
-          );
-        }
-      }
-    } finally {
-      setSearching(false);
+  const webMoveMap = useCallback((lat: number, lng: number, zoom = 14) => {
+    const fn = allowPointPick ? 'setMarkerFromNative' : 'setMapViewNoMarker';
+    const js = `window.${fn} && window.${fn}(${lat}, ${lng}, ${zoom}); true;`;
+    if (mapReadyRef.current) {
+      webViewRef.current?.injectJavaScript(js);
+    } else {
+      pendingMoveRef.current = () => webViewRef.current?.injectJavaScript(js);
     }
   }, [allowPointPick]);
 
-  // Modal açıldığında: search alanını güncelle. Seçili lokasyon varsa (initialQuery dolu) pin'i kapatma.
+  const onMapLoadEnd = useCallback(() => {
+    mapReadyRef.current = true;
+    if (pendingMoveRef.current) {
+      pendingMoveRef.current();
+      pendingMoveRef.current = null;
+      return;
+    }
+    if (!initialQuery.trim()) {
+      (async () => {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') return;
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const { latitude, longitude } = loc.coords;
+          biasRef.current = { lat: latitude, lng: longitude };
+          webViewRef.current?.injectJavaScript(
+            `window.setMapViewNoMarker && window.setMapViewNoMarker(${latitude}, ${longitude}, ${USER_LOCATION_ZOOM}); true;`
+          );
+        } catch {}
+      })();
+    } else {
+      geocodingService.geocode(initialQuery).then((coords) => {
+        if (!coords) return;
+        biasRef.current = { lat: coords.lat, lng: coords.lng };
+        setSelectedLat(coords.lat);
+        setSelectedLng(coords.lng);
+        webMoveMap(coords.lat, coords.lng, 14);
+      });
+    }
+  }, [initialQuery, webMoveMap]);
+
+  const onWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const payload = JSON.parse(event.nativeEvent.data);
+      if (payload?.type === 'location') {
+        biasRef.current = { lat: payload.lat, lng: payload.lng };
+        setSelectedLat(payload.lat);
+        setSelectedLng(payload.lng);
+        geocodingService.reverseGeocode(payload.lat, payload.lng).then((name) => {
+          if (name) setSearchQuery(name);
+        });
+      }
+    } catch {}
+  }, []);
+
+  // ── iOS Apple Maps helpers ───────────────────────────────
+
+  const iosMoveMap = useCallback((lat: number, lng: number) => {
+    const newRegion = { latitude: lat, longitude: lng, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+    biasRef.current = { lat, lng };
+    setIosRegion(newRegion);
+    mapViewRef.current?.animateToRegion(newRegion, 500);
+    if (allowPointPick) {
+      setSelectedLat(lat);
+      setSelectedLng(lng);
+    }
+  }, [allowPointPick]);
+
+  const onIosMapPress = useCallback(async (e: any) => {
+    if (!allowPointPick) return;
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    biasRef.current = { lat: latitude, lng: longitude };
+    setSelectedLat(latitude);
+    setSelectedLng(longitude);
+    const name = await geocodingService.reverseGeocode(latitude, longitude);
+    if (name) setSearchQuery(name);
+  }, [allowPointPick]);
+
+  // ── Shared: reset on open ────────────────────────────────
+
   useEffect(() => {
     if (!visible) {
-      pendingOpenRef.current = null;
+      mapReadyRef.current = false;
+      pendingMoveRef.current = null;
       return;
     }
     setSearchQuery(initialQuery);
+    setSuggestions([]);
+    setShowSuggestions(false);
+
     if (!initialQuery.trim()) {
       setSelectedLat(null);
       setSelectedLng(null);
+      if (Platform.OS === 'ios') {
+        (async () => {
+          try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') return;
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const newRegion = {
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              latitudeDelta: 8,
+              longitudeDelta: 8,
+            };
+            biasRef.current = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+            setIosRegion(newRegion);
+          } catch {}
+        })();
+      }
+    } else if (Platform.OS === 'ios') {
+      geocodingService.geocode(initialQuery).then((coords) => {
+        if (coords) iosMoveMap(coords.lat, coords.lng);
+      });
     }
-    pendingOpenRef.current = { query: initialQuery };
   }, [visible, initialQuery]);
 
-  const onMapLoadEnd = useCallback(() => {
-    const pending = pendingOpenRef.current;
-    if (!pending) return;
-    pendingOpenRef.current = null;
+  // ── Shared: autocomplete ─────────────────────────────────
 
-    const trimmed = pending.query.trim();
-    if (trimmed) {
-      searchNominatim(trimmed);
+  const fetchSuggestions = useCallback(async (text: string) => {
+    if (text.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
-    // Lokasyon seçilmemiş: kullanıcının mevcut konumunu geniş zoom'da göster, pin yok.
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const { latitude, longitude } = loc.coords;
-        webViewRef.current?.injectJavaScript(
-          `window.setMapViewNoMarker && window.setMapViewNoMarker(${latitude}, ${longitude}, ${USER_LOCATION_ZOOM}); true;`
-        );
-      } catch {
-        // ignore
-      }
-    })();
-  }, [searchNominatim]);
+    setSearching(true);
+    try {
+      const bias = biasRef.current;
+      const items = await geocodingService.autocomplete(
+        text,
+        bias?.lat ?? undefined,
+        bias?.lng ?? undefined,
+      );
+      setSuggestions(items);
+      setShowSuggestions(items.length > 0);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
 
-  const handleSelectLocation = useCallback(async () => {
-    const lat = selectedLat;
-    const lng = selectedLng;
+  const handleTextChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(text), 300);
+  }, [fetchSuggestions]);
+
+  const handleSelectSuggestion = useCallback((s: PlaceSuggestion) => {
+    setSearchQuery(s.label);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    Keyboard.dismiss();
+    setSelectedLat(s.lat);
+    setSelectedLng(s.lng);
+    if (Platform.OS === 'ios') {
+      iosMoveMap(s.lat, s.lng);
+    } else {
+      webMoveMap(s.lat, s.lng, 14);
+    }
+  }, [iosMoveMap, webMoveMap]);
+
+  // ── Shared: confirm ──────────────────────────────────────
+
+  const handleConfirm = useCallback(async () => {
     const typed = searchQuery.trim();
-
-    // Trip-level usage: only allow free-text / search-based label, no map picking.
     if (!allowPointPick) {
-      if (typed) {
-        onSelect(typed, null, null);
-      }
+      if (typed) onSelect(typed, null, null);
       onClose();
       return;
     }
-
-    // If user never selected a point but typed a query, just use the typed text.
-    if ((lat == null || lng == null) && typed) {
+    if ((selectedLat == null || selectedLng == null) && typed) {
       onSelect(typed, null, null);
       onClose();
       return;
     }
-
-    if (lat == null || lng == null) {
+    if (selectedLat == null || selectedLng == null) {
       onClose();
       return;
     }
-
     setSelecting(true);
     try {
-      const res = await fetch(
-        `${NOMINATIM_BASE}/reverse?lat=${lat}&lon=${lng}&format=json`,
-        { headers: { 'Accept-Language': 'en' } }
-      );
-      const data = await res.json();
-      const addr = data?.address;
-      const city =
-        addr?.city ?? addr?.town ?? addr?.village ?? addr?.municipality ?? addr?.state ?? '';
-      const country = addr?.country ?? '';
-      // Prefer the full place name (e.g. museum / restaurant), fall back to city,country
-      const name =
-        data?.display_name ||
-        [city, country].filter(Boolean).join(', ') ||
-        `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
-      onSelect(name, lat, lng);
+      const label = typed
+        || (await geocodingService.reverseGeocode(selectedLat, selectedLng))
+        || `${selectedLat.toFixed(4)}, ${selectedLng.toFixed(4)}`;
+      onSelect(label, selectedLat, selectedLng);
       onClose();
     } finally {
       setSelecting(false);
     }
-  }, [selectedLat, selectedLng, searchQuery, onSelect, onClose]);
+  }, [searchQuery, selectedLat, selectedLng, allowPointPick, onSelect, onClose]);
 
-  const onMessage = useCallback((event: { nativeEvent: { data: string } }) => {
-    try {
-      const payload = JSON.parse(event.nativeEvent.data);
-      if (payload?.type === 'location') {
-        setSelectedLat(payload.lat);
-        setSelectedLng(payload.lng);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleShowOnMap = useCallback(async () => {
-    const lat = selectedLat ?? DEFAULT_LAT;
-    const lng = selectedLng ?? DEFAULT_LNG;
-    const osmUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14`;
-    try {
-      if (Platform.OS === 'ios') {
-        const url = `https://maps.apple.com/?ll=${lat},${lng}&z=14`;
-        const can = await Linking.canOpenURL(url);
-        if (can) await Linking.openURL(url);
-        else await WebBrowser.openBrowserAsync(osmUrl);
-      } else {
-        const geoUrl = `geo:${lat},${lng}?z=14`;
-        const can = await Linking.canOpenURL(geoUrl);
-        if (can) await Linking.openURL(geoUrl);
-        else await WebBrowser.openBrowserAsync(osmUrl);
-      }
-    } catch {
-      await WebBrowser.openBrowserAsync(osmUrl);
-    }
-  }, [selectedLat, selectedLng]);
+  // ── Render ───────────────────────────────────────────────
 
   const Backdrop = Platform.OS === 'android' ? View : BlurView;
   const backdropProps = Platform.OS === 'android'
@@ -315,6 +339,7 @@ export function LocationMapModal({
       <Backdrop {...backdropProps}>
         <TouchableOpacity style={styles.scrimTouchable} activeOpacity={1} onPress={onClose} />
         <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
+
           {/* Search bar */}
           <View style={[styles.searchRow, { borderColor: border }]}>
             <Ionicons name="search-outline" size={20} color={secondary} />
@@ -323,60 +348,95 @@ export function LocationMapModal({
               placeholder="Search location..."
               placeholderTextColor={secondary}
               value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={() => searchNominatim(searchQuery)}
+              onChangeText={handleTextChange}
+              onSubmitEditing={() => {
+                setShowSuggestions(false);
+                if (suggestions.length > 0) handleSelectSuggestion(suggestions[0]);
+              }}
               returnKeyType="search"
             />
             {searchQuery.length > 0 && !searching && (
               <TouchableOpacity
-                onPress={() => setSearchQuery('')}
+                onPress={() => { setSearchQuery(''); setSuggestions([]); setShowSuggestions(false); }}
                 hitSlop={8}
-                accessibilityLabel="Clear search"
               >
                 <Ionicons name="close-circle" size={20} color={secondary} />
               </TouchableOpacity>
             )}
             {searching && <ActivityIndicator size="small" color={accent} />}
-            <TouchableOpacity
-              onPress={() => searchNominatim(searchQuery)}
-              hitSlop={8}
-              disabled={searching}
-            >
-              <AppText style={[styles.searchBtn, { color: accent }]}>Search</AppText>
-            </TouchableOpacity>
           </View>
 
-          {/* Map */}
+          {/* Autocomplete dropdown */}
+          {showSuggestions && (
+            <ScrollView
+              style={[styles.suggestions, { backgroundColor: surface, borderColor: border }]}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              {suggestions.map((s, i) => (
+                <TouchableOpacity
+                  key={s.placeId ?? i}
+                  style={[
+                    styles.suggestionItem,
+                    i < suggestions.length - 1 && {
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: border,
+                    },
+                  ]}
+                  onPress={() => handleSelectSuggestion(s)}
+                >
+                  <Ionicons name="location-outline" size={16} color={secondary} />
+                  <AppText style={[styles.suggestionText, { color: textColor }]} numberOfLines={2}>
+                    {s.label}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Map: iOS → Apple Maps (react-native-maps), Android → Leaflet (WebView) */}
           <View style={styles.mapContainer}>
-            <WebView
-              key={visible ? 'map-visible' : 'map-hidden'}
-              ref={webViewRef}
-              source={{ html: mapHtml }}
-              style={styles.webView}
-              scrollEnabled={Platform.OS !== 'android'}
-              onLoadEnd={onMapLoadEnd}
-              onMessage={onMessage}
-              originWhitelist={['*']}
-              javaScriptEnabled
-              domStorageEnabled
-              androidLayerType="hardware"
-              mixedContentMode="always"
-              nestedScrollEnabled={Platform.OS === 'android'}
-              overScrollMode="never"
-              allowFileAccess
-              cacheEnabled
-            />
+            {Platform.OS === 'ios' && MapView ? (
+              <MapView
+                ref={mapViewRef}
+                style={styles.map}
+                region={iosRegion}
+                onPress={onIosMapPress}
+                showsUserLocation
+                showsMyLocationButton={false}
+              >
+                {selectedLat != null && selectedLng != null && (
+                  <Marker coordinate={{ latitude: selectedLat, longitude: selectedLng }} />
+                )}
+              </MapView>
+            ) : (
+              <WebView
+                key={visible ? 'map-visible' : 'map-hidden'}
+                ref={webViewRef}
+                source={{ html: mapHtml }}
+                style={styles.webView}
+                scrollEnabled={false}
+                onLoadEnd={onMapLoadEnd}
+                onMessage={onWebViewMessage}
+                originWhitelist={['*']}
+                javaScriptEnabled
+                domStorageEnabled
+                androidLayerType="hardware"
+                mixedContentMode="always"
+                nestedScrollEnabled
+                overScrollMode="never"
+                allowFileAccess
+                cacheEnabled
+              />
+            )}
           </View>
 
           <View style={styles.hintRow}>
             <AppText style={[styles.hint, { color: secondary }]}>
-              Search for a city, region or country, then adjust on the map
+              {allowPointPick
+                ? 'Search or tap on the map to pick a location'
+                : 'Search for a city, region or country'}
             </AppText>
-            <TouchableOpacity onPress={handleShowOnMap} hitSlop={8}>
-              <AppText style={[styles.showOnMapLink, { color: accent }]}>
-                Show on map
-              </AppText>
-            </TouchableOpacity>
           </View>
 
           {/* Actions */}
@@ -390,9 +450,8 @@ export function LocationMapModal({
             <PrimaryButton
               variant="filled"
               label="Use this location"
-              onPress={handleSelectLocation}
+              onPress={handleConfirm}
               isLoading={selecting}
-              // Trip-level: require at least search text; activity-level: require either text or picked point
               disabled={
                 allowPointPick
                   ? selectedLat == null && selectedLng == null && !searchQuery.trim()
@@ -440,39 +499,39 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === 'ios' ? spacing.sm : 0,
     paddingHorizontal: 0,
   },
-  searchBtn: {
+  suggestions: {
+    maxHeight: 200,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  suggestionText: {
     ...typography.sm,
-    fontWeight: typography.weights.semibold,
+    flex: 1,
   },
   mapContainer: {
-    height: 280,
+    height: 260,
     width: '100%',
-    padding: 24,
-    borderRadius: 8,
-    overflow: 'hidden',
+  },
+  map: {
+    flex: 1,
   },
   webView: {
     flex: 1,
     backgroundColor: '#e4e4e4',
-    borderRadius: 8,
-    overflow: 'hidden',
   },
   hintRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingTop: 24,
-    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   hint: {
     ...typography.caption,
-    flex: 1,
-  },
-  showOnMapLink: {
-    ...typography.caption,
-    textDecorationLine: 'underline',
-    fontWeight: typography.weights.medium,
   },
   actions: {
     flexDirection: 'row',

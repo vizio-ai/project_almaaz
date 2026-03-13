@@ -1,11 +1,23 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { ExternalLink } from 'lucide-react-native';
 import { AppText, useThemeColor, spacing, typography, radii } from '@shared/ui-kit';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
+
+// iOS: react-native-maps (Apple Maps, no API key needed)
+// Android: WebView + Leaflet (OSM, no Google dependency)
+let MapView: any = null;
+let Marker: any = null;
+let Callout: any = null;
+if (Platform.OS === 'ios') {
+  const RNMaps = require('react-native-maps');
+  MapView = RNMaps.default;
+  Marker = RNMaps.Marker;
+  Callout = RNMaps.Callout;
+}
 
 // ─── Day color palette (matches marker colors in the map HTML) ────────────────
 
@@ -207,6 +219,25 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
   }, [days, activitiesByDay]);
 
   const mapHtml = useMemo(() => buildItineraryMapHtml(markers), [markers]);
+  const iosMapRef = useRef<any>(null);
+
+  // iOS: compute an initial region that fits all markers
+  const iosRegion = useMemo(() => {
+    if (markers.length === 0) return { latitude: 20, longitude: 0, latitudeDelta: 60, longitudeDelta: 60 };
+    const lats = markers.map((m) => m.lat);
+    const lngs = markers.map((m) => m.lng);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const padding = 0.05;
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: Math.max(maxLat - minLat + padding, 0.02),
+      longitudeDelta: Math.max(maxLng - minLng + padding, 0.02),
+    };
+  }, [markers]);
 
   const handleShowOnMap = useCallback(() => {
     if (markers.length === 1) {
@@ -243,19 +274,59 @@ export function MapItineraryTab({ secondary, days, activitiesByDay }: Props) {
 
   return (
     <View>
-      {/* Leaflet map */}
+      {/* Map: iOS → Apple Maps (react-native-maps), Android → Leaflet (WebView) */}
       <View style={[styles.mapContainer, { backgroundColor: surface }]}>
-        <WebView
-          source={{ html: mapHtml }}
-          style={styles.webView}
-          scrollEnabled={false}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled
-          androidLayerType="hardware"
-          mixedContentMode="compatibility"
-          nestedScrollEnabled
-        />
+        {Platform.OS === 'ios' && MapView ? (
+          <MapView
+            ref={iosMapRef}
+            style={styles.map}
+            initialRegion={iosRegion}
+            showsUserLocation
+            showsMyLocationButton={false}
+          >
+            {markers.map((m, i) => {
+              const color = DAY_COLORS[m.dayIndex % DAY_COLORS.length];
+              return (
+                <Marker
+                  key={i}
+                  coordinate={{ latitude: m.lat, longitude: m.lng }}
+                  pinColor={color}
+                >
+                  {Callout && (
+                    <Callout tooltip={false}>
+                      <View style={styles.callout}>
+                        <AppText style={styles.calloutTitle}>{m.name}</AppText>
+                        {m.activityType ? (
+                          <AppText style={styles.calloutDetail}>{m.activityType}</AppText>
+                        ) : null}
+                        {m.locationText ? (
+                          <AppText style={styles.calloutDetail}>{m.locationText}</AppText>
+                        ) : null}
+                        {(m.dateLabel || m.startTime) ? (
+                          <AppText style={styles.calloutDetail}>
+                            {[m.dateLabel, m.startTime].filter(Boolean).join(' - ')}
+                          </AppText>
+                        ) : null}
+                      </View>
+                    </Callout>
+                  )}
+                </Marker>
+              );
+            })}
+          </MapView>
+        ) : (
+          <WebView
+            source={{ html: mapHtml }}
+            style={styles.webView}
+            scrollEnabled={false}
+            originWhitelist={['*']}
+            javaScriptEnabled
+            domStorageEnabled
+            androidLayerType="hardware"
+            mixedContentMode="compatibility"
+            nestedScrollEnabled
+          />
+        )}
       </View>
 
       {/* Show on Map button */}
@@ -355,9 +426,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: spacing.lg,
   },
+  map: {
+    flex: 1,
+  },
   webView: {
     flex: 1,
     backgroundColor: '#e8e8e8',
+  },
+  // iOS Callout
+  callout: {
+    minWidth: 140,
+    maxWidth: 200,
+    padding: 8,
+  },
+  calloutTitle: {
+    ...typography.sm,
+    fontWeight: typography.weights.semibold,
+    color: '#09090b',
+    marginBottom: 4,
+  },
+  calloutDetail: {
+    ...typography.caption,
+    color: '#71717a',
+    marginTop: 1,
   },
 
   // Show on Map button
