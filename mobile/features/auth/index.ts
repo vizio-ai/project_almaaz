@@ -36,6 +36,7 @@ export { OtpVerificationScreen } from './presentation/screens/OtpVerificationScr
 
 // Presentation — Components (for app-layer onboarding screens)
 export { OnboardingStep } from './presentation/components/OnboardingStep';
+export { TripCard } from './presentation/components/welcome/TripCard';
 export type { WelcomeTripCardData } from './presentation/components/welcome/TripCard';
 
 // Presentation — Shared phone components (reused by profile phone-change flow)
