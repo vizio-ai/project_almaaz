@@ -1,5 +1,6 @@
 export interface SendOtpRequestDto {
   phone: string;
+  mode?: 'signup' | 'signin';
 }
 
 export interface VerifyOtpRequestDto {

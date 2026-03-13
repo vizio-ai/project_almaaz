@@ -34,9 +34,9 @@ export class AuthRepositoryImpl implements AuthRepository {
 
   constructor(private readonly remoteDataSource: AuthRemoteDataSource) {}
 
-  async sendOtp(phone: string): Promise<Result<void>> {
+  async sendOtp(phone: string, mode?: 'signup' | 'signin'): Promise<Result<void>> {
     try {
-      await this.remoteDataSource.sendOtp({ phone });
+      await this.remoteDataSource.sendOtp({ phone, mode });
       return ok(undefined);
     } catch (error) {
       console.error('[AuthRepository] sendOtp error:', error);

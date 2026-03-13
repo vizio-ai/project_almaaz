@@ -21,12 +21,12 @@ function getFunctionsHeaders(): Record<string, string> {
 
 export function createAuthRemoteDataSource(): AuthRemoteDataSource {
   return {
-    async sendOtp({ phone }) {
+    async sendOtp({ phone, mode }) {
       const phoneE164 = normalizePhoneE164(phone);
       const res = await fetchWithTimeout(`${FUNCTIONS_URL}/send-otp`, {
         method: 'POST',
         headers: getFunctionsHeaders(),
-        body: JSON.stringify({ phone: phoneE164 }),
+        body: JSON.stringify({ phone: phoneE164, mode }),
         timeout: 15_000,
       });
       const data = await res.json();

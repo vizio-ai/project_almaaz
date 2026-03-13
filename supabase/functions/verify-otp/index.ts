@@ -19,6 +19,19 @@ function phoneToEmail(phone: string): string {
   return `${phone.replace(/\D/g, '')}@phone.dora`;
 }
 
+/** Look up a user ID by exact email via GoTrue REST — version-independent alternative to getUserByEmail(). */
+async function getUserIdByEmail(supabaseUrl: string, serviceKey: string, email: string): Promise<string | null> {
+  // GoTrue /admin/users supports ?filter= (LIKE search). Fetch a small page and exact-match.
+  const res = await fetch(
+    `${supabaseUrl}/auth/v1/admin/users?filter=${encodeURIComponent(email)}&page=1&per_page=10`,
+    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
+  );
+  if (!res.ok) return null;
+  const body = await res.json();
+  const users: Array<{ id: string; email?: string }> = body.users ?? [];
+  return users.find((u) => u.email === email)?.id ?? null;
+}
+
 /** Twilio Verify requires E.164: +905424619091 (no spaces). */
 function normalizeToE164(phone: string): string {
   const digits = phone.replace(/\D/g, '');
@@ -26,7 +39,7 @@ function normalizeToE164(phone: string): string {
   return `+${digits}`;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -93,17 +106,24 @@ serve(async (req) => {
 
     let userId: string;
 
-    const { data: existingUser } = await adminClient.auth.admin.listUsers();
-    const targetDigits = phoneE164.replace(/\D/g, '');
-    const userByPhone = existingUser?.users?.find((u) => {
-      const uDigits = u.phone?.replace(/\D/g, '') ?? '';
-      return uDigits === targetDigits;
-    });
+    // O(1) lookup via derived email — each phone maps to a unique email.
+    // Avoids listUsers() which is paginated (default 50) and breaks at scale.
+    const existingUserId = await getUserIdByEmail(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, derivedEmail);
 
-    if (userByPhone) {
-      userId = userByPhone.id;
-      if (!userByPhone.email) {
-        await adminClient.auth.admin.updateUserById(userId, { email: derivedEmail });
+    if (existingUserId) {
+      userId = existingUserId;
+
+      // Defense-in-depth: block deactivated accounts even if send-otp was bypassed.
+      const { data: activeProfile } = await adminClient
+        .from('profiles')
+        .select('is_active')
+        .eq('id', userId)
+        .single();
+      if (activeProfile?.is_active === false) {
+        return new Response(
+          JSON.stringify({ error: 'Your account has been deactivated. Please contact support.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
     } else {
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({

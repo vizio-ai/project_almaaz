@@ -13,7 +13,7 @@ interface UseAuthResult {
   isLoading: boolean;
   error: string | null;
   clearError: () => void;
-  sendOtp: (phone: string) => Promise<boolean>;
+  sendOtp: (phone: string, mode?: 'signup' | 'signin') => Promise<boolean>;
   verifyOtp: (phone: string, code: string) => Promise<AuthSession | null>;
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<User | null>;
@@ -29,10 +29,10 @@ export function useAuth(): UseAuthResult {
   const clearError = useCallback(() => setError(null), []);
 
   const sendOtp = useCallback(
-    async (phone: string): Promise<boolean> => {
+    async (phone: string, mode?: 'signup' | 'signin'): Promise<boolean> => {
       setIsLoading(true);
       setError(null);
-      const result = await sendOtpUseCase.execute({ phone });
+      const result = await sendOtpUseCase.execute({ phone, mode });
       setIsLoading(false);
       if (!result.success) {
         setError(resolveAuthError(result.error.code, result.error.message));

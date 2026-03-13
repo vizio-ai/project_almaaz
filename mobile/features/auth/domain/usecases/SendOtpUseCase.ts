@@ -3,6 +3,7 @@ import { AuthRepository } from '../repositories/AuthRepository';
 
 export interface SendOtpParams {
   phone: string;
+  mode?: 'signup' | 'signin';
 }
 
 export class SendOtpUseCase implements UseCase<SendOtpParams, void> {
@@ -13,6 +14,6 @@ export class SendOtpUseCase implements UseCase<SendOtpParams, void> {
     if (phone.length < 6) {
       return { success: false, error: validationError('Please enter a valid phone number') };
     }
-    return this.repository.sendOtp(phone);
+    return this.repository.sendOtp(phone, params.mode);
   }
 }

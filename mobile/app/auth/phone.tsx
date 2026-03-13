@@ -6,8 +6,10 @@ export default function PhoneEntryRoute() {
   const { sendOtp, isLoading, error, clearError } = useAuth();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
 
+  const resolvedMode = mode === 'signup' ? 'signup' : 'signin';
+
   const handleSubmit = async (phone: string) => {
-    const ok = await sendOtp(phone);
+    const ok = await sendOtp(phone, resolvedMode);
     if (ok) {
       router.push({ pathname: '/auth/otp', params: { phone } });
     }
@@ -19,7 +21,7 @@ export default function PhoneEntryRoute() {
       isLoading={isLoading}
       error={error}
       onClearError={clearError}
-      mode={mode === 'signup' ? 'signup' : 'signin'}
+      mode={resolvedMode}
     />
   );
 }

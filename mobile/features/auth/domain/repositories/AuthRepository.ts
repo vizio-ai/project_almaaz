@@ -8,7 +8,7 @@ export interface VerifyOtpData {
 }
 
 export interface AuthRepository {
-  sendOtp(phone: string): Promise<Result<void>>;
+  sendOtp(phone: string, mode?: 'signup' | 'signin'): Promise<Result<void>>;
   verifyOtp(phone: string, code: string): Promise<Result<VerifyOtpData>>;
   logout(): Promise<Result<void>>;
   /** Returns current session (token + user). Used for bootstrap. */

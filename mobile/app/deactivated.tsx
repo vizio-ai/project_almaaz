@@ -3,16 +3,18 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@shared/auth';
+import { useAuth, useSession } from '@shared/auth';
 import { AppHeader, AppText, colors, spacing, typography, radii } from '@shared/ui-kit';
 
 export default function DeactivatedScreen() {
   const { logout } = useAuth();
+  const { setSession } = useSession();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const handleBackToLogin = async () => {
     await logout();
+    setSession(null);
     router.replace('/auth');
   };
 
