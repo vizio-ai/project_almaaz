@@ -43,13 +43,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing['2xl'],
     marginBottom: spacing.sm,
     borderRadius: radii.md,
     borderWidth: 1,
   },
   icon: {
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   text: {
     flex: 1,

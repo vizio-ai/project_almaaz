@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { spacing, typography } from '../theme';
+import { spacing, typography, colors } from '../theme';
 import { AppLogo } from './AppLogo';
 import { AppText } from './AppText';
 
@@ -23,8 +23,8 @@ export function AppHeader({ left, right, variant = 'dark', showAdminLabel, onBac
   const { top } = useSafeAreaInsets();
   const isLight = variant === 'light';
   const isWizard = variant === 'wizard';
-  const bg = isWizard ? '#0a0a0a' : isLight ? '#FFFFFF' : headerBg;
-  const adminColor = isLight ? '#18181B' : '#FFFFFF';
+  const bg = isWizard ? colors.light.headerBg : isLight ? colors.light.background : headerBg;
+  const adminColor = isLight ? colors.light.labelText : colors.light.splashText;
 
   return (
     <View style={[styles.header, { backgroundColor: bg, paddingTop: top + 18 }]}>
@@ -36,7 +36,7 @@ export function AppHeader({ left, right, variant = 'dark', showAdminLabel, onBac
             activeOpacity={0.8}
             accessibilityLabel="Go back"
           >
-            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Ionicons name="chevron-back" size={20} color={colors.light.splashText} />
           </TouchableOpacity>
         )}
         {left != null && <View style={styles.slot}>{left}</View>}

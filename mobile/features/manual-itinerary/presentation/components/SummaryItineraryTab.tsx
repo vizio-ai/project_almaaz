@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, spacing, typography } from '@shared/ui-kit';
+import { AppText, spacing, typography, colors, radii } from '@shared/ui-kit';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
 import type { Activity } from '../../domain/entities/Activity';
 
@@ -21,6 +21,8 @@ interface Props {
   activitiesByDay?: Record<string, Activity[]>;
   isGeneratingSummary?: boolean;
 }
+
+const c = colors.light;
 
 export function SummaryItineraryTab({
   secondary,
@@ -43,7 +45,7 @@ export function SummaryItineraryTab({
     <View style={styles.container}>
       {isGeneratingSummary && (
         <View style={styles.generatingRow}>
-          <ActivityIndicator size="small" color="#18181B" />
+          <ActivityIndicator size="small" color={c.labelText} />
           <AppText style={styles.generatingText}>Generating AI summaries...</AppText>
         </View>
       )}
@@ -69,7 +71,7 @@ export function SummaryItineraryTab({
               </AppText>
               {(isAiGenerated || summaryText) && (
                 <View style={styles.aiBadge}>
-                  <Ionicons name="sparkles" size={12} color="#18181B" />
+                  <Ionicons name="sparkles" size={12} color={c.labelText} />
                   <AppText style={styles.aiBadgeText}>AI Summary</AppText>
                 </View>
               )}
@@ -91,7 +93,7 @@ export function SummaryItineraryTab({
             {/* Accommodation */}
             {day.accommodation && (
               <View style={styles.accommodationRow}>
-                <Ionicons name="bed-outline" size={14} color="#71717A" />
+                <Ionicons name="bed-outline" size={14} color={c.subText} />
                 <AppText style={styles.accommodationText}>{day.accommodation}</AppText>
               </View>
             )}
@@ -104,7 +106,7 @@ export function SummaryItineraryTab({
                     <Ionicons
                       name={ACTIVITY_ICONS[act.activityType ?? ''] ?? 'location-outline'}
                       size={14}
-                      color="#71717A"
+                      color={c.subText}
                     />
                     <View style={styles.activityInfo}>
                       <AppText style={styles.activityName}>{act.name}</AppText>
@@ -122,7 +124,7 @@ export function SummaryItineraryTab({
             {/* User notes (if separate from summary) */}
             {day.notes && (
               <View style={styles.notesRow}>
-                <Ionicons name="document-text-outline" size={14} color="#71717A" />
+                <Ionicons name="document-text-outline" size={14} color={c.subText} />
                 <AppText style={styles.notesText}>{day.notes}</AppText>
               </View>
             )}
@@ -140,27 +142,27 @@ const styles = StyleSheet.create({
   },
   placeholderText: { ...typography.sm },
   container: {
-    gap: 16,
-    paddingVertical: 8,
+    gap: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   generatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: c.surface,
+    borderRadius: radii.md,
   },
   generatingText: {
-    fontSize: 13,
-    color: '#52525B',
+    ...typography.caption,
+    color: c.subText,
   },
   dayCard: {
-    gap: 8,
-    paddingBottom: 16,
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#F4F4F5',
+    borderBottomColor: c.surfaceMuted,
   },
   dayHeader: {
     flexDirection: 'row',
@@ -168,75 +170,75 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   dayLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#18181B',
+    ...typography.sm,
+    fontWeight: typography.weights.semibold,
+    color: c.labelText,
   },
   aiBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: '#F4F4F5',
+    borderRadius: radii.full,
+    backgroundColor: c.surfaceMuted,
   },
   aiBadgeText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#18181B',
+    ...typography['2xs'],
+    fontWeight: typography.weights.medium,
+    color: c.labelText,
   },
   summaryText: {
-    fontSize: 13,
+    ...typography.caption,
     lineHeight: 20,
-    color: '#52525B',
+    color: c.subText,
   },
   accommodationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.sm - 2,
     marginTop: 2,
   },
   accommodationText: {
-    fontSize: 12,
-    color: '#71717A',
+    ...typography.xs,
+    color: c.subText,
   },
   activityList: {
-    gap: 6,
-    marginTop: 4,
+    gap: spacing.sm - 2,
+    marginTop: spacing.xs,
   },
   activityRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    paddingLeft: 4,
+    gap: spacing.sm,
+    paddingLeft: spacing.xs,
   },
   activityInfo: {
     flex: 1,
     gap: 1,
   },
   activityName: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#18181B',
+    ...typography.caption,
+    fontWeight: typography.weights.medium,
+    color: c.labelText,
   },
   activityMeta: {
-    fontSize: 11,
-    color: '#A1A1AA',
+    ...typography['2xs'],
+    color: c.textTertiary,
   },
   notesRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
-    marginTop: 4,
-    paddingTop: 6,
+    gap: spacing.sm - 2,
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm - 2,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#F4F4F5',
+    borderTopColor: c.surfaceMuted,
   },
   notesText: {
-    fontSize: 12,
+    ...typography.xs,
     lineHeight: 18,
-    color: '#71717A',
+    color: c.subText,
     flex: 1,
     fontStyle: 'italic',
   },

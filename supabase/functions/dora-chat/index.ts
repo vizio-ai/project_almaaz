@@ -2,7 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
-const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
+const GEOAPIFY_KEY = Deno.env.get('GEOAPIFY_API_KEY') ?? '';
+const GEOAPIFY_BASE = 'https://api.geoapify.com/v1';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -179,39 +180,29 @@ const tools = [
   },
 ];
 
-// ── Nominatim (OpenStreetMap) geocoding helper ────────────
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// ── Geoapify geocoding helper ──────────────────────────────
 
 async function verifyLocation(
   query: string,
-): Promise<{ lat?: number; lng?: number; description?: string } | null> {
+): Promise<{ lat?: number; lng?: number } | null> {
   try {
-    const url = `${NOMINATIM_BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+    const url = `${GEOAPIFY_BASE}/geocode/search?text=${encodeURIComponent(query)}&limit=1&apiKey=${GEOAPIFY_KEY}`;
     console.log('[geocode] querying:', query);
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'dora-travel-app/1.0' },
-    });
+    const res = await fetch(url);
     if (!res.ok) {
       console.error('[geocode] HTTP error:', res.status, res.statusText);
       return null;
     }
-    const results = await res.json();
-    if (!results || results.length === 0) {
+    const data = await res.json();
+    const feature = data.features?.[0];
+    if (!feature) {
       console.log('[geocode] no results for:', query);
       return null;
     }
-    const place = results[0];
-    const lat = parseFloat(place.lat);
-    const lng = parseFloat(place.lon);
+    const lat = feature.geometry.coordinates[1];
+    const lng = feature.geometry.coordinates[0];
     console.log('[geocode] found:', query, '->', lat, lng);
-    return {
-      lat,
-      lng,
-      description: place.display_name || null,
-    };
+    return { lat, lng };
   } catch (e) {
     console.error('[geocode] error:', e);
     return null;
@@ -685,12 +676,7 @@ Generate a complete day-by-day itinerary using the generate_itinerary function. 
               if (loc) {
                 act.latitude = loc.lat ?? null;
                 act.longitude = loc.lng ?? null;
-                if (loc.description && !act.description) {
-                  act.description = loc.description;
-                }
               }
-              // Nominatim rate limit: max 1 request/second
-              await delay(1100);
             }
           }
         }

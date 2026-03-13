@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { colors } from '../theme';
 
 const TRACK_WIDTH = 36;
 const TRACK_HEIGHT = 20;
@@ -18,9 +19,9 @@ export interface CustomSwitchProps {
 export function CustomSwitch({
   value,
   onValueChange,
-  trackColorOff = '#E4E4E7',
-  trackColorOn = '#18181B',
-  thumbColor = '#FFFFFF',
+  trackColorOff = colors.light.borderMuted,
+  trackColorOn = colors.light.labelText,
+  thumbColor = colors.light.background,
 }: CustomSwitchProps) {
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   thumb: {
     position: 'absolute',
     left: 0,
-    shadowColor: '#000',
+    shadowColor: colors.light.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,

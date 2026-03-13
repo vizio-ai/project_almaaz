@@ -33,6 +33,7 @@ export function FilterChipGroup<T extends string = string>({
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
   const border = useThemeColor('border');
+  const surface = useThemeColor('surface');
 
   return (
     <View style={[styles.row, style]}>
@@ -53,11 +54,11 @@ export function FilterChipGroup<T extends string = string>({
               <Ionicons
                 name={opt.icon}
                 size={13}
-                color={isActive ? '#FAFAFA' : secondary}
+                color={isActive ? surface : secondary}
                 style={styles.chipIcon}
               />
             )}
-            <AppText style={[styles.chipLabel, { color: isActive ? '#FAFAFA' : secondary }]}>
+            <AppText style={[styles.chipLabel, { color: isActive ? surface : secondary }]}>
               {opt.label}
             </AppText>
           </TouchableOpacity>
@@ -82,10 +83,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipIcon: {
-    marginRight: 4,
+    marginRight: spacing.xs,
   },
   chipLabel: {
     ...typography.xs,
-    fontWeight: '500',
+    fontWeight: typography.weights.medium,
   },
 });

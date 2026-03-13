@@ -4,3 +4,4 @@ export { DEFAULT_FONT_FAMILY, typography } from './typography';
 export { radii } from './radii';
 export { spacing } from './spacing';
 export { elevatedCard } from './shadows';
+export { ThemeProvider, useTheme } from './ThemeContext';

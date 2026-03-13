@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MapPin, Pencil, Clock2, GripVertical, RefreshCw } from 'lucide-react-native';
-import { AppText, spacing, radii, typography, useThemeColor, elevatedCard } from '@shared/ui-kit';
+import { AppText, spacing, radii, typography, useThemeColor, elevatedCard, colors } from '@shared/ui-kit';
 
 export interface ActivityCardTag {
   label: string;
@@ -19,6 +19,8 @@ export interface ActivityCardProps {
   onPressEdit?: () => void;
   onMoveDown?: () => void;
 }
+
+const c = colors.light;
 
 export function ActivityCard({
   title,
@@ -40,7 +42,7 @@ export function ActivityCard({
     >
       {/* Left stripe for drag handle visual */}
       <View style={styles.leftStripe}>
-        <GripVertical size={14} color={"#71717A"} strokeWidth={1.8} style={styles.gripIcon} />
+        <GripVertical size={14} color={c.subText} strokeWidth={1.8} style={styles.gripIcon} />
       </View>
 
       <View style={styles.content}>
@@ -85,10 +87,10 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     ...elevatedCard,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: radii.lg,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#e4e4e7',
+    borderColor: c.borderMuted,
     padding: spacing.md,
     paddingLeft: spacing.xl + spacing.xs,
   },
@@ -98,15 +100,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: 24,
-    backgroundColor: '#fafafa',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    backgroundColor: c.surface,
+    borderTopLeftRadius: radii.lg,
+    borderBottomLeftRadius: radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gripIcon: {
-    
-  },
+  gripIcon: {},
   content: {
     gap: spacing.xs,
   },
@@ -123,12 +123,12 @@ const styles = StyleSheet.create({
   title: {
     ...typography.sm,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
   },
   iconButton: {
     height: 24,
     width: 24,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -143,12 +143,12 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   tagIconWrapper: {
     height: 20,
     width: 20,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
   description: {
     ...typography.sm,
     lineHeight: 20,
-    color: '#71717a',
     marginTop: spacing.xs,
   },
 });
@@ -193,5 +192,3 @@ function renderTagIcon(tag: ActivityCardTag, color: string) {
 
   return null;
 }
-
-

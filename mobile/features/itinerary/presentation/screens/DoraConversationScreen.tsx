@@ -34,6 +34,7 @@ interface DoraConversationScreenProps {
   userId?: string | null;
   persona?: DoraPersona | null;
   isOnboarding?: boolean;
+  mode?: 'agent' | 'import';
   onFinish?: () => void;
   hideHeader?: boolean;
   onItineraryCreated?: (itineraryId: string) => void;
@@ -59,6 +60,7 @@ export function DoraConversationScreen({
   userId,
   persona,
   isOnboarding,
+  mode = 'agent',
   onFinish,
   hideHeader,
   onItineraryCreated,
@@ -458,15 +460,17 @@ export function DoraConversationScreen({
 
               <ImportTripPlanCard onPress={handleImportPress} />
 
-              <View style={styles.suggestionsRow}>
-                {SUGGESTIONS.map((s) => (
-                  <DoraSuggestionCard
-                    key={s}
-                    text={s}
-                    onPress={handleSuggestionPress}
-                  />
-                ))}
-              </View>
+              {mode === 'agent' && (
+                <View style={styles.suggestionsRow}>
+                  {SUGGESTIONS.map((s) => (
+                    <DoraSuggestionCard
+                      key={s}
+                      text={s}
+                      onPress={handleSuggestionPress}
+                    />
+                  ))}
+                </View>
+              )}
             </ScrollView>
           ) : (
             <FlatList
@@ -481,7 +485,11 @@ export function DoraConversationScreen({
             />
           )}
         </View>
-        <DoraInput onSend={handleSend} disabled={isTyping} />
+        <DoraInput
+          onSend={handleSend}
+          disabled={isTyping}
+          placeholder={mode === 'import' ? 'Paste in any trip notes here' : undefined}
+        />
       </KeyboardAvoidingView>
 
       <Modal visible={showModal} transparent animationType="slide">

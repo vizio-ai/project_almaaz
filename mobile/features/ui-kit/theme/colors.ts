@@ -12,6 +12,7 @@ export const colors = {
     background: '#FFFFFF',
     surface: '#FAFAFA',
     surfaceAlt: '#F5F5F5',
+    surfaceMuted: '#F4F4F5',
     border: '#E0E0E0',
     borderLight: '#F0F0F0',
     accent: '#00D4D4',
@@ -33,6 +34,10 @@ export const colors = {
     borderMutedLight: '#E5E5E5',
     warningBg: '#FFF1F2',
     shadowColor: '#9CA3AF',
+    link: '#007AFF',
+    overlayBg: 'rgba(0,0,0,0.4)',
+    splashBg: '#000000',
+    splashText: '#FFFFFF',
   },
   dark: {
     text: '#FFFFFF',
@@ -47,6 +52,7 @@ export const colors = {
     background: '#000000',
     surface: '#111111',
     surfaceAlt: '#1A1A1A',
+    surfaceMuted: '#27272A',
     border: '#222222',
     borderLight: '#1A1A1A',
     accent: '#00D4D4',
@@ -68,6 +74,10 @@ export const colors = {
     borderMutedLight: '#E5E5E5',
     warningBg: '#2D1010',
     shadowColor: '#000000',
+    link: '#0A84FF',
+    overlayBg: 'rgba(0,0,0,0.6)',
+    splashBg: '#000000',
+    splashText: '#FFFFFF',
   },
 } as const;
 

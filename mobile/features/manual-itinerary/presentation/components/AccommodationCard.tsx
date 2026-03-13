@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Bed, Pencil, ChevronRight } from 'lucide-react-native';
-import { AppText, spacing, radii, typography, useThemeColor, elevatedCard } from '@shared/ui-kit';
+import { Bed, Pencil } from 'lucide-react-native';
+import { AppText, spacing, radii, typography, useThemeColor, elevatedCard, colors } from '@shared/ui-kit';
 
 export interface AccommodationCardProps {
   title: string;
   description?: string;
   onPress?: () => void;
 }
+
+const c = colors.light;
 
 export function AccommodationCard({ title, description, onPress }: AccommodationCardProps) {
   const textColor = useThemeColor('text');
@@ -47,10 +49,10 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     ...elevatedCard,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: radii.lg,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#e4e4e7',
+    borderColor: c.borderMuted,
     padding: spacing.md,
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -71,20 +73,18 @@ const styles = StyleSheet.create({
   iconButton: {
     height: 24,
     width: 24,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     ...typography.sm,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
     flexShrink: 1,
   },
   description: {
     ...typography.sm,
     lineHeight: 20,
-    color: '#71717a',
   },
 });
-

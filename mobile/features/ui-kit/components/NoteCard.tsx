@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { spacing, radii, typography, elevatedCard } from '../theme';
+import { spacing, radii, typography, elevatedCard, colors } from '../theme';
 import PencilIcon from '../../../assets/images/pencil.svg';
 
 export interface NoteCardProps {
@@ -11,6 +11,8 @@ export interface NoteCardProps {
   placeholder?: string;
   onChangeText: (text: string) => void;
 }
+
+const c = colors.light;
 
 export function NoteCard({
   title = 'Note',
@@ -40,6 +42,7 @@ export function NoteCard({
           multiline
           value={value}
           onChangeText={onChangeText}
+          accessibilityLabel={title}
         />
       </View>
     </View>
@@ -50,10 +53,10 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     ...elevatedCard,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: radii.lg,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#e4e4e7',
+    borderColor: c.borderMuted,
     minHeight: 87,
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -62,7 +65,6 @@ const styles = StyleSheet.create({
   },
   header: {
     alignSelf: 'stretch',
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -75,17 +77,17 @@ const styles = StyleSheet.create({
   },
   titleText: {
     alignSelf: 'stretch',
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
     ...typography.sm,
   },
   iconButton: {
     height: 24,
     width: 24,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   body: {
     alignSelf: 'stretch',
@@ -95,4 +97,3 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 });
-

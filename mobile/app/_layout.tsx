@@ -19,7 +19,8 @@ import { createTripRemoteDataSource } from '@/infrastructure/trips';
 import { createDoraRemoteDataSource, createChatRemoteDataSource } from '@/infrastructure/itinerary';
 import { createAdminRemoteDataSource } from '@/infrastructure/admin';
 import { createFollowRemoteDataSource } from '@/infrastructure/follow';
-import { AppText, ErrorBoundary } from '@shared/ui-kit';
+import { AppText, ErrorBoundary, ThemeProvider } from '@shared/ui-kit';
+import { colors, typography } from '@shared/ui-kit';
 import { supabase } from '@/infrastructure/supabase/SupabaseClient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -126,18 +127,18 @@ function SplashView() {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: colors.light.splashBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
     fontSize: 64,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: typography.weights.semibold,
+    color: colors.light.splashText,
     letterSpacing: -0.32,
   },
   dot: {
-    color: '#44FFFF',
+    color: colors.light.borderColor,
   },
 });
 
@@ -169,7 +170,7 @@ function AppContent() {
   }, [isLoading]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+    <View style={{ flex: 1, backgroundColor: colors.light.splashBg }}>
       {!isLoading ? (
         <ProfileProvider dependencies={profileExternalDeps}>
           <TripProvider dependencies={tripExternalDeps}>
@@ -180,7 +181,7 @@ function AppContent() {
                     <Stack
                       screenOptions={{
                         headerShown: false,
-                        contentStyle: { backgroundColor: '#000000' },
+                        contentStyle: { backgroundColor: colors.light.splashBg },
                       }}
                     >
                       <Stack.Screen name="(tabs)" />
@@ -206,7 +207,7 @@ function AppContent() {
           pointerEvents="none"
           style={{
             position: 'absolute',
-            backgroundColor: '#44FFFF',
+            backgroundColor: colors.light.borderColor,
             width: R * 2,
             height: R * 2,
             borderRadius: R,
@@ -225,13 +226,15 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <AuthProvider dependencies={authExternalDeps}>
-          <AuthSessionProvider>
-            <AppContent />
-          </AuthSessionProvider>
-        </AuthProvider>
-      </ErrorBoundary>
+      <ThemeProvider>
+        <ErrorBoundary>
+          <AuthProvider dependencies={authExternalDeps}>
+            <AuthSessionProvider>
+              <AppContent />
+            </AuthSessionProvider>
+          </AuthProvider>
+        </ErrorBoundary>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

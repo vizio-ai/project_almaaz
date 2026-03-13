@@ -44,6 +44,7 @@ export function ToggleRow({
   const secondary = useThemeColor('textSecondary');
   const border = useThemeColor('border');
   const surface = useThemeColor('surface');
+  const background = useThemeColor('background');
 
   const openPopover = () => {
     if (!infoMessage?.trim()) return;
@@ -69,7 +70,7 @@ export function ToggleRow({
           onValueChange={onValueChange}
           trackColorOff={border}
           trackColorOn={textColor}
-          thumbColor="#fff"
+          thumbColor={background}
         />
         <View style={styles.labelWrap}>
           <AppText style={[styles.label, { color: textColor }]}>{label}</AppText>
@@ -133,25 +134,22 @@ export function ToggleRow({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
-    paddingBottom: 8,
+    paddingBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 0,
   },
   labelWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     flex: 1,
   },
   label: {
-    fontSize: 14,
-    fontStyle: 'normal',
+    ...typography.sm,
     fontWeight: typography.weights.regular,
-    lineHeight: 14,
   },
   modalOverlay: {
     flex: 1,
@@ -159,7 +157,7 @@ const styles = StyleSheet.create({
   },
   popover: {
     position: 'absolute',
-    padding: 12,
+    padding: spacing.md,
     width: POPOVER_WIDTH,
     borderRadius: radii.lg,
     borderWidth: 1,

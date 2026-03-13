@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { spacing, radii, typography } from '../theme';
+import { spacing, typography, colors } from '../theme';
 
 export interface AccordionSectionProps {
   title: string;
@@ -26,8 +26,8 @@ export function AccordionSection({
 }: AccordionSectionProps) {
   const textColor = useThemeColor('text');
   const secondary = useThemeColor('textSecondary');
-  const borderMuted = useThemeColor('borderMuted');
   const background = useThemeColor('background');
+  const borderMuted = useThemeColor('borderMuted');
 
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const isControlled = collapsed !== undefined;
@@ -43,8 +43,15 @@ export function AccordionSection({
   };
 
   return (
-    <View style={styles.section}>
-      <TouchableOpacity style={styles.header} onPress={handleToggle} activeOpacity={0.7}>
+    <View style={[styles.section, { borderBottomColor: borderMuted }]}>
+      <TouchableOpacity
+        style={styles.header}
+        onPress={handleToggle}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !isCollapsed }}
+        accessibilityLabel={title}
+      >
         <View style={styles.headerTextRow}>
           <AppText style={[styles.title, { color: textColor }]}>{title}</AppText>
           {subtitle ? (
@@ -80,7 +87,6 @@ const styles = StyleSheet.create({
   section: {
     width: '100%',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e4e4e7',
     marginBottom: spacing.md,
   },
   header: {
@@ -109,4 +115,3 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
 });
-

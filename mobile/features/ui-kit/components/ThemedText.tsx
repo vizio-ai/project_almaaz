@@ -18,7 +18,9 @@ export function ThemedText({
   darkColor,
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor('text', { light: lightColor, dark: darkColor });
+  // 'link' variant gets the semantic link color by default; all others use 'text'
+  const defaultToken = variant === 'link' ? 'link' : 'text';
+  const color = useThemeColor(defaultToken, { light: lightColor, dark: darkColor });
 
   return <AppText style={[{ color }, styles[variant], style]} {...rest} />;
 }

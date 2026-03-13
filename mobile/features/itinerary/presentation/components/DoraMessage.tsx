@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { AppText } from '@shared/ui-kit';
+import { AppText, colors, typography, spacing, radii } from '@shared/ui-kit';
 
 interface DoraMessageProps {
   role: 'user' | 'assistant';
   content: string;
   userInitials?: string;
 }
+
+const c = colors.light;
 
 export function DoraMessage({ role, content, userInitials = '?' }: DoraMessageProps) {
   if (role === 'assistant') {
@@ -51,71 +53,71 @@ const styles = StyleSheet.create({
   aiRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
   aiAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#18181B',
+    backgroundColor: c.labelText,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
     flexShrink: 0,
   },
   aiAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: c.background,
+    ...typography.base,
+    fontWeight: typography.weights.bold,
   },
   aiContent: {
     flex: 1,
-    paddingTop: 6,
+    paddingTop: spacing.sm - 2,
   },
   aiText: {
     fontSize: 15,
     lineHeight: 23,
-    color: '#18181B',
+    color: c.labelText,
   },
   typingText: {
-    fontSize: 22,
-    color: '#18181B',
+    ...typography.featured,
+    color: c.labelText,
     letterSpacing: 2,
   },
   userRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
   userBubble: {
-    backgroundColor: '#18181B',
-    borderRadius: 16,
-    borderBottomRightRadius: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: c.labelText,
+    borderRadius: radii.xl,
+    borderBottomRightRadius: spacing.xs,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     maxWidth: '75%',
-    marginRight: 10,
+    marginRight: spacing.sm + spacing.xs,
   },
   userText: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#FFFFFF',
+    color: c.background,
   },
   userAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E4E4E7',
+    backgroundColor: c.borderMuted,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   userAvatarText: {
-    color: '#18181B',
-    fontSize: 13,
-    fontWeight: '600',
+    color: c.labelText,
+    ...typography.caption,
+    fontWeight: typography.weights.semibold,
   },
 });

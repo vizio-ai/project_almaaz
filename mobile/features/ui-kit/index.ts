@@ -57,3 +57,6 @@ export { FilterChipGroup } from './components/FilterChipGroup';
 export type { FilterChipGroupProps, FilterChipOption } from './components/FilterChipGroup';
 export { TimePickerBottomSheet } from './components/TimePickerBottomSheet';
 export type { TimePickerBottomSheetProps } from './components/TimePickerBottomSheet';
+
+// Theme context
+export { ThemeProvider, useTheme } from './theme';

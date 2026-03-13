@@ -15,6 +15,8 @@ import {
   useThemeColor,
   typography,
   spacing,
+  radii,
+  colors,
 } from '@shared/ui-kit';
 import { DayNoteSection } from './DayNoteSection';
 import type { ItineraryDay } from '../../domain/entities/ItineraryDay';
@@ -561,14 +563,14 @@ const styles = StyleSheet.create({
 
   timePickerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: colors.light.overlayBg,
     justifyContent: 'flex-end',
   },
   timePickerSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 32,
+    backgroundColor: colors.light.background,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    paddingBottom: spacing['3xl'],
   },
   timePickerConfirm: {
     alignItems: 'center',
@@ -577,6 +579,6 @@ const styles = StyleSheet.create({
   timePickerConfirmLabel: {
     ...typography.base,
     fontWeight: typography.weights.semibold,
-    color: '#007AFF',
+    color: colors.light.link,
   },
 });

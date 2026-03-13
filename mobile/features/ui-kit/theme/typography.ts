@@ -13,6 +13,7 @@ export const DEFAULT_FONT_FAMILY = 'font-sans';
  *   label: { ...typography.sm, fontWeight: typography.weights.medium }
  */
 export const typography = {
+  '2xs':    { fontSize: 11 },
   xs:       { fontSize: 12 },
   caption:  { fontSize: 13 },
   sm:       { fontSize: 14 },

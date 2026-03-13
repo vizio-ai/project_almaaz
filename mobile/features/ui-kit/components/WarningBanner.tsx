@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   icon: {
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   text: {
     flex: 1,

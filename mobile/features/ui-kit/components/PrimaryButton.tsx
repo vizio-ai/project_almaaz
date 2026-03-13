@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { typography, radii, spacing } from '../theme';
+import { typography, radii, spacing, colors } from '../theme';
 
 interface PrimaryButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   label: string;
@@ -18,11 +18,9 @@ interface PrimaryButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   /** When true, button keeps primary style when disabled/loading (no gray state) */
   preserveStyle?: boolean;
   style?: TouchableOpacityProps['style'];
-  /** Override label text style (e.g. { color: '#FAFAFA', fontSize: 14, fontWeight: '500' }) */
+  /** Override label text style */
   labelStyle?: TextStyle;
 }
-
-const FILLED_BG = '#171717';
 
 export function PrimaryButton({
   label,
@@ -35,14 +33,14 @@ export function PrimaryButton({
   onPress,
   ...rest
 }: PrimaryButtonProps) {
+  const primaryBg = useThemeColor('buttonPrimary');
   const primaryText = useThemeColor('buttonPrimaryText');
   const text = useThemeColor('text');
   const borderColor = useThemeColor('borderColor');
 
   const isInactive = disabled || isLoading;
 
-  const bgColor = variant === 'filled' ? FILLED_BG : 'transparent';
-
+  const bgColor = variant === 'filled' ? primaryBg : 'transparent';
   const textColor = variant === 'filled' ? primaryText : text;
 
   return (
@@ -51,6 +49,9 @@ export function PrimaryButton({
       onPress={onPress}
       disabled={isInactive}
       activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isInactive, busy: isLoading }}
       {...rest}
     >
       {isLoading ? (

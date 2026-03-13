@@ -3,13 +3,15 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { spacing, radii, typography } from '../theme';
+import { spacing, radii, typography, elevatedCard, colors } from '../theme';
 
 export interface InfoCardProps {
   title: string;
   description?: string | null;
   iconName?: keyof typeof Ionicons.glyphMap | string;
 }
+
+const c = colors.light;
 
 export function InfoCard({ title, description, iconName = 'information-circle-outline' }: InfoCardProps) {
   const textColor = useThemeColor('text');
@@ -36,16 +38,12 @@ export function InfoCard({ title, description, iconName = 'information-circle-ou
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
+    borderRadius: radii.lg,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#e4e4e7',
+    borderColor: c.borderMuted,
     padding: spacing.md,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 2,
+    ...elevatedCard,
     marginBottom: spacing.md,
   },
   header: {
@@ -63,10 +61,10 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f4f4f5',
+    backgroundColor: c.surfaceMuted,
   },
   title: {
     ...typography.sm,
@@ -77,4 +75,3 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 });
-

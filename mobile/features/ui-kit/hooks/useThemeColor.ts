@@ -1,12 +1,14 @@
-import { colors, ColorToken } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
+import type { ColorToken } from '../theme';
 
 export function useThemeColor(
   colorToken: ColorToken,
   overrides?: { light?: string; dark?: string },
 ): string {
-  const scheme = 'light' as const;
+  const { scheme, colors } = useTheme();
 
-  if (overrides?.light) return overrides.light;
+  if (overrides?.light && scheme === 'light') return overrides.light;
+  if (overrides?.dark && scheme === 'dark') return overrides.dark;
 
-  return colors[scheme][colorToken];
+  return colors[colorToken];
 }

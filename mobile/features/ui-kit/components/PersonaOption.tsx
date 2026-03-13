@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { AppText } from './AppText';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { typography, radii, colors } from '../theme';
+import { typography, radii, spacing, colors } from '../theme';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 
@@ -27,22 +27,21 @@ interface PersonaOptionProps {
 }
 
 const OPTION_HEIGHT = 40;
-const BORDER_COLOR = '#E4E4E7';
-const TEXT_COLOR = colors.light.labelText;
-
 const ICON_SIZE = 18;
 
 export function PersonaOption({ label, icon, iconSource, isSelected, onPress }: PersonaOptionProps) {
   const buttonPrimary = useThemeColor('buttonPrimary');
   const buttonPrimaryText = useThemeColor('buttonPrimaryText');
-  const iconColor = isSelected ? buttonPrimaryText : TEXT_COLOR;
+  const labelColor = useThemeColor('labelText');
+  const borderMuted = useThemeColor('borderMuted');
+  const iconColor = isSelected ? buttonPrimaryText : labelColor;
   const IconComponent = iconSource;
 
   return (
     <TouchableOpacity
       style={[
         styles.option,
-        { borderColor: isSelected ? buttonPrimary : BORDER_COLOR },
+        { borderColor: isSelected ? buttonPrimary : borderMuted },
         isSelected && { backgroundColor: buttonPrimary },
       ]}
       onPress={onPress}
@@ -69,7 +68,7 @@ export function PersonaOption({ label, icon, iconSource, isSelected, onPress }: 
       <AppText
         style={[
           styles.label,
-          { color: isSelected ? buttonPrimaryText : TEXT_COLOR },
+          { color: isSelected ? buttonPrimaryText : labelColor },
         ]}
       >
         {label}
@@ -86,10 +85,10 @@ const styles = StyleSheet.create({
     height: OPTION_HEIGHT,
     borderWidth: 1,
     borderRadius: radii.sm,
-    paddingHorizontal: 14,
+    paddingHorizontal: spacing.smd,
   },
   icon: {
-    marginRight: 10,
+    marginRight: spacing.sm + spacing.xs,
   },
   label: { ...typography.sm, fontWeight: typography.weights.regular, flex: 1 },
 });

@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
+const GEOAPIFY_KEY = Deno.env.get('GEOAPIFY_API_KEY') ?? '';
+const GEOAPIFY_BASE = 'https://api.geoapify.com/v1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,25 +19,19 @@ async function geocode(
   query: string,
 ): Promise<{ lat: number; lng: number } | null> {
   try {
-    const url = `${NOMINATIM_BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'dora-travel-app/1.0' },
-    });
+    const url = `${GEOAPIFY_BASE}/geocode/search?text=${encodeURIComponent(query)}&limit=1&apiKey=${GEOAPIFY_KEY}`;
+    const res = await fetch(url);
     if (!res.ok) return null;
-    const results = await res.json();
-    if (!results || results.length === 0) return null;
+    const data = await res.json();
+    const feature = data.features?.[0];
+    if (!feature) return null;
     return {
-      lat: parseFloat(results[0].lat),
-      lng: parseFloat(results[0].lon),
+      lat: feature.geometry.coordinates[1],
+      lng: feature.geometry.coordinates[0],
     };
   } catch {
     return null;
   }
-}
-
-// Nominatim rate limit: max 1 request/second
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 serve(async (req) => {
@@ -119,9 +114,6 @@ serve(async (req) => {
       } else {
         failed++;
       }
-
-      // Respect Nominatim rate limit (1 req/sec)
-      await delay(1100);
     }
 
     return new Response(

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { AppText } from '@shared/ui-kit';
+import { AppText, colors, typography, spacing, radii } from '@shared/ui-kit';
 import type { BudgetLevel } from '../../domain/entities/ChatSession';
 
 const BUDGETS: { key: BudgetLevel; label: string }[] = [
@@ -14,6 +14,8 @@ interface BudgetSelectionPillsProps {
   selected: BudgetLevel | null;
   onSelect: (budget: BudgetLevel) => void;
 }
+
+const c = colors.light;
 
 export function BudgetSelectionPills({
   selected,
@@ -47,38 +49,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignContent: 'flex-start',
-    gap: 8,
+    gap: spacing.sm,
   },
   pill: {
     height: 36,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    backgroundColor: '#FFFFFF',
+    borderColor: c.borderMuted,
+    backgroundColor: c.background,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: c.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
   pillSelected: {
-    backgroundColor: '#18181B',
-    borderColor: '#18181B',
+    backgroundColor: c.labelText,
+    borderColor: c.labelText,
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   pillText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...typography.sm,
+    fontWeight: typography.weights.medium,
     lineHeight: 20,
-    color: '#18181B',
+    color: c.labelText,
   },
   pillTextSelected: {
-    color: '#FAFAFA',
+    color: c.surface,
   },
 });

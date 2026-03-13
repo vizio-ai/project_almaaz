@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppHeader, AppText, LabelText, PrimaryButton, AuthErrorSection, ScreenTitle, ScreenSubtitle, useThemeColor } from '@shared/ui-kit';
+import { AppHeader, AppText, LabelText, PrimaryButton, AuthErrorSection, ScreenTitle, ScreenSubtitle, useThemeColor, colors, typography, spacing } from '@shared/ui-kit';
 import { COUNTRIES, type Country } from '../../data/config/countries';
 import { CountryPicker } from '../components/CountryPicker';
 import { PhoneInput } from '../components/PhoneInput';
@@ -30,6 +30,8 @@ export function PhoneEntryScreen({
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
 
   const bgColor = useThemeColor('background');
+  const labelColor = useThemeColor('labelText');
+  const accentColor = useThemeColor('borderColor');
 
   const isValidLength = isPossiblePhoneNumber(phone, selectedCountry.code);
 
@@ -79,8 +81,8 @@ export function PhoneEntryScreen({
         >
           {mode === 'signup' ? (
             <>
-              <AppText style={styles.signupTitle}>
-                Unlock the full dora<AppText style={styles.signupDot}>.</AppText> experience
+              <AppText style={[styles.signupTitle, { color: labelColor }]}>
+                Unlock the full dora<AppText style={{ color: accentColor }}>.</AppText> experience
               </AppText>
               <ScreenSubtitle text="Join with your phone number." />
             </>
@@ -123,20 +125,21 @@ export function PhoneEntryScreen({
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   root: { flex: 1 },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, justifyContent: 'center' },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing['3xl'],
+    justifyContent: 'center',
+  },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 20,
+    gap: spacing.xs,
+    marginBottom: spacing.xl,
   },
   signupTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#18181B',
-    marginBottom: 8,
-  },
-  signupDot: {
-    color: '#44FFFF',
+    ...typography['2xl'],
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.sm,
   },
 });
