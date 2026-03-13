@@ -1,3 +1,4 @@
+// @ts-nocheck — Deno Edge Function; types resolve at deploy time, not in Node IDE
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
@@ -235,7 +236,9 @@ function buildSystemPrompt(
 
     return `${base}${personaContext}
 
-You are in onboarding mode. Your goal is to get to know the user better beyond what was collected in onboarding. Ask them to tell you about themselves and what they love doing (food, art, sports, hidden gems, nightlife, adventure — anything!). Be curious and engaging. After the user has shared at least 2-3 messages about themselves, wrap up warmly and let them know you're ready to start planning their first trip together. At that point, end your reply with the exact token: [READY_TO_PLAN]`;
+You are in onboarding mode. Your goal is to get to know the user better beyond what was collected in onboarding. Ask them to tell you about themselves and what they love doing (food, art, sports, hidden gems, nightlife, adventure — anything!). Be curious and engaging. After the user has shared at least 2-3 messages about themselves, wrap up warmly and let them know you're ready to start planning their first trip together. At that point, end your reply with the exact token: [READY_TO_PLAN]
+
+If the user steers the conversation to topics completely unrelated to travel or getting to know them as a traveler (e.g. tech support, politics, medical questions), gently bring the focus back with a light-hearted travel-related response. Never break character.`;
   }
 
   const personaLines: string[] = [];
@@ -267,7 +270,8 @@ Important rules:
 - Only suggest activities (no transportation or hotel bookings).
 - Each day should have 3-5 activities spread across morning, afternoon, and evening.
 - Be specific with place names — use real venues and locations.
-- Vary activity types across the trip.`;
+- Vary activity types across the trip.
+- If the user asks about topics completely unrelated to travel (e.g. coding, politics, medical advice), politely acknowledge their message, stay warm and in character, then steer the conversation back to travel planning. Never answer off-topic questions directly.`;
 }
 
 // ── Supabase DB helpers ────────────────────────────────────
@@ -541,9 +545,25 @@ async function fetchItineraryContext(itineraryId: string): Promise<string> {
   return context;
 }
 
+// ── Dynamic token budget ───────────────────────────────────
+//
+// Rule of thumb: each day's JSON payload (5 activities × ~120 tokens) ≈ 600 tokens.
+// 1 000 tokens base overhead + 600/day, hard-capped at 6 000.
+// This avoids truncated JSON on long trips while keeping costs predictable.
+function calcMaxTokens(details?: TripDetails): number {
+  if (!details?.startDate || !details?.endDate) return 2500;
+  const days = Math.max(
+    1,
+    Math.ceil(
+      (new Date(details.endDate).getTime() - new Date(details.startDate).getTime()) / 86_400_000,
+    ) + 1,
+  );
+  return Math.min(1000 + days * 600, 6000);
+}
+
 // ── Main handler ───────────────────────────────────────────
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -611,7 +631,7 @@ Generate a complete day-by-day itinerary using the generate_itinerary function. 
     const openaiBody: Record<string, unknown> = {
       model: 'gpt-4o',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      max_tokens: 1500,
+      max_tokens: calcMaxTokens(tripDetails),
       temperature: 0.8,
     };
 
@@ -669,17 +689,26 @@ Generate a complete day-by-day itinerary using the generate_itinerary function. 
       if (fnName === 'generate_itinerary') {
         const generated: GeneratedItinerary = { days: fnArgs.days || [] };
 
-        for (const day of generated.days) {
-          for (const act of day.activities) {
-            if (!act.latitude && act.locationText) {
-              const loc = await verifyLocation(`${act.name} ${act.locationText}`);
-              if (loc) {
-                act.latitude = loc.lat ?? null;
-                act.longitude = loc.lng ?? null;
-              }
-            }
-          }
-        }
+        // Geocode activities in parallel — only when GPT provided no coordinates
+        // or returned the null-island (0, 0) which indicates a hallucinated location.
+        const needsGeocode = (act: GeneratedActivity) =>
+          act.locationText &&
+          (!act.latitude || !act.longitude || (act.latitude === 0 && act.longitude === 0));
+
+        await Promise.all(
+          generated.days.flatMap((day) =>
+            day.activities
+              .filter(needsGeocode)
+              .map((act) =>
+                verifyLocation(`${act.name} ${act.locationText}`).then((loc) => {
+                  // Always overwrite — if Geoapify finds nothing, null is correct.
+                  // Never leave (0, 0) in the DB; null means "location unknown".
+                  act.latitude = loc?.lat ?? null;
+                  act.longitude = loc?.lng ?? null;
+                }),
+              ),
+          ),
+        );
 
         let createdItineraryId: string | null = null;
         if (userId && sessionId && tripDetails) {

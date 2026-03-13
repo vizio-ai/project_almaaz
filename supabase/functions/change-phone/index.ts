@@ -152,7 +152,7 @@ async function verifyTwilioOtp(phoneE164: string, code: string): Promise<{ appro
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 

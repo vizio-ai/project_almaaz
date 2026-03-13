@@ -15,9 +15,27 @@ function getSupabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+// ── Auth helper ─────────────────────────────────────────────
+// Decodes the Supabase JWT from the Authorization header to get the caller's
+// user ID. The Supabase relay already verifies the signature — we only need
+// the sub claim to enforce ownership.
+function getUserIdFromJwt(req: Request): string | null {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Main handler ───────────────────────────────────────────
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -26,6 +44,15 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Only the authenticated owner may generate summaries for their itinerary.
+  const userId = getUserIdFromJwt(req);
+  if (!userId) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 
@@ -41,11 +68,13 @@ serve(async (req) => {
 
     const sb = getSupabaseAdmin();
 
-    // 1. Fetch itinerary metadata
+    // 1. Fetch itinerary metadata — ownership enforced via user_id filter.
+    //    Service role bypasses RLS, so we add the check explicitly.
     const { data: itinerary } = await sb
       .from('itineraries')
       .select('title, destination, budget')
       .eq('id', itineraryId)
+      .eq('user_id', userId)
       .single();
 
     if (!itinerary) {
