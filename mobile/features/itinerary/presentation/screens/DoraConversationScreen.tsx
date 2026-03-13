@@ -28,6 +28,8 @@ import type {
 } from '../../domain/entities/ChatSession';
 
 const ACCENT_COLOR = '#44FFFF';
+const BETA_BANNER_BG = '#E0F7F4';
+const BETA_BANNER_TEXT = '#0D6E6E';
 
 interface DoraConversationScreenProps {
   userName?: string | null;
@@ -83,8 +85,11 @@ export function DoraConversationScreen({
   const [pendingFormSuggestions, setPendingFormSuggestions] =
     useState<FormSuggestions | null>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [importActive, setImportActive] = useState(false);
+  const [betaDismissed, setBetaDismissed] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<{ focus: () => void }>(null);
   const userInitials = userName?.[0]?.toUpperCase() ?? '?';
 
   // Create a session on first interaction
@@ -312,7 +317,16 @@ export function DoraConversationScreen({
   };
 
   const handleImportPress = () => {
-    // TODO: open import flow / paste modal
+    setImportActive(true);
+    const aiMsg: UiMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content:
+        'Go ahead — paste your trip notes below and I\'ll structure them into a neat itinerary for you.',
+      messageType: 'text',
+    };
+    setMessages([aiMsg]);
+    setTimeout(() => inputRef.current?.focus(), 200);
   };
 
   const handleFormSubmit = (data: TripFormData) => {
@@ -379,7 +393,7 @@ export function DoraConversationScreen({
             >
               <Ionicons name="map-outline" size={16} color="#FFFFFF" />
               <AppText style={styles.viewItineraryBtnText}>
-                View Itinerary
+                View Your Itinerary
               </AppText>
             </TouchableOpacity>
           )}
@@ -397,6 +411,8 @@ export function DoraConversationScreen({
   };
 
   const showInitialView = messages.length === 0 && !isTyping;
+  const showBetaBanner =
+    (mode === 'import' || importActive) && messages.length > 0 && !betaDismissed;
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
@@ -434,6 +450,21 @@ export function DoraConversationScreen({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.flex}>
+          {/* Beta banner for import mode */}
+          {showBetaBanner && (
+            <TouchableOpacity
+              style={styles.betaBanner}
+              onPress={() => setBetaDismissed(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="information-circle-outline" size={18} color={BETA_BANNER_TEXT} />
+              <AppText style={styles.betaBannerText}>
+                This feature is in Beta. Parsing may not be completely accurate.
+                Manually editing is recommended before saving the trip plan.
+              </AppText>
+            </TouchableOpacity>
+          )}
+
           {showInitialView ? (
             <ScrollView
               style={styles.flex}
@@ -486,9 +517,15 @@ export function DoraConversationScreen({
           )}
         </View>
         <DoraInput
+          ref={inputRef}
           onSend={handleSend}
           disabled={isTyping}
-          placeholder={mode === 'import' ? 'Paste in any trip notes here' : undefined}
+          placeholder={
+            mode === 'import' || importActive
+              ? 'Paste in any trip notes here'
+              : undefined
+          }
+          multiline={mode === 'import' || importActive}
         />
       </KeyboardAvoidingView>
 
@@ -561,6 +598,23 @@ const styles = StyleSheet.create({
     borderColor: '#333333',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  betaBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: BETA_BANNER_BG,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  betaBannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: BETA_BANNER_TEXT,
   },
   initialContent: {
     paddingHorizontal: 24,

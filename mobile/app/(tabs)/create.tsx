@@ -4,10 +4,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '@shared/auth';
 import { useProfile } from '@shared/profile';
-import { DoraConversationScreen } from '@shared/itinerary';
+import { DoraConversationScreen, useItineraryDependencies } from '@shared/itinerary';
 import { ManualItineraryScreen, type ManualItineraryScreenRef } from '@shared/manual-itinerary';
 import { AppHeader, AppText } from '@shared/ui-kit';
+import { ChatHistoryModal } from '../../features/itinerary/presentation/components/ChatHistoryModal';
 import ChatHistorySvg from '../../assets/images/chat_history.svg';
+import type { ChatSession } from '../../features/itinerary/domain/entities/ChatSession';
 
 const HEADER_ICON_COLOR = '#FFFFFF';
 
@@ -18,14 +20,36 @@ export default function CreateScreen() {
   const { profile } = useProfile(session?.user.id);
   const router = useRouter();
   const { fromOnboarding, mode } = useLocalSearchParams<{ fromOnboarding?: string; mode?: string }>();
+  const { getUserSessionsUseCase } = useItineraryDependencies();
   const [viewMode, setViewMode] = useState<ViewMode>('chat');
   const [aiItineraryId, setAiItineraryId] = useState<string | null>(null);
   const [aiItineraryKey, setAiItineraryKey] = useState(0);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const aiItineraryRef = useRef<ManualItineraryScreenRef>(null);
 
   const handleHistoryPress = () => {
-    // TODO: open past chats
+    setHistoryVisible(true);
   };
+
+  const fetchSessions = useCallback(
+    async (userId: string): Promise<ChatSession[]> => {
+      const result = await getUserSessionsUseCase.execute(userId);
+      return result.success ? result.data : [];
+    },
+    [getUserSessionsUseCase],
+  );
+
+  const handleSelectSession = useCallback(
+    (chatSession: ChatSession) => {
+      setHistoryVisible(false);
+      if (chatSession.itineraryId) {
+        setAiItineraryId(chatSession.itineraryId);
+        setAiItineraryKey((k) => k + 1);
+        setViewMode('ai-itinerary');
+      }
+    },
+    [],
+  );
 
   const handleSwitchToChat = () => {
     setViewMode('chat');
@@ -139,6 +163,14 @@ export default function CreateScreen() {
           />
         </View>
       </View>
+
+      <ChatHistoryModal
+        visible={historyVisible}
+        userId={session?.user.id}
+        onSelectSession={handleSelectSession}
+        onClose={() => setHistoryVisible(false)}
+        fetchSessions={fetchSessions}
+      />
     </View>
   );
 }

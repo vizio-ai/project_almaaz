@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   TextInput,
@@ -6,10 +6,14 @@ import {
   StyleSheet,
   Modal,
   Platform,
+  ScrollView,
+  Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@shared/ui-kit';
+import { geocodingService, type PlaceSuggestion } from '@shared/services';
 import { BudgetSelectionPills } from './BudgetSelectionPills';
 import type { BudgetLevel, TripFormData, FormSuggestions } from '../../domain/entities/ChatSession';
 
@@ -36,9 +40,17 @@ export function TripDetailsFormCard({
 }: TripDetailsFormCardProps) {
   const [title, setTitle] = useState(suggestions?.title ?? '');
   const [destination, setDestination] = useState(suggestions?.destination ?? '');
+  const [destinationLat, setDestinationLat] = useState<number | null>(null);
+  const [destinationLng, setDestinationLng] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [budget, setBudget] = useState<BudgetLevel | null>(null);
+
+  // Autocomplete state
+  const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Date picker state
   const [pickerStep, setPickerStep] = useState<DatePickerStep>(null);
@@ -56,15 +68,56 @@ export function TripDetailsFormCard({
     onSubmit({
       title: title.trim(),
       destination: destination.trim(),
+      destinationLat,
+      destinationLng,
       startDate: toISODate(startDate),
       endDate: toISODate(endDate),
       budget,
     });
   };
 
+  // ── Destination autocomplete ───────────────────────────────
+
+  const fetchPlaceSuggestions = useCallback(async (text: string) => {
+    if (text.trim().length < 2) {
+      setPlaceSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setSearching(true);
+    try {
+      const items = await geocodingService.autocomplete(text);
+      setPlaceSuggestions(items);
+      setShowSuggestions(items.length > 0);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  const handleDestinationChange = useCallback(
+    (text: string) => {
+      setDestination(text);
+      setDestinationLat(null);
+      setDestinationLng(null);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fetchPlaceSuggestions(text), 350);
+    },
+    [fetchPlaceSuggestions],
+  );
+
+  const handleSelectPlace = useCallback((place: PlaceSuggestion) => {
+    setDestination(place.label);
+    setDestinationLat(place.lat);
+    setDestinationLng(place.lng);
+    setPlaceSuggestions([]);
+    setShowSuggestions(false);
+    Keyboard.dismiss();
+  }, []);
+
   // ── Date picker logic ──────────────────────────────────────
 
   const openDatePicker = () => {
+    Keyboard.dismiss();
     setLocalDate(startDate ?? new Date());
     setPickerStep('start');
   };
@@ -72,7 +125,8 @@ export function TripDetailsFormCard({
   const handleDateConfirm = () => {
     if (pickerStep === 'start') {
       setStartDate(localDate);
-      setLocalDate(endDate ?? localDate);
+      if (endDate && endDate < localDate) setEndDate(null);
+      setLocalDate(endDate && endDate >= localDate ? endDate : localDate);
       setPickerStep('end');
     } else if (pickerStep === 'end') {
       setEndDate(localDate);
@@ -109,7 +163,7 @@ export function TripDetailsFormCard({
         </View>
       </View>
 
-      {/* Destination */}
+      {/* Destination with autocomplete */}
       <View style={styles.fieldWrap}>
         <View style={styles.field}>
           <AppText style={styles.label}>Destination</AppText>
@@ -117,12 +171,48 @@ export function TripDetailsFormCard({
             <TextInput
               style={styles.inputText}
               value={destination}
-              onChangeText={setDestination}
+              onChangeText={handleDestinationChange}
               placeholder="Destination"
               placeholderTextColor="#71717A"
+              onFocus={() => {
+                if (placeSuggestions.length > 0) setShowSuggestions(true);
+              }}
+              onBlur={() => {
+                // Delay hiding so tap on suggestion can register
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
             />
-            <Ionicons name="chevron-down" size={16} color="#71717A" />
+            {searching ? (
+              <ActivityIndicator size="small" color="#71717A" />
+            ) : (
+              <Ionicons name="chevron-down" size={16} color="#71717A" />
+            )}
           </View>
+
+          {/* Suggestions dropdown */}
+          {showSuggestions && (
+            <ScrollView
+              style={styles.suggestionsContainer}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              {placeSuggestions.map((place, idx) => (
+                <TouchableOpacity
+                  key={place.placeId ?? idx}
+                  style={[
+                    styles.suggestionItem,
+                    idx < placeSuggestions.length - 1 && styles.suggestionItemBorder,
+                  ]}
+                  onPress={() => handleSelectPlace(place)}
+                >
+                  <Ionicons name="location-outline" size={14} color="#71717A" />
+                  <AppText style={styles.suggestionText} numberOfLines={2}>
+                    {place.label}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </View>
 
@@ -180,7 +270,8 @@ export function TripDetailsFormCard({
                 setLocalDate(date);
                 if (pickerStep === 'start') {
                   setStartDate(date);
-                  setLocalDate(endDate ?? date);
+                  if (endDate && endDate < date) setEndDate(null);
+                  setLocalDate(endDate && endDate >= date ? endDate : date);
                   setPickerStep('end');
                 } else {
                   setEndDate(date);
@@ -237,10 +328,11 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     gap: 16,
     alignItems: 'stretch',
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   fieldWrap: {
     paddingVertical: 8,
+    zIndex: 1,
   },
   field: {
     gap: 8,
@@ -273,6 +365,30 @@ const styles = StyleSheet.create({
     color: '#18181B',
     paddingVertical: 0,
     paddingHorizontal: 0,
+  },
+  suggestionsContainer: {
+    maxHeight: 160,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  suggestionItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E4E4E7',
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#18181B',
   },
   dateTrigger: {
     height: 36,
