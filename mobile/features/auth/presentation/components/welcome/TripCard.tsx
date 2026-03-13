@@ -20,7 +20,7 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip, onPress, width }: TripCardProps) {
-  const surface = useThemeColor('surfaceAlt');
+  const surface = useThemeColor('background');
   const text = useThemeColor('text');
 
   const cardWidth = width ?? 183;
