@@ -42,6 +42,8 @@ interface DoraConversationScreenProps {
   onItineraryCreated?: (itineraryId: string) => void;
   onSwitchToItinerary?: () => void;
   onItineraryModified?: () => void;
+  initialSessionId?: string | null;
+  initialItineraryId?: string | null;
 }
 
 interface UiMessage {
@@ -68,6 +70,8 @@ export function DoraConversationScreen({
   onItineraryCreated,
   onSwitchToItinerary,
   onItineraryModified,
+  initialSessionId,
+  initialItineraryId,
 }: DoraConversationScreenProps) {
   const {
     sendDoraMessageUseCase,
@@ -91,6 +95,26 @@ export function DoraConversationScreen({
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<{ focus: () => void }>(null);
   const userInitials = userName?.[0]?.toUpperCase() ?? '?';
+
+  // Load existing session history when initialSessionId is provided
+  useEffect(() => {
+    if (!initialSessionId) return;
+    setSessionId(initialSessionId);
+    if (initialItineraryId) setItineraryId(initialItineraryId);
+    setFormSubmitted(true);
+    chatRepository.getMessages(initialSessionId).then((result) => {
+      if (result.success && result.data.length > 0) {
+        const uiMessages: UiMessage[] = result.data.map((msg) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          messageType: msg.messageType,
+          metadata: msg.metadata,
+        }));
+        setMessages(uiMessages);
+      }
+    });
+  }, [initialSessionId, initialItineraryId, chatRepository]);
 
   // Create a session on first interaction
   const ensureSession = useCallback(async (): Promise<string | null> => {
@@ -415,7 +439,7 @@ export function DoraConversationScreen({
     (mode === 'import' || importActive) && messages.length > 0 && !betaDismissed;
 
   return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
+    <SafeAreaView style={styles.root} edges={[]}>
       {!hideHeader && (
         <AppHeader
           variant="dark"

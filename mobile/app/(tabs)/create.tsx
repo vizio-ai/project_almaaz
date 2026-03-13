@@ -20,10 +20,12 @@ export default function CreateScreen() {
   const { profile } = useProfile(session?.user.id);
   const router = useRouter();
   const { fromOnboarding, mode } = useLocalSearchParams<{ fromOnboarding?: string; mode?: string }>();
-  const { getUserSessionsUseCase } = useItineraryDependencies();
+  const { getUserSessionsUseCase, chatRepository } = useItineraryDependencies();
   const [viewMode, setViewMode] = useState<ViewMode>('chat');
   const [aiItineraryId, setAiItineraryId] = useState<string | null>(null);
   const [aiItineraryKey, setAiItineraryKey] = useState(0);
+  const [chatKey, setChatKey] = useState(0);
+  const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
   const [historyVisible, setHistoryVisible] = useState(false);
   const aiItineraryRef = useRef<ManualItineraryScreenRef>(null);
 
@@ -39,14 +41,24 @@ export default function CreateScreen() {
     [getUserSessionsUseCase],
   );
 
+  const handleDeleteSession = useCallback((sessionId: string) => {
+    chatRepository.deleteSession(sessionId);
+  }, [chatRepository]);
+
+  const handleClearAll = useCallback((sessionIds: string[]) => {
+    sessionIds.forEach((id) => chatRepository.deleteSession(id));
+  }, [chatRepository]);
+
   const handleSelectSession = useCallback(
     (chatSession: ChatSession) => {
       setHistoryVisible(false);
+      setSelectedSession(chatSession);
       if (chatSession.itineraryId) {
         setAiItineraryId(chatSession.itineraryId);
         setAiItineraryKey((k) => k + 1);
-        setViewMode('ai-itinerary');
       }
+      setChatKey((k) => k + 1);
+      setViewMode('chat');
     },
     [],
   );
@@ -64,6 +76,7 @@ export default function CreateScreen() {
   const handleItineraryCreated = useCallback((itineraryId: string) => {
     setAiItineraryId(itineraryId);
     setAiItineraryKey((k) => k + 1);
+    setViewMode('ai-itinerary');
   }, []);
 
   const handleItineraryModified = useCallback(() => {
@@ -143,6 +156,13 @@ export default function CreateScreen() {
               currentUserAvatarUrl={profile?.avatarUrl}
               showHeader={false}
               onBack={handleSwitchToChat}
+              onSaveSuccess={() => {
+                setAiItineraryId(null);
+                setAiItineraryKey((k) => k + 1);
+                setChatKey((k) => k + 1);
+                setViewMode('chat');
+                router.navigate('/(tabs)/my-trips');
+              }}
             />
           )}
         </View>
@@ -150,6 +170,7 @@ export default function CreateScreen() {
         {/* AI Chat */}
         <View style={{ flex: 1, display: viewMode === 'chat' ? 'flex' : 'none' }}>
           <DoraConversationScreen
+            key={chatKey}
             userName={profile?.name}
             userId={session?.user.id}
             persona={profile?.persona}
@@ -160,6 +181,8 @@ export default function CreateScreen() {
             onItineraryCreated={handleItineraryCreated}
             onSwitchToItinerary={handleSwitchToItinerary}
             onItineraryModified={handleItineraryModified}
+            initialSessionId={selectedSession?.id}
+            initialItineraryId={selectedSession?.itineraryId}
           />
         </View>
       </View>
@@ -168,6 +191,8 @@ export default function CreateScreen() {
         visible={historyVisible}
         userId={session?.user.id}
         onSelectSession={handleSelectSession}
+        onDeleteSession={handleDeleteSession}
+        onClearAll={handleClearAll}
         onClose={() => setHistoryVisible(false)}
         fetchSessions={fetchSessions}
       />

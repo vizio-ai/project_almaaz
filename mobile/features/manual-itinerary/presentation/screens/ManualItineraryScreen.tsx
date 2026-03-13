@@ -66,6 +66,7 @@ export interface ManualItineraryScreenProps {
   /** When false, header is not rendered (e.g. when embedded in Create tab). */
   showHeader?: boolean;
   onBack?: () => void;
+  onSaveSuccess?: () => void;
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -135,6 +136,7 @@ export const ManualItineraryScreen = React.forwardRef<
   currentUserAvatarUrl,
   showHeader = true,
   onBack,
+  onSaveSuccess,
 }: ManualItineraryScreenProps, ref) {
   const isNew = itineraryId === null;
 
@@ -462,7 +464,10 @@ export const ManualItineraryScreen = React.forwardRef<
           isClonable,
           ...(newCoverUrl ? { coverImageUrl: newCoverUrl } : {}),
         });
-        if (result.success) refresh();
+        if (result.success) {
+          refresh();
+          onSaveSuccess?.();
+        }
       }
     } finally {
       setIsSaving(false);
@@ -655,7 +660,7 @@ export const ManualItineraryScreen = React.forwardRef<
   const headerActions = isOwner ? (
     <HeaderActions
       onSave={handleSave}
-      saveLabel="Save itinerary"
+      saveLabel="Save changes"
       isSaving={isSaving}
       onShare={handleShare}
       onMoreOptions={!isNew ? handleMoreOptions : undefined}

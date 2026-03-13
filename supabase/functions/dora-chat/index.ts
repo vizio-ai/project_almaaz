@@ -313,7 +313,7 @@ async function createItineraryInDb(
 
   await sb
     .from('chat_sessions')
-    .update({ itinerary_id: itineraryId })
+    .update({ itinerary_id: itineraryId, title: tripDetails.title })
     .eq('id', sessionId);
 
   for (const day of generated.days) {
@@ -574,6 +574,28 @@ serve(async (req: Request) => {
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
+
+  // ── Auth guard ─────────────────────────────────────────────
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser(
+    authHeader.replace('Bearer ', ''),
+  );
+
+  if (authError || !authUser) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+  // ───────────────────────────────────────────────────────────
 
   try {
     const body = await req.json();

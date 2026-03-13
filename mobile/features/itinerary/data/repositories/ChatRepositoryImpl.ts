@@ -130,6 +130,17 @@ export class ChatRepositoryImpl implements ChatRepository {
     }
   }
 
+  async deleteSession(sessionId: string): Promise<Result<void>> {
+    try {
+      await this.supabase.from('chat_messages').delete().eq('session_id', sessionId);
+      const { error } = await this.supabase.from('chat_sessions').delete().eq('id', sessionId);
+      if (error) return fail(networkError(error));
+      return ok(undefined);
+    } catch (error) {
+      return fail(networkError(error));
+    }
+  }
+
   async getMessages(sessionId: string): Promise<Result<ChatMessage[]>> {
     try {
       const { data, error } = await this.supabase

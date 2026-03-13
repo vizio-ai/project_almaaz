@@ -1,6 +1,8 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Image } from 'react-native';
 import { AppText, colors, typography, spacing, radii } from '@shared/ui-kit';
+
+const doraAvatar = require('../../../../assets/images/avatar.png');
 
 interface DoraMessageProps {
   role: 'user' | 'assistant';
@@ -14,9 +16,7 @@ export function DoraMessage({ role, content, userInitials = '?' }: DoraMessagePr
   if (role === 'assistant') {
     return (
       <View style={styles.aiRow}>
-        <View style={styles.aiAvatar}>
-          <AppText style={styles.aiAvatarText}>D</AppText>
-        </View>
+        <Image source={doraAvatar} style={styles.aiAvatar} />
         <View style={styles.aiContent}>
           <AppText style={styles.aiText}>{content}</AppText>
         </View>
@@ -36,14 +36,24 @@ export function DoraMessage({ role, content, userInitials = '?' }: DoraMessagePr
   );
 }
 
+const DOT_FRAMES = ['.', '..', '...'];
+
 export function TypingIndicator() {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(f => (f + 1) % DOT_FRAMES.length);
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <View style={styles.aiRow}>
-      <View style={styles.aiAvatar}>
-        <AppText style={styles.aiAvatarText}>D</AppText>
-      </View>
+      <Image source={doraAvatar} style={styles.aiAvatar} />
       <View style={styles.aiContent}>
-        <AppText style={styles.typingText}>···</AppText>
+        <AppText style={styles.typingLabel}>Planning</AppText>
+        <AppText style={styles.typingDots}>{DOT_FRAMES[frame]}</AppText>
       </View>
     </View>
   );
@@ -60,16 +70,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: c.labelText,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: spacing.md,
     flexShrink: 0,
-  },
-  aiAvatarText: {
-    color: c.background,
-    ...typography.base,
-    fontWeight: typography.weights.bold,
   },
   aiContent: {
     flex: 1,
@@ -80,7 +82,12 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: c.labelText,
   },
-  typingText: {
+  typingLabel: {
+    ...typography.caption,
+    color: c.subLabelText,
+    marginBottom: 2,
+  },
+  typingDots: {
     ...typography.featured,
     color: c.labelText,
     letterSpacing: 2,

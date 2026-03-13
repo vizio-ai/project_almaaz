@@ -28,4 +28,5 @@ export interface ChatRepository {
     message: Omit<ChatMessage, 'id' | 'createdAt'>,
   ): Promise<Result<ChatMessage>>;
   getMessages(sessionId: string): Promise<Result<ChatMessage[]>>;
+  deleteSession(sessionId: string): Promise<Result<void>>;
 }

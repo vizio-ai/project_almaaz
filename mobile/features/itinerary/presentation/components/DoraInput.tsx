@@ -128,7 +128,8 @@ export const DoraInput = forwardRef<DoraInputHandle, DoraInputProps>(
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 8,
+    paddingBottom: 16,
     backgroundColor: '#FFFFFF',
   },
   inputRow: {

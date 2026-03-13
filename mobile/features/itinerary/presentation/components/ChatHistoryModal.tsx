@@ -6,6 +6,7 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ interface ChatHistoryModalProps {
   activeSessionId?: string | null;
   onSelectSession: (session: ChatSession) => void;
   onDeleteSession?: (sessionId: string) => void;
+  onClearAll?: (sessionIds: string[]) => void;
   onClose: () => void;
   fetchSessions: (userId: string) => Promise<ChatSession[]>;
 }
@@ -55,6 +57,7 @@ export function ChatHistoryModal({
   activeSessionId,
   onSelectSession,
   onDeleteSession,
+  onClearAll,
   onClose,
   fetchSessions,
 }: ChatHistoryModalProps) {
@@ -88,6 +91,25 @@ export function ChatHistoryModal({
     onDeleteSession?.(sessionId);
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     setMenuSessionId(null);
+  };
+
+  const handleClearAll = () => {
+    Alert.alert(
+      'Clear All Conversations',
+      'Are you sure you want to delete all chat history? Your saved itineraries will not be affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: () => {
+            const ids = sessions.map((s) => s.id);
+            onClearAll?.(ids);
+            setSessions([]);
+          },
+        },
+      ],
+    );
   };
 
   const renderSession = (session: ChatSession) => {
@@ -162,7 +184,13 @@ export function ChatHistoryModal({
             <Ionicons name="close" size={24} color="#18181B" />
           </TouchableOpacity>
           <AppText style={styles.headerTitle}>Chat History</AppText>
-          <View style={{ width: 24 }} />
+          {sessions.length > 0 ? (
+            <TouchableOpacity onPress={handleClearAll} activeOpacity={0.7} hitSlop={8}>
+              <AppText style={styles.clearAllBtn}>Clear All</AppText>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 24 }} />
+          )}
         </View>
 
         {/* Content */}
@@ -200,6 +228,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  clearAllBtn: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#EF4444',
   },
   header: {
     flexDirection: 'row',

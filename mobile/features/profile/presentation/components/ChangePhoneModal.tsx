@@ -30,17 +30,13 @@ async function callChangePhone(body: Record<string, string>): Promise<{ data: an
   const { data, error } = await supabase.functions.invoke('change-phone', { body });
 
   if (error) {
-    // FunctionsHttpError contains the response body
     let message = error.message;
     try {
-      if ('context' in error && (error as any).context?.body) {
-        const reader = (error as any).context.body.getReader?.();
-        if (reader) {
-          const { value } = await reader.read();
-          const text = new TextDecoder().decode(value);
-          const parsed = JSON.parse(text);
-          if (parsed.error) message = parsed.error;
-        }
+      // Prefer context.json() — body is not consumed by supabase-js before error creation
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === 'function') {
+        const parsed = await ctx.json();
+        if (parsed?.error) message = parsed.error;
       }
     } catch {
       // Fall back to error.message
@@ -48,7 +44,6 @@ async function callChangePhone(body: Record<string, string>): Promise<{ data: an
     return { data: null, error: message };
   }
 
-  // data is already parsed JSON
   if (data?.error) {
     return { data: null, error: data.error };
   }
@@ -77,7 +72,7 @@ export function ChangePhoneModal({
   const [phone, setPhone] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [phoneE164, setPhoneE164] = useState('');
-  const [code, setCode] = useState('');
+  const [, setCode] = useState('');
   const [otpKey, setOtpKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
